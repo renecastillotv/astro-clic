@@ -1,0 +1,408 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PropertyCarousel from '../../components/PropertyCarousel.astro';
+import RelatedArticles from '../../components/RelatedArticles.astro';
+
+// Mock de datos para la categoría
+const { category } = Astro.params;
+
+// Datos de ejemplo para categorías
+const categoryData = {
+  'guias-de-compra': {
+    title: 'Guías de Compra',
+    description: 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana. Desde el proceso legal hasta consejos prácticos de negociación.',
+    icon: '📚',
+    articles: [
+      {
+        slug: 'guia-completa-comprar-villa-punta-cana',
+        title: 'Guía Completa para Comprar una Villa en Punta Cana',
+        excerpt: 'Descubre paso a paso cómo adquirir tu villa soñada en el paraíso caribeño. Incluye análisis de zonas, precios y documentación necesaria.',
+        featuredImage: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=450&fit=crop',
+        author: {
+          name: 'María Rodríguez',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          title: 'Especialista en Punta Cana'
+        },
+        publishedAt: '2024-03-20',
+        readTime: 15,
+        views: '12.5K',
+        featured: true,
+        tags: ['Punta Cana', 'Villas', 'Proceso de Compra']
+      },
+      {
+        slug: 'documentos-extranjeros-comprar-rd',
+        title: 'Documentos Necesarios para Extranjeros que Compran en RD',
+        excerpt: 'Lista completa y actualizada de todos los documentos que necesitas como extranjero para comprar propiedades en República Dominicana.',
+        featuredImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=450&fit=crop',
+        author: {
+          name: 'Carlos Mejía',
+          avatar: 'https://i.pravatar.cc/150?img=8',
+          title: 'Asesor Legal'
+        },
+        publishedAt: '2024-03-18',
+        readTime: 10,
+        views: '8.3K',
+        featured: true,
+        tags: ['Legal', 'Extranjeros', 'Documentación']
+      },
+      {
+        slug: 'como-negociar-precio-propiedad',
+        title: 'Cómo Negociar el Precio de una Propiedad: Estrategias Efectivas',
+        excerpt: 'Técnicas profesionales para obtener el mejor precio en tu próxima compra inmobiliaria.',
+        featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
+        author: {
+          name: 'Pedro Santos',
+          avatar: 'https://i.pravatar.cc/150?img=6',
+          title: 'Director Comercial'
+        },
+        publishedAt: '2024-03-15',
+        readTime: 8,
+        views: '6.7K',
+        tags: ['Negociación', 'Precios', 'Tips']
+      },
+      {
+        slug: 'mejores-zonas-comprar-santo-domingo',
+        title: 'Las 10 Mejores Zonas para Comprar en Santo Domingo',
+        excerpt: 'Análisis detallado de las zonas más valoradas y con mayor potencial de crecimiento en la capital.',
+        featuredImage: 'https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&h=450&fit=crop',
+        author: {
+          name: 'Ana Martínez',
+          avatar: 'https://i.pravatar.cc/150?img=7',
+          title: 'Analista de Mercado'
+        },
+        publishedAt: '2024-03-12',
+        readTime: 12,
+        views: '9.1K',
+        tags: ['Santo Domingo', 'Zonas', 'Análisis']
+      },
+      {
+        slug: 'financiamiento-propiedades-rd',
+        title: 'Opciones de Financiamiento para Propiedades en RD',
+        excerpt: 'Compara todas las opciones de préstamos hipotecarios disponibles para nacionales y extranjeros.',
+        featuredImage: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=800&h=450&fit=crop',
+        author: {
+          name: 'Roberto García',
+          avatar: 'https://i.pravatar.cc/150?img=9',
+          title: 'Consultor Financiero'
+        },
+        publishedAt: '2024-03-10',
+        readTime: 20,
+        views: '11.2K',
+        tags: ['Financiamiento', 'Préstamos', 'Bancos']
+      }
+    ],
+    relatedProperties: [
+      {
+        slug: 'villa-punta-cana-lista-mudarse',
+        titulo: 'Villa en Punta Cana Lista para Mudarse',
+        precio: '$385,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 3,
+        banos: 3,
+        metros: 220,
+        tipo: 'Villa',
+        destacado: true,
+        descuento: 'Precio Negociable'
+      },
+      {
+        slug: 'apartamento-naco-extranjeros',
+        titulo: 'Apartamento Ideal para Extranjeros en Naco',
+        precio: '$225,000',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 2,
+        banos: 2,
+        metros: 140,
+        tipo: 'Apartamento',
+        nuevo: true
+      }
+    ]
+  },
+  'inversion-inmobiliaria': {
+    title: 'Inversión Inmobiliaria',
+    description: 'Estrategias, análisis y casos de éxito para maximizar tu retorno de inversión en el mercado inmobiliario dominicano.',
+    icon: '📈',
+    articles: [
+      {
+        slug: 'roi-airbnb-punta-cana-2024',
+        title: 'ROI de Airbnb en Punta Cana: Análisis Completo 2024',
+        excerpt: 'Estudio detallado de rentabilidad por zonas, tipos de propiedad y temporadas. Incluye casos reales y proyecciones.',
+        featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
+        author: {
+          name: 'Pedro Santos',
+          avatar: 'https://i.pravatar.cc/150?img=6',
+          title: 'Experto en Inversiones'
+        },
+        publishedAt: '2024-03-22',
+        readTime: 18,
+        views: '45.2K',
+        featured: true,
+        tags: ['Airbnb', 'ROI', 'Punta Cana']
+      }
+    ]
+  }
+};
+
+const currentCategory = categoryData[category] || categoryData['guias-de-compra'];
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// Separar artículos destacados
+const featuredArticles = currentCategory.articles.filter(a => a.featured);
+const regularArticles = currentCategory.articles.filter(a => !a.featured);
+
+// Artículos más populares de la categoría
+const popularArticles = [...currentCategory.articles]
+  .sort((a, b) => parseInt(b.views) - parseInt(a.views))
+  .slice(0, 5);
+---
+
+<Layout 
+  title={`${currentCategory.title} - Blog CLIC`} 
+  description={currentCategory.description}
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-12">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600 mb-6">
+        <a href="/articulos" class="hover:text-[#f04e00]">Artículos</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{currentCategory.title}</span>
+      </nav>
+      
+      <div class="max-w-4xl">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="text-5xl">{currentCategory.icon}</span>
+          <h1 class="text-4xl md:text-5xl font-bold text-gray-900">
+            {currentCategory.title}
+          </h1>
+        </div>
+        <p class="text-xl text-gray-600">
+          {currentCategory.description}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Grid -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Articles Column - 2/3 width */}
+        <div class="lg:col-span-2">
+          
+          {/* Featured Articles */}
+          {featuredArticles.length > 0 && (
+            <div class="mb-12">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">Artículos Destacados</h2>
+              
+              <div class="space-y-8">
+                {featuredArticles.map((article) => (
+                  <article class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+                    <a 
+                      href={`/articulos/${category}/${article.slug}`}
+                      class="flex flex-col md:flex-row"
+                    >
+                      <div class="md:w-2/5">
+                        <div class="aspect-[16/9] md:aspect-[4/3] h-full">
+                          <img 
+                            src={article.featuredImage} 
+                            alt={article.title}
+                            class="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div class="flex-1 p-6">
+                        <div class="flex items-center gap-2 mb-3">
+                          {article.tags.map(tag => (
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 hover:text-[#f04e00] transition-colors">
+                          {article.title}
+                        </h3>
+                        
+                        <p class="text-gray-600 mb-4 line-clamp-2">
+                          {article.excerpt}
+                        </p>
+                        
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <img 
+                              src={article.author.avatar} 
+                              alt={article.author.name}
+                              class="w-10 h-10 rounded-full"
+                            />
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
+                              <p class="text-xs text-gray-500">{article.author.title}</p>
+                            </div>
+                          </div>
+                          
+                          <div class="text-sm text-gray-500">
+                            {article.readTime} min • {article.views} vistas
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Regular Articles Grid */}
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Todos los Artículos</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {regularArticles.map((article) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                  <a href={`/articulos/${category}/${article.slug}`}>
+                    <div class="aspect-[16/9] overflow-hidden rounded-t-lg">
+                      <img 
+                        src={article.featuredImage} 
+                        alt={article.title}
+                        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    
+                    <div class="p-5">
+                      <div class="flex items-center gap-2 mb-2">
+                        {article.tags.slice(0, 2).map(tag => (
+                          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      <h3 class="font-semibold text-gray-900 mb-2 hover:text-[#f04e00] transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                      
+                      <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {article.excerpt}
+                      </p>
+                      
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>{formatDate(article.publishedAt)}</span>
+                        <span>{article.readTime} min lectura</span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+          
+        </div>
+        
+        {/* Sidebar - 1/3 width */}
+        <aside class="lg:col-span-1">
+          
+          {/* Popular Articles */}
+          <div class="bg-white rounded-lg shadow-md p-6 mb-8 sticky top-24">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">
+              🔥 Más populares en {currentCategory.title}
+            </h3>
+            
+            <div class="space-y-4">
+              {popularArticles.map((article, index) => (
+                <a 
+                  href={`/articulos/${category}/${article.slug}`}
+                  class="flex gap-3 group"
+                >
+                  <span class="text-2xl font-bold text-gray-200 group-hover:text-[#f04e00]/20 transition-colors">
+                    {index + 1}
+                  </span>
+                  <div class="flex-1">
+                    <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm line-clamp-2">
+                      {article.title}
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">
+                      {article.views} vistas
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+            
+            {/* Newsletter CTA */}
+            <div class="mt-8 pt-8 border-t">
+              <h4 class="font-semibold text-gray-900 mb-3">
+                📧 No te pierdas ningún artículo
+              </h4>
+              <p class="text-sm text-gray-600 mb-4">
+                Recibe nuestros mejores contenidos directo a tu correo
+              </p>
+              <form class="space-y-3">
+                <input 
+                  type="email" 
+                  placeholder="tu@email.com"
+                  class="w-full px-3 py-2 border rounded-md text-sm"
+                />
+                <button 
+                  type="submit"
+                  class="w-full bg-[#f04e00] text-white py-2 rounded-md hover:bg-[#d94400] transition-colors text-sm font-medium"
+                >
+                  Suscribirse
+                </button>
+              </form>
+            </div>
+          </div>
+          
+        </aside>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  {currentCategory.relatedProperties && (
+    <PropertyCarousel 
+      title={`Propiedades recomendadas para ${currentCategory.title.toLowerCase()}`}
+      subtitle="Basadas en los artículos más leídos de esta categoría"
+      properties={currentCategory.relatedProperties}
+      viewAllLink={`/comprar?fuente=${category}`}
+    />
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">
+        ¿Tienes preguntas sobre {currentCategory.title.toLowerCase()}?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Nuestros asesores expertos están listos para ayudarte
+      </p>
+      <a 
+        href="/contacto" 
+        class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+      >
+        Hablar con un asesor
+      </a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

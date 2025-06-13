@@ -1,0 +1,810 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PropertyCarousel from '../../components/PropertyCarousel.astro';
+import Testimonials from '../../components/Testimonials.astro';
+
+// Mock de datos para el asesor
+const { asesor } = Astro.params;
+
+// Datos del asesor específico
+const asesorData = {
+  'maria-rodriguez': {
+    name: 'María Rodríguez',
+    title: 'Directora de Ventas Premium',
+    avatar: 'https://i.pravatar.cc/400?img=5',
+    coverImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=400&fit=crop',
+    specialties: ['Propiedades de Lujo', 'Casa de Campo', 'Cap Cana', 'Clientes VIP'],
+    areas: ['Santo Domingo', 'La Romana', 'Punta Cana', 'Cap Cana'],
+    languages: ['Español', 'Inglés', 'Francés'],
+    experience: '12 años',
+    totalSales: '$45M',
+    propertiesSold: 180,
+    avgDays: 28,
+    rating: 4.9,
+    reviewCount: 127,
+    phone: '+1 809 555 0101',
+    whatsapp: '18095550101',
+    email: 'maria.rodriguez@clic.do',
+    joinDate: '2012-03-15',
+    
+    bio: `Con más de 12 años de experiencia en el mercado inmobiliario dominicano, María se ha especializado en propiedades de lujo y clientes VIP. Su pasión por la excelencia y atención al detalle la han convertido en la asesora preferida de celebridades, empresarios y familias de alto poder adquisitivo.
+
+María entiende que comprar una propiedad de lujo va más allá de la transacción; se trata de encontrar un estilo de vida. Su enfoque personalizado y su amplia red de contactos le permiten acceder a propiedades exclusivas antes de que salgan al mercado público.
+
+Graduada en Administración de Empresas con especialización en Bienes Raíces, María mantiene certificaciones internacionales y está constantemente actualizada en las últimas tendencias del mercado inmobiliario de lujo.`,
+
+    achievements: [
+      {
+        year: '2023',
+        title: 'Top Seller del Año',
+        description: 'Mayor volumen de ventas en propiedades premium'
+      },
+      {
+        year: '2022',
+        title: 'Asesor del Año',
+        description: 'Reconocimiento por excelencia en servicio al cliente'
+      },
+      {
+        year: '2021',
+        title: 'Especialista Certificada en Lujo',
+        description: 'Certificación internacional en propiedades de lujo'
+      },
+      {
+        year: '2020',
+        title: 'Mejor Satisfacción del Cliente',
+        description: 'Calificación más alta en encuestas de satisfacción'
+      }
+    ],
+
+    expertise: [
+      {
+        area: 'Propiedades de Lujo',
+        description: 'Villas, penthouses y propiedades exclusivas valoradas en más de $500,000',
+        percentage: 95
+      },
+      {
+        area: 'Clientes Internacionales',
+        description: 'Atención especializada a compradores de Estados Unidos, Canadá y Europa',
+        percentage: 90
+      },
+      {
+        area: 'Casa de Campo & Cap Cana',
+        description: 'Experta en los resorts más exclusivos de República Dominicana',
+        percentage: 98
+      },
+      {
+        area: 'Inversión Inmobiliaria',
+        description: 'Asesoría en inversiones de alto rendimiento y estrategias de portafolio',
+        percentage: 85
+      }
+    ],
+
+    recentSales: [
+      {
+        slug: 'villa-casa-de-campo-maria',
+        titulo: 'Villa Espectacular en Casa de Campo',
+        precio: '$2,500,000',
+        imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        sector: 'Casa de Campo',
+        habitaciones: 6,
+        banos: 7,
+        metros: 650,
+        tipo: 'Villa de Lujo',
+        fechaVenta: '2024-02-28',
+        cliente: 'Juan Luis Guerra',
+        destacado: true
+      },
+      {
+        slug: 'penthouse-naco-maria',
+        titulo: 'Penthouse de Lujo en Naco',
+        precio: '$1,200,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 4,
+        banos: 4,
+        metros: 380,
+        tipo: 'Penthouse',
+        fechaVenta: '2024-01-15',
+        cliente: 'Familia Empresarial'
+      },
+      {
+        slug: 'villa-cap-cana-maria',
+        titulo: 'Villa Frente al Mar en Cap Cana',
+        precio: '$3,200,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop',
+        sector: 'Cap Cana',
+        habitaciones: 7,
+        banos: 8,
+        metros: 750,
+        tipo: 'Villa Premium',
+        fechaVenta: '2023-12-20',
+        cliente: 'Inversionista Internacional'
+      }
+    ],
+
+    testimonials: [
+      {
+        id: '1',
+        slug: 'juan-luis-guerra-casa-de-campo',
+        category: 'compradores',
+        author: {
+          name: 'Juan Luis Guerra',
+          avatar: 'https://i.pravatar.cc/150?img=8',
+          location: 'Casa de Campo',
+          verified: true,
+          isCelebrity: true
+        },
+        rating: 5,
+        text: 'María superó todas mis expectativas. Su profesionalismo, conocimiento del mercado y atención personalizada hicieron que encontrar mi villa perfecta fuera una experiencia increíble.',
+        excerpt: 'María superó todas mis expectativas. Su profesionalismo es incomparable.',
+        propertyType: 'Villa de Lujo',
+        location: 'Casa de Campo',
+        date: '2024-02-28',
+        featured: true,
+        views: '15.2K',
+        readTime: '4 min'
+      },
+      {
+        id: '2',
+        slug: 'familia-empresarial-naco',
+        category: 'compradores',
+        author: {
+          name: 'Familia Herrera',
+          avatar: 'https://i.pravatar.cc/150?img=12',
+          location: 'Santo Domingo',
+          verified: true
+        },
+        rating: 5,
+        text: 'Buscábamos un penthouse en zona exclusiva y María nos mostró opciones perfectas. Su red de contactos nos permitió acceder a propiedades que no estaban en el mercado público.',
+        excerpt: 'Su red de contactos nos permitió acceder a propiedades exclusivas.',
+        propertyType: 'Penthouse',
+        location: 'Naco',
+        date: '2024-01-15',
+        views: '8.7K',
+        readTime: '3 min'
+      },
+      {
+        id: '3',
+        slug: 'inversionista-internacional-cap-cana',
+        category: 'compradores',
+        author: {
+          name: 'Robert Anderson',
+          avatar: 'https://i.pravatar.cc/150?img=14',
+          location: 'Miami, USA',
+          verified: true
+        },
+        rating: 5,
+        text: 'As an international investor, I needed someone who understood both markets. María\'s expertise in luxury properties and investment potential was exactly what I needed.',
+        excerpt: 'Her expertise in luxury properties and investment potential was perfect.',
+        propertyType: 'Villa Premium',
+        location: 'Cap Cana',
+        date: '2023-12-20',
+        views: '6.3K',
+        readTime: '5 min'
+      }
+    ],
+
+    currentListings: [
+      {
+        slug: 'villa-exclusiva-casa-de-campo',
+        titulo: 'Villa Exclusiva con Vista al Golf',
+        precio: '$2,800,000',
+        imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+        sector: 'Casa de Campo',
+        habitaciones: 6,
+        banos: 6,
+        metros: 580,
+        tipo: 'Villa de Lujo',
+        destacado: true,
+        exclusiva: true
+      },
+      {
+        slug: 'penthouse-panoramico-naco',
+        titulo: 'Penthouse Panorámico en Torre Premium',
+        precio: '$1,850,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 5,
+        banos: 5,
+        metros: 420,
+        tipo: 'Penthouse',
+        nuevo: true
+      },
+      {
+        slug: 'villa-frente-mar-cap-cana',
+        titulo: 'Villa Frente al Mar con Playa Privada',
+        precio: '$4,200,000',
+        imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+        sector: 'Cap Cana',
+        habitaciones: 8,
+        banos: 9,
+        metros: 850,
+        tipo: 'Villa Premium',
+        exclusiva: true
+      }
+    ],
+
+    schedule: {
+      monday: { start: '08:00', end: '18:00', available: true },
+      tuesday: { start: '08:00', end: '18:00', available: true },
+      wednesday: { start: '08:00', end: '18:00', available: true },
+      thursday: { start: '08:00', end: '18:00', available: true },
+      friday: { start: '08:00', end: '18:00', available: true },
+      saturday: { start: '09:00', end: '15:00', available: true },
+      sunday: { start: null, end: null, available: false }
+    },
+
+    certifications: [
+      'Luxury Property Specialist - International',
+      'Real Estate Investment Analyst',
+      'Customer Excellence Certification',
+      'Bilingual Real Estate Professional'
+    ],
+
+    socialProof: {
+      linkedinFollowers: '2.3K',
+      instagramFollowers: '8.7K',
+      youtubeSubscribers: '1.2K'
+    }
+  }
+};
+
+const currentAsesor = asesorData[asesor] || asesorData['maria-rodriguez'];
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// Calcular años de experiencia
+const yearsActive = new Date().getFullYear() - new Date(currentAsesor.joinDate).getFullYear();
+---
+
+<Layout 
+  title={`${currentAsesor.name} - ${currentAsesor.title} | Asesores CLIC`} 
+  description={`Conoce a ${currentAsesor.name}, ${currentAsesor.title} con ${currentAsesor.experience} de experiencia. Especialista en ${currentAsesor.specialties[0]} y ${currentAsesor.specialties[1]}.`}
+>
+  <!-- Breadcrumbs -->
+  <section class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600">
+        <a href="/asesores" class="hover:text-[#f04e00]">Asesores</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{currentAsesor.name}</span>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Header Section -->
+  <section class="relative">
+    <!-- Cover Image -->
+    <div class="h-80 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] relative overflow-hidden">
+      <img 
+        src={currentAsesor.coverImage} 
+        alt="Cover"
+        class="w-full h-full object-cover opacity-30"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
+    </div>
+    
+    <!-- Profile Card - Overlapping the cover -->
+    <div class="container mx-auto px-4">
+      <div class="relative -mt-20">
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+          <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8">
+            <!-- Avatar -->
+            <div class="relative flex-shrink-0">
+              <img 
+                src={currentAsesor.avatar} 
+                alt={currentAsesor.name}
+                class="w-32 h-32 rounded-full border-6 border-white shadow-xl object-cover"
+              />
+              <div class="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Profile Info -->
+            <div class="flex-1 text-center lg:text-left">
+              <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{currentAsesor.name}</h1>
+              <p class="text-xl text-gray-600 mb-4">{currentAsesor.title}</p>
+              
+              <!-- Rating -->
+              <div class="flex items-center justify-center lg:justify-start gap-2 mb-4">
+                <div class="flex">
+                  {Array.from({length: 5}, (_, i) => (
+                    <svg class={`w-5 h-5 ${i < Math.floor(currentAsesor.rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  ))}
+                </div>
+                <span class="text-gray-600">{currentAsesor.rating}/5</span>
+                <span class="text-gray-400">•</span>
+                <span class="text-gray-600">{currentAsesor.reviewCount} reseñas</span>
+              </div>
+              
+              <!-- Quick Stats -->
+              <div class="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-gray-600 mb-6">
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {currentAsesor.experience} de experiencia
+                </span>
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                  </svg>
+                  {currentAsesor.propertiesSold} propiedades vendidas
+                </span>
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  Promedio {currentAsesor.avgDays} días
+                </span>
+              </div>
+              
+              <!-- Contact Buttons -->
+              <div class="flex flex-col sm:flex-row gap-3">
+                <a 
+                  href={`tel:${currentAsesor.phone}`}
+                  class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-medium"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  </svg>
+                  Llamar ahora
+                </a>
+                <a 
+                  href={`https://wa.me/${currentAsesor.whatsapp}`}
+                  target="_blank"
+                  class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                  </svg>
+                  WhatsApp
+                </a>
+                <a 
+                  href={`mailto:${currentAsesor.email}`}
+                  class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                  Email
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="py-12 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <div class="text-center bg-gray-50 rounded-lg p-6">
+          <div class="text-3xl font-bold text-[#f04e00] mb-2">{currentAsesor.totalSales}</div>
+          <div class="text-sm text-gray-600">Total en ventas</div>
+        </div>
+        <div class="text-center bg-gray-50 rounded-lg p-6">
+          <div class="text-3xl font-bold text-[#f04e00] mb-2">{currentAsesor.propertiesSold}</div>
+          <div class="text-sm text-gray-600">Propiedades vendidas</div>
+        </div>
+        <div class="text-center bg-gray-50 rounded-lg p-6">
+          <div class="text-3xl font-bold text-[#f04e00] mb-2">{currentAsesor.avgDays}</div>
+          <div class="text-sm text-gray-600">Días promedio</div>
+        </div>
+        <div class="text-center bg-gray-50 rounded-lg p-6">
+          <div class="text-3xl font-bold text-[#f04e00] mb-2">{yearsActive}</div>
+          <div class="text-sm text-gray-600">Años con CLIC</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bio and Expertise -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <!-- Bio -->
+        <div class="lg:col-span-2">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">Acerca de {currentAsesor.name}</h2>
+          <div class="prose prose-lg max-w-none">
+            <div class="whitespace-pre-line text-gray-700 leading-relaxed">
+              {currentAsesor.bio}
+            </div>
+          </div>
+          
+          <!-- Achievements -->
+          <div class="mt-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Logros y Reconocimientos</h3>
+            <div class="space-y-4">
+              {currentAsesor.achievements.map((achievement) => (
+                <div class="flex gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div class="flex-shrink-0 w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center">
+                    <span class="text-white font-bold text-sm">{achievement.year}</span>
+                  </div>
+                  <div>
+                    <h4 class="font-semibold text-gray-900">{achievement.title}</h4>
+                    <p class="text-gray-600 text-sm">{achievement.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+          <!-- Specialties -->
+          <div class="bg-white border rounded-lg p-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Especialidades</h3>
+            <div class="space-y-2">
+              {currentAsesor.specialties.map(specialty => (
+                <span class="block bg-[#f04e00]/10 text-[#f04e00] px-3 py-2 rounded text-sm">
+                  {specialty}
+                </span>
+              ))}
+            </div>
+          </div>
+          
+          <!-- Areas -->
+          <div class="bg-white border rounded-lg p-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Zonas de Cobertura</h3>
+            <div class="space-y-2">
+              {currentAsesor.areas.map(area => (
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  <span class="text-gray-700 text-sm">{area}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <!-- Languages -->
+          <div class="bg-white border rounded-lg p-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Idiomas</h3>
+            <div class="space-y-2">
+              {currentAsesor.languages.map(language => (
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                  </svg>
+                  <span class="text-gray-700 text-sm">{language}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <!-- Contact Info -->
+          <div class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] rounded-lg p-6 text-white">
+            <h3 class="font-semibold mb-4">Información de Contacto</h3>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+                <span class="text-sm">{currentAsesor.phone}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-sm">{currentAsesor.email}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-sm">Lun-Vie: 8:00-18:00<br/>Sáb: 9:00-15:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Expertise Bars -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8 text-center">Áreas de Expertise</h2>
+        
+        <div class="space-y-6">
+          {currentAsesor.expertise.map((skill) => (
+            <div class="bg-white rounded-lg p-6">
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="font-semibold text-gray-900">{skill.area}</h3>
+                <span class="text-[#f04e00] font-bold">{skill.percentage}%</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">{skill.description}</p>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] h-3 rounded-full transition-all duration-1000"
+                  style={`width: ${skill.percentage}%`}
+                ></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Sales -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Ventas Recientes</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {currentAsesor.recentSales.map((sale) => (
+          <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="relative">
+              <img 
+                src={sale.imagen} 
+                alt={sale.titulo}
+                class="w-full aspect-video object-cover"
+              />
+              {sale.destacado && (
+                <span class="absolute top-3 left-3 bg-[#f04e00] text-white px-2 py-1 rounded text-xs font-medium">
+                  Venta Destacada
+                </span>
+              )}
+              <div class="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm">
+                {formatDate(sale.fechaVenta)}
+              </div>
+            </div>
+            
+            <div class="p-4">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
+                  {sale.tipo}
+                </span>
+                <span class="text-lg font-bold text-[#f04e00]">{sale.precio}</span>
+              </div>
+              
+              <h3 class="font-semibold text-gray-900 mb-2">{sale.titulo}</h3>
+              
+              <div class="flex items-center gap-4 text-xs text-gray-600 mb-3">
+                <span>{sale.habitaciones} hab</span>
+                <span>•</span>
+                <span>{sale.banos} baños</span>
+                <span>•</span>
+                <span>{sale.metros} m²</span>
+              </div>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">{sale.sector}</span>
+                <span class="text-xs text-gray-500">Cliente: {sale.cliente}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Current Listings */
+  <PropertyCarousel 
+    title="Propiedades Exclusivas de María"
+    subtitle="Propiedades premium disponibles en mi portafolio exclusivo"
+    properties={currentAsesor.currentListings}
+    viewAllLink={`/comprar?asesor=${currentAsesor.name.toLowerCase().replace(/\s+/g, '-')}`}
+  />
+
+  <!-- Client Testimonials -->
+  <Testimonials 
+    testimonials={currentAsesor.testimonials}
+    title="Lo que dicen mis clientes"
+    subtitle="Testimonios reales de clientes que han trabajado conmigo"
+  />
+
+  <!-- Certifications -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">Certificaciones y Credenciales</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {currentAsesor.certifications.map((cert) => (
+            <div class="bg-white rounded-lg p-4 border-l-4 border-[#f04e00] flex items-center gap-3">
+              <svg class="w-8 h-8 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-gray-900 font-medium">{cert}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Form Section -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            ¿Listo para trabajar conmigo?
+          </h2>
+          <p class="text-xl text-gray-600">
+            Contacta directamente conmigo para una consulta personalizada
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <!-- Contact Form -->
+          <div class="bg-gray-50 rounded-lg p-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-6">Envíame un mensaje</h3>
+            <form class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                  <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent" placeholder="Tu nombre completo">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                  <input type="tel" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent" placeholder="+1 809 555 0000">
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent" placeholder="tu@email.com">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de propiedad</label>
+                <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  <option>Selecciona una opción</option>
+                  <option>Villa de Lujo</option>
+                  <option>Penthouse</option>
+                  <option>Apartamento</option>
+                  <option>Casa</option>
+                  <option>Inversión</option>
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Presupuesto</label>
+                <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  <option>Selecciona un rango</option>
+                  <option>$200K - $500K</option>
+                  <option>$500K - $1M</option>
+                  <option>$1M - $2M</option>
+                  <option>$2M+</option>
+                </select>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Mensaje</label>
+                <textarea rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent" placeholder="Cuéntame sobre tu proyecto inmobiliario..."></textarea>
+              </div>
+              
+              <button type="submit" class="w-full bg-[#f04e00] text-white py-3 rounded-lg hover:bg-[#d94400] transition-colors font-medium">
+                Enviar mensaje a {currentAsesor.name}
+              </button>
+            </form>
+          </div>
+          
+          <!-- Quick Contact -->
+          <div class="space-y-6">
+            <div class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] rounded-lg p-8 text-white">
+              <h3 class="text-xl font-semibold mb-4">Contacto Directo</h3>
+              <p class="mb-6">¿Prefieres hablar directamente? Estoy disponible para una consulta inmediata.</p>
+              
+              <div class="space-y-4">
+                <a 
+                  href={`tel:${currentAsesor.phone}`}
+                  class="flex items-center gap-3 bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+                >
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  </svg>
+                  <div>
+                    <div class="font-medium">Llamar ahora</div>
+                    <div class="text-sm text-white/80">{currentAsesor.phone}</div>
+                  </div>
+                </a>
+                
+                <a 
+                  href={`https://wa.me/${currentAsesor.whatsapp}?text=Hola%20${currentAsesor.name},%20estoy%20interesado%20en%20tus%20servicios%20inmobiliarios`}
+                  target="_blank"
+                  class="flex items-center gap-3 bg-white/20 backdrop-blur rounded-lg p-4 hover:bg-white/30 transition-colors"
+                >
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                  </svg>
+                  <div>
+                    <div class="font-medium">WhatsApp</div>
+                    <div class="text-sm text-white/80">Respuesta inmediata</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+            
+            <!-- Schedule -->
+            <div class="bg-gray-50 rounded-lg p-6">
+              <h3 class="font-semibold text-gray-900 mb-4">Horario de Atención</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Lunes - Viernes</span>
+                  <span class="text-gray-900">8:00 AM - 6:00 PM</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Sábado</span>
+                  <span class="text-gray-900">9:00 AM - 3:00 PM</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Domingo</span>
+                  <span class="text-gray-500">Citas especiales</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Social Proof -->
+            <div class="bg-white border rounded-lg p-6">
+              <h3 class="font-semibold text-gray-900 mb-4">Sígueme en Redes</h3>
+              <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div class="text-lg font-bold text-[#f04e00]">{currentAsesor.socialProof.linkedinFollowers}</div>
+                  <div class="text-xs text-gray-600">LinkedIn</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold text-[#f04e00]">{currentAsesor.socialProof.instagramFollowers}</div>
+                  <div class="text-xs text-gray-600">Instagram</div>
+                </div>
+                <div>
+                  <div class="text-lg font-bold text-[#f04e00]">{currentAsesor.socialProof.youtubeSubscribers}</div>
+                  <div class="text-xs text-gray-600">YouTube</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿Listo para encontrar tu propiedad perfecta?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Con {currentAsesor.experience} de experiencia y más de {currentAsesor.propertiesSold} propiedades vendidas, 
+        estoy aquí para hacer realidad tus sueños inmobiliarios
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href={`https://wa.me/${currentAsesor.whatsapp}?text=Hola%20${currentAsesor.name},%20quiero%20agendar%20una%20cita`}
+          target="_blank"
+          class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+        >
+          Agendar cita con {currentAsesor.name}
+        </a>
+        <a 
+          href={`/comprar?asesor=${currentAsesor.name.toLowerCase().replace(/\s+/g, '-')}`}
+          class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+        >
+          Ver mis propiedades disponibles
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
