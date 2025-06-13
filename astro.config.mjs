@@ -1,10 +1,11 @@
-// @ts-check
+ï»¿// @ts-check
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
+import vercel from '@astrojs/vercel/serverless'; // ðŸ‘ˆ ESTE ES CLAVE
 
-// https://astro.build/config
 export default defineConfig({
     integrations: [tailwind()],
-    output: 'server', // o 'static' si prefieres generación estática
+    output: 'server',
+    adapter: vercel(), // ðŸ‘ˆ AGREGA EL ADAPTER
     site: 'https://clicinmobiliaria.com',
 });
