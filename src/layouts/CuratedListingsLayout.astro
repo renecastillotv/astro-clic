@@ -1,0 +1,322 @@
+---
+// src/layouts/CuratedListingsLayout.astro - Layout para página principal de listados curados
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// Usar datos del content-backend si existen, sino fallback estático
+let listingsData = data;
+
+if (!listingsData || (!listingsData.listings && !listingsData.featuredListings)) {
+  console.log('🏢 CuratedListingsLayout: Usando datos estáticos de fallback');
+  
+  listingsData = {
+    language: language,
+    featuredListings: [
+      {
+        slug: 'apartamentos-para-airbnb-en-santo-domingo',
+        title: language === 'es' ? 'Apartamentos para Airbnb en Santo Domingo' :
+               language === 'en' ? 'Apartments for Airbnb in Santo Domingo' :
+               'Appartements pour Airbnb à Santo Domingo',
+        description: language === 'es' ? 'Propiedades perfectas para alquiler vacacional con alta rentabilidad' :
+                     language === 'en' ? 'Perfect properties for vacation rental with high profitability' :
+                     'Propriétés parfaites pour location de vacances à haute rentabilité',
+        image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        propertiesCount: 24,
+        avgReturn: '12%',
+        priceRange: '$180K - $350K',
+        category: 'Airbnb'
+      },
+      {
+        slug: 'para-comprar-desde-estados-unidos',
+        title: language === 'es' ? 'Para Comprar desde Estados Unidos' :
+               language === 'en' ? 'To Buy from United States' :
+               'Pour Acheter depuis les États-Unis',
+        description: language === 'es' ? 'Propiedades verificadas y seguras para compradores internacionales' :
+                     language === 'en' ? 'Verified and secure properties for international buyers' :
+                     'Propriétés vérifiées et sécurisées pour acheteurs internationaux',
+        image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        propertiesCount: 18,
+        avgReturn: '8%',
+        priceRange: '$250K - $800K',
+        category: 'Internacional'
+      },
+      {
+        slug: 'cuota-mensual-menos-500-dolares',
+        title: language === 'es' ? 'Cuota Mensual Menos de $500' :
+               language === 'en' ? 'Monthly Payment Under $500' :
+               'Paiement Mensuel Moins de $500',
+        description: language === 'es' ? 'Propiedades asequibles con financiamiento accesible' :
+                     language === 'en' ? 'Affordable properties with accessible financing' :
+                     'Propriétés abordables avec financement accessible',
+        image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+        propertiesCount: 31,
+        avgReturn: '6%',
+        priceRange: '$120K - $280K',
+        category: 'Asequible'
+      }
+    ],
+    categories: [
+      {
+        slug: 'airbnb',
+        name: language === 'es' ? 'Perfectas para Airbnb' : language === 'en' ? 'Perfect for Airbnb' : 'Parfait pour Airbnb',
+        count: 45,
+        icon: '🏠',
+        description: language === 'es' ? 'Alta rentabilidad vacacional' : language === 'en' ? 'High vacation rental return' : 'Haut rendement locatif vacances'
+      },
+      {
+        slug: 'internacional',
+        name: language === 'es' ? 'Compradores Internacionales' : language === 'en' ? 'International Buyers' : 'Acheteurs Internationaux',
+        count: 32,
+        icon: '🌍',
+        description: language === 'es' ? 'Verificadas y seguras' : language === 'en' ? 'Verified and secure' : 'Vérifiées et sécurisées'
+      },
+      {
+        slug: 'primera-vivienda',
+        name: language === 'es' ? 'Primera Vivienda' : language === 'en' ? 'First Home' : 'Premier Logement',
+        count: 28,
+        icon: '🔑',
+        description: language === 'es' ? 'Ideales para residir' : language === 'en' ? 'Ideal for living' : 'Idéal pour résider'
+      },
+      {
+        slug: 'inversion',
+        name: language === 'es' ? 'Alta Rentabilidad' : language === 'en' ? 'High Return' : 'Haute Rentabilité',
+        count: 38,
+        icon: '📈',
+        description: language === 'es' ? 'ROI garantizado' : language === 'en' ? 'Guaranteed ROI' : 'ROI garanti'
+      }
+    ],
+    stats: [
+      { 
+        number: '150+', 
+        label: language === 'es' ? 'Listados curados' : language === 'en' ? 'Curated listings' : 'Listes organisées'
+      },
+      { 
+        number: '12%', 
+        label: language === 'es' ? 'ROI promedio' : language === 'en' ? 'Average ROI' : 'ROI moyen'
+      },
+      { 
+        number: '98%', 
+        label: language === 'es' ? 'Propiedades verificadas' : language === 'en' ? 'Verified properties' : 'Propriétés vérifiées'
+      },
+      { 
+        number: '24h', 
+        label: language === 'es' ? 'Respuesta promedio' : language === 'en' ? 'Average response' : 'Réponse moyenne'
+      }
+    ]
+  };
+}
+
+const featuredListings = listingsData.featuredListings || [];
+const categories = listingsData.categories || [];
+const stats = listingsData.stats || [];
+
+const TEXTS = {
+  es: {
+    heroTitle: 'Listados Especializados',
+    heroSubtitle: 'Propiedades cuidadosamente seleccionadas para objetivos específicos. Encuentra exactamente lo que necesitas.',
+    browseAll: 'Ver todos los listados',
+    featuredTitle: 'Listados Destacados',
+    featuredSubtitle: 'Selecciones especiales de nuestros expertos',
+    categoriesTitle: 'Explora por Categoría',
+    categoriesSubtitle: 'Listados organizados según tus necesidades',
+    viewListing: 'Ver listado',
+    properties: 'propiedades',
+    avgReturn: 'ROI promedio',
+    priceRange: 'Rango de precios'
+  },
+  en: {
+    heroTitle: 'Specialized Listings',
+    heroSubtitle: 'Carefully selected properties for specific objectives. Find exactly what you need.',
+    browseAll: 'View all listings',
+    featuredTitle: 'Featured Listings',
+    featuredSubtitle: 'Special selections from our experts',
+    categoriesTitle: 'Browse by Category',
+    categoriesSubtitle: 'Listings organized according to your needs',
+    viewListing: 'View listing',
+    properties: 'properties',
+    avgReturn: 'Average ROI',
+    priceRange: 'Price range'
+  },
+  fr: {
+    heroTitle: 'Listes Spécialisées',
+    heroSubtitle: 'Propriétés soigneusement sélectionnées pour des objectifs spécifiques. Trouvez exactement ce dont vous avez besoin.',
+    browseAll: 'Voir toutes les listes',
+    featuredTitle: 'Listes en Vedette',
+    featuredSubtitle: 'Sélections spéciales de nos experts',
+    categoriesTitle: 'Parcourir par Catégorie',
+    categoriesSubtitle: 'Listes organisées selon vos besoins',
+    viewListing: 'Voir la liste',
+    properties: 'propriétés',
+    avgReturn: 'ROI moyen',
+    priceRange: 'Gamme de prix'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+const routes = {
+  es: { base: '/listados-de', contact: '/contacto' },
+  en: { base: '/en/listings-of', contact: '/en/contact' },
+  fr: { base: '/fr/listes-de', contact: '/fr/contact' }
+};
+
+const currentRoutes = routes[language] || routes.es;
+---
+
+<Layout 
+  title={listingsData.seo?.title || text.heroTitle}
+  description={listingsData.seo?.description || text.heroSubtitle}
+  language={language}
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-r from-green-600 to-blue-700 py-20">
+    <div class="absolute inset-0">
+      <img 
+        src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1920&h=1080&fit=crop" 
+        alt="Listados especializados"
+        class="w-full h-full object-cover opacity-30"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-green-600/85 to-blue-700/80"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center text-white">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6">
+          {text.heroTitle}
+        </h1>
+        <p class="text-xl md:text-2xl mb-8">
+          {text.heroSubtitle}
+        </p>
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat) => (
+            <div class="text-center bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-3xl font-bold mb-2">{stat.number}</div>
+              <div class="text-sm text-white/80">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <a 
+          href="#listados"
+          class="inline-block px-8 py-4 bg-white text-green-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold shadow-lg"
+        >
+          {text.browseAll}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Listings -->
+  <section id="listados" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {text.featuredTitle}
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          {text.featuredSubtitle}
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {featuredListings.map((listing) => (
+          <a 
+            href={`${currentRoutes.base}/${listing.slug}`}
+            class="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+          >
+            <div class="relative h-56">
+              <img 
+                src={listing.image} 
+                alt={listing.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                {listing.category}
+              </div>
+              <div class="absolute bottom-4 left-4 right-4">
+                <div class="bg-black/50 backdrop-blur-sm rounded-lg p-3 text-white">
+                  <h3 class="text-lg font-bold mb-1">{listing.title}</h3>
+                  <div class="flex justify-between text-sm">
+                    <span>{listing.propertiesCount} {text.properties}</span>
+                    <span>{text.avgReturn}: {listing.avgReturn}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="p-6">
+              <p class="text-gray-600 mb-4">{listing.description}</p>
+              <div class="flex justify-between items-center">
+                <span class="text-green-600 font-semibold">{listing.priceRange}</span>
+                <span class="text-blue-600 text-sm font-medium group-hover:underline">
+                  {text.viewListing} →
+                </span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {text.categoriesTitle}
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          {text.categoriesSubtitle}
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {categories.map((category) => (
+          <a 
+            href={`${currentRoutes.base}?categoria=${category.slug}`}
+            class="group text-center p-8 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 hover:border-green-300"
+          >
+            <div class="text-4xl mb-4">{category.icon}</div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
+            <p class="text-gray-600 text-sm mb-4">{category.description}</p>
+            <div class="text-green-600 font-medium">
+              {category.count} listados
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 bg-gradient-to-r from-green-600 to-blue-700">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {language === 'es' ? '¿Necesitas ayuda personalizada?' :
+           language === 'en' ? 'Need personalized help?' :
+           'Besoin d\'aide personnalisée?'}
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {language === 'es' ? 'Nuestros expertos pueden crear listados específicos según tus necesidades exactas.' :
+           language === 'en' ? 'Our experts can create specific listings according to your exact needs.' :
+           'Nos experts peuvent créer des listes spécifiques selon vos besoins exacts.'}
+        </p>
+        
+        <a 
+          href={currentRoutes.contact}
+          class="inline-block px-8 py-3 bg-white text-green-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+        >
+          {language === 'es' ? 'Hablar con especialista' :
+           language === 'en' ? 'Talk to specialist' :
+           'Parler à un spécialiste'}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

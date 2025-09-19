@@ -1,0 +1,509 @@
+---
+// src/layouts/HomepageLayout.astro
+import Layout from './Layout.astro';
+import SearchComponent from '../components/SearchComponent.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+import Testimonials from '../components/Testimonials.astro';
+
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language = 'es' } = Astro.props;
+
+// Usar los datos que ya vienen del content-backend
+const pageData = data;
+const dataSource = 'content-backend';
+
+// Extraer datos de las secciones para compatibilidad con componentes existentes
+const homepageSections = pageData.sections || [];
+const heroSection = homepageSections.find(s => s.type === 'hero');
+const featuredPropsSection = homepageSections.find(s => s.type === 'property-carousel');
+const projectsSection = homepageSections.find(s => s.type === 'project-carousel');
+const testimonialsSection = homepageSections.find(s => s.type === 'testimonials');
+const advisorsSection = homepageSections.find(s => s.type === 'advisors');
+const contentMixSection = homepageSections.find(s => s.type === 'content-mix');
+
+// Datos extraídos para los componentes
+const featuredProperties = featuredPropsSection?.properties || [];
+const featuredProjects = projectsSection?.projects || [];
+const testimonials = testimonialsSection?.testimonials || [];
+const featuredAdvisors = advisorsSection?.advisors || [];
+const featuredVideos = contentMixSection?.videos || [];
+const featuredArticles = contentMixSection?.articles || [];
+const searchFilters = pageData.searchFilters || {};
+const quickStats = pageData.quickStats || {};
+
+// Datos de ubicaciones populares desde hotItems
+const popularLocations = pageData.hotItems?.cities?.map(city => ({
+  name: city.title,
+  slug: city.url?.split('/').pop() || city.title.toLowerCase().replace(/\s+/g, '-'),
+  count: city.content?.available_properties || Math.floor(Math.random() * 100) + 20,
+  averagePrice: city.content?.price_from || '$450K',
+  image: city.image_url || `https://images.unsplash.com/photo-${1589923188651 + Math.floor(Math.random() * 1000)}?w=400&h=300&fit=crop`,
+  description: city.subtitle || 'Ubicación premium'
+})) || [];
+
+// Preparar layoutProps siguiendo el patrón de SinglePropertyLayout
+const seoData = pageData.seo || {};
+const layoutProps = {
+  title: seoData.title || "René Castillo y CLIC Inmobiliaria - La Inmobiliaria del Contenido en RD",
+  description: seoData.description || "René Castillo, reconocido presentador de TV con 18 años de experiencia, lidera CLIC Inmobiliaria. Descubre propiedades exclusivas en Punta Cana, Santo Domingo y más.",
+  ogImage: seoData.open_graph?.image || '/og-default.jpg',
+  canonical: seoData.canonical_url,
+  keywords: seoData.keywords,
+  hreflangData: seoData.hreflang || {},
+  globalConfig: pageData.globalConfig || {},
+  language: language,
+  trackingString: pageData.trackingString || '',
+  hotItems: pageData.hotItems || {},
+  country: pageData.country || {}
+};
+
+// Logging para debug
+if (import.meta.env.DEV) {
+  console.log('🏠 HOMEPAGE DATA STATUS:', {
+    dataSource,
+    language,
+    pageType: pageData.pageType,
+    sectionsCount: homepageSections.length,
+    hasGlobalConfig: !!pageData.globalConfig,
+    counts: {
+      properties: featuredProperties.length,
+      projects: featuredProjects.length,
+      videos: featuredVideos.length,
+      articles: featuredArticles.length,
+      testimonials: testimonials.length,
+      advisors: featuredAdvisors.length,
+      locations: popularLocations.length
+    }
+  });
+}
+---
+
+<Layout {...layoutProps}>
+
+
+  <!-- Hero Section - Clean & Professional -->
+  <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <!-- Background Video/Image -->
+    <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
+      <img 
+        src={heroSection?.backgroundImage || "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1920&h=1080&fit=crop&auto=format&q=80"}
+        alt={language === 'es' ? "Propiedades de lujo en República Dominicana" : 
+             language === 'en' ? "Luxury properties in Dominican Republic" : 
+             "Propriétés de luxe en République Dominicaine"}
+        class="w-full h-full object-cover"
+      />
+    </div>
+    
+    <!-- SEO INVISIBLE - Solo para Google -->
+    <div class="sr-only">
+      <h1>{seoData.h1 || seoData.title}</h1>
+      <p>{seoData.description}</p>
+      <address>
+        <span>René Castillo, Fundador y Presentador de TV</span>
+        <span>CLIC Inmobiliaria</span>
+        <span>{pageData.globalConfig?.contact?.address || "C. Erik Leonard Ekman 34, Santo Domingo, República Dominicana"}</span>
+        <span>Teléfono: {pageData.globalConfig?.contact?.phone || "+1-829-514-8080"}</span>
+        <span>Email: {pageData.globalConfig?.contact?.email || "contacto@clic.do"}</span>
+      </address>
+    </div>
+    
+    <!-- Content VISUAL - Para usuarios -->
+    <div class="relative z-20 container mx-auto px-4">
+      <div class="max-w-6xl mx-auto">
+        
+        <!-- Parte Superior: Marca Limpia -->
+        <div class="text-center mb-16">
+          
+          <!-- Credibilidad Sutil (René Badge) -->
+          <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/20 mb-8">
+            <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-white/90 text-sm">
+              <strong>
+                {language === 'es' && "Fundada por René Castillo • Presentador TV 18 años"}
+                {language === 'en' && "Founded by René Castillo • TV Host 18 years"}
+                {language === 'fr' && "Fondée par René Castillo • Présentateur TV 18 ans"}
+              </strong>
+            </span>
+          </div>
+          
+          <h2 class="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white leading-tight">
+            {heroSection?.title?.split('|')[0] || "CLIC Inmobiliaria"}
+          </h2>
+          <h3 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-8 text-[#f04e00] leading-tight">
+            {language === 'es' && "La Inmobiliaria del Contenido"}
+            {language === 'en' && "The Content Real Estate Company"}
+            {language === 'fr' && "L'Immobilier du Contenu"}
+          </h3>
+          
+          <p class="text-xl md:text-2xl mb-12 text-white/90 leading-relaxed max-w-4xl mx-auto">
+            {language === 'es' && (heroSection?.subtitle || "Equipo especializado en bienes raíces de República Dominicana. Líderes en Santo Domingo, Punta Cana y zonas premium con profesionalismo y experiencia comprobada")}
+            {language === 'en' && "Specialized team in Dominican Republic real estate. Leaders in Santo Domingo, Punta Cana and premium areas with proven professionalism and experience"}
+            {language === 'fr' && "Équipe spécialisée dans l'immobilier de République Dominicaine. Leaders à Santo Domingo, Punta Cana et zones premium avec professionnalisme et expérience prouvés"}
+          </p>
+        </div>
+
+        <!-- BUSCADOR CENTRADO - Con datos del content-backend -->
+        <div class="mb-16">
+          <SearchComponent 
+            showTitle={false}
+            searchFilters={searchFilters}
+            language={language}
+          />
+        </div>
+
+        <!-- Value Propositions Elegantes -->
+        <div class="text-center">
+          <div class="flex flex-wrap items-center justify-center gap-8 text-sm text-white/70">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="font-medium">
+                {language === 'es' && "Asesoría personalizada"}
+                {language === 'en' && "Personalized advice"}
+                {language === 'fr' && "Conseil personnalisé"}
+              </span>
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="font-medium">
+                {language === 'es' && "Financiamiento disponible"}
+                {language === 'en' && "Financing available"}
+                {language === 'fr' && "Financement disponible"}
+              </span>
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="font-medium">
+                {language === 'es' && "Proceso transparente"}
+                {language === 'en' && "Transparent process"}
+                {language === 'fr' && "Processus transparent"}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Properties -->
+  {featuredProperties && featuredProperties.length > 0 && (
+    <PropertyCarousel 
+      title={featuredPropsSection?.title || 
+        (language === 'es' ? "Propiedades Exclusivas en Santo Domingo y Punta Cana" : 
+         language === 'en' ? "Exclusive Properties in Santo Domingo and Punta Cana" : 
+         "Propriétés Exclusives à Santo Domingo et Punta Cana")}
+      subtitle={language === 'es' ? "Propiedades destacadas desde nuestro content-backend unificado" : 
+                language === 'en' ? "Featured properties from our unified content-backend" : 
+                "Propriétés vedettes de notre content-backend unifié"}
+      properties={featuredProperties}
+      viewAllLink={featuredPropsSection?.viewAllUrl || (language === 'es' ? "/comprar" : `/${language}/buy`)}
+      theme="luxury"
+      language={language}
+    />
+  )}
+
+  <!-- Video Gallery -->
+  {featuredVideos && featuredVideos.length > 0 && (
+    <VideoGallery 
+      videos={featuredVideos}
+      title={language === 'es' ? "🎬 El Canal Inmobiliario #1 de RD" : 
+             language === 'en' ? "🎬 The #1 Real Estate Channel in DR" : 
+             "🎬 La Chaîne Immobilière #1 de RD"}
+      subtitle={language === 'es' ? "De casas de famosos a consejos de inversión - 200K+ suscriptores nos respaldan" : 
+                language === 'en' ? "From celebrity homes to investment advice - 200K+ subscribers support us" : 
+                "Des maisons de célébrités aux conseils d'investissement - 200K+ abonnés nous soutiennent"}
+      layout="featured"
+      language={language}
+    />
+  )}
+
+  <!-- Popular Locations -->
+  {popularLocations && popularLocations.length > 0 && (
+    <section class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            {language === 'es' ? "Ubicaciones con Mayor Demanda" : 
+             language === 'en' ? "Most Demanded Locations" : 
+             "Emplacements les Plus Demandés"}
+          </h2>
+          <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+            {language === 'es' ? "Con 6 años de experiencia, conocemos cada zona y sabemos dónde están las mejores oportunidades" : 
+             language === 'en' ? "With 6 years of experience, we know every area and where the best opportunities are" : 
+             "Avec 6 ans d'expérience, nous connaissons chaque zone et savons où sont les meilleures opportunités"}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {popularLocations.map((location) => (
+            <a href={location.url || `/${language === 'es' ? 'comprar' : language === 'en' ? 'buy' : 'acheter'}/${location.slug}`} class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+              <div class="aspect-[4/3] relative">
+                <img 
+                  src={location.image} 
+                  alt={`${language === 'es' ? 'Propiedades en' : language === 'en' ? 'Properties in' : 'Propriétés à'} ${location.name}`}
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h3 class="text-2xl font-bold mb-2">{location.name}</h3>
+                  <p class="text-sm opacity-90 mb-3">{location.description}</p>
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <span class="text-lg font-semibold">
+                        {location.count} {language === 'es' ? 'propiedades' : language === 'en' ? 'properties' : 'propriétés'}
+                      </span>
+                      <div class="text-sm opacity-75">
+                        {language === 'es' ? 'Desde' : language === 'en' ? 'From' : 'À partir de'} {location.averagePrice}
+                      </div>
+                    </div>
+                    <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Why Choose CLIC - René's Story -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="text-[#f04e00] font-semibold text-sm uppercase tracking-wider">
+            {language === 'es' ? "La Historia de CLIC" : 
+             language === 'en' ? "The CLIC Story" : 
+             "L'Histoire de CLIC"}
+          </span>
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6 mt-2">
+            {language === 'es' ? "De la Televisión a los Bienes Raíces" : 
+             language === 'en' ? "From Television to Real Estate" : 
+             "De la Télévision à l'Immobilier"}
+          </h2>
+          <div class="space-y-4 text-lg text-gray-600">
+            {language === 'es' && (
+              <>
+                <p>
+                  <strong class="text-gray-900">CLIC Inmobiliaria nació de una visión</strong>: combinar la transparencia 
+                  y profesionalismo de la televisión con la expertise inmobiliaria.
+                </p>
+                <p>
+                  Fundada por <strong class="text-gray-900">René Castillo, presentador con 18 años de experiencia en TV</strong>, 
+                  nuestra empresa se basa en la comunicación clara, la confianza y el servicio excepcional.
+                </p>
+                <p>
+                  Como <strong class="text-gray-900">la única inmobiliaria en RD con enfoque en contenido educativo</strong>, 
+                  no solo vendemos propiedades - educamos, informamos y acompañamos a nuestros clientes 
+                  en cada paso del proceso.
+                </p>
+              </>
+            )}
+            {language === 'en' && (
+              <>
+                <p>
+                  <strong class="text-gray-900">CLIC Real Estate was born from a vision</strong>: to combine the transparency 
+                  and professionalism of television with real estate expertise.
+                </p>
+                <p>
+                  Founded by <strong class="text-gray-900">René Castillo, a TV host with 18 years of experience</strong>, 
+                  our company is based on clear communication, trust and exceptional service.
+                </p>
+                <p>
+                  As <strong class="text-gray-900">the only real estate company in DR focused on educational content</strong>, 
+                  we don't just sell properties - we educate, inform and accompany our clients 
+                  through every step of the process.
+                </p>
+              </>
+            )}
+            {language === 'fr' && (
+              <>
+                <p>
+                  <strong class="text-gray-900">CLIC Immobilier est né d'une vision</strong> : combiner la transparence 
+                  et le professionnalisme de la télévision avec l'expertise immobilière.
+                </p>
+                <p>
+                  Fondée par <strong class="text-gray-900">René Castillo, présentateur TV avec 18 ans d'expérience</strong>, 
+                  notre entreprise est basée sur la communication claire, la confiance et un service exceptionnel.
+                </p>
+                <p>
+                  En tant que <strong class="text-gray-900">seule entreprise immobilière en RD axée sur le contenu éducatif</strong>, 
+                  nous ne vendons pas seulement des propriétés - nous éduquons, informons et accompagnons nos clients 
+                  à chaque étape du processus.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+        
+        <div class="relative">
+          <div class="aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
+            <img 
+              src="https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop" 
+              alt={`${language === 'es' ? 'Equipo CLIC Inmobiliaria liderado por René Castillo' : 
+                     language === 'en' ? 'CLIC Real Estate team led by René Castillo' : 
+                     'Équipe CLIC Immobilier dirigée par René Castillo'}`}
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  {testimonials && testimonials.length > 0 && (
+    <Testimonials 
+      testimonials={testimonials}
+      title={testimonialsSection?.title || 
+        (language === 'es' ? "Lo que Dicen Nuestros Clientes" : 
+         language === 'en' ? "What Our Clients Say" : 
+         "Ce que Disent Nos Clients")}
+      subtitle={language === 'es' ? "La credibilidad y profesionalismo de René se refleja en cada transacción" : 
+                language === 'en' ? "René's credibility and professionalism is reflected in every transaction" : 
+                "La crédibilité et le professionnalisme de René se reflètent dans chaque transaction"}
+      language={language}
+    />
+  )}
+
+  <!-- Blog Articles -->
+  {featuredArticles && featuredArticles.length > 0 && (
+    <RelatedArticles 
+      articles={featuredArticles}
+      title={language === 'es' ? "📚 Centro de Conocimiento Inmobiliario" : 
+             language === 'en' ? "📚 Real Estate Knowledge Center" : 
+             "📚 Centre de Connaissances Immobilières"}
+      subtitle={language === 'es' ? "Guías, análisis y consejos escritos por René y su equipo de expertos" : 
+                language === 'en' ? "Guides, analysis and advice written by René and his team of experts" : 
+                "Guides, analyses et conseils écrits par René et son équipe d'experts"}
+      layout="featured"
+      language={language}
+    />
+  )}
+
+  <!-- CTA Section con datos de contacto del globalConfig -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        {language === 'es' ? "¿Listo para encontrar tu propiedad ideal?" : 
+         language === 'en' ? "Ready to find your ideal property?" : 
+         "Prêt à trouver votre propriété idéale?"}
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
+        {language === 'es' ? "Únete a las miles de familias que han confiado en René Castillo y CLIC Inmobiliaria para encontrar su hogar perfecto en República Dominicana" : 
+         language === 'en' ? "Join thousands of families who have trusted René Castillo and CLIC Real Estate to find their perfect home in Dominican Republic" : 
+         "Rejoignez les milliers de familles qui ont fait confiance à René Castillo et CLIC Immobilier pour trouver leur maison parfaite en République Dominicaine"}
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+        <a 
+          href={language === 'es' ? '/contacto' : `/${language}/contact`}
+          class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#f04e00] rounded-xl hover:bg-gray-100 transition-colors font-semibold text-lg shadow-lg"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+          </svg>
+          {language === 'es' ? "Hablar con Nuestro Equipo" : 
+           language === 'en' ? "Talk to Our Team" : 
+           "Parler à Notre Équipe"}
+        </a>
+        <a 
+          href={`https://wa.me/${(pageData.globalConfig?.contact?.whatsapp || '18295148080').replace(/[^\d]/g, '')}?text=${encodeURIComponent(
+            language === 'es' ? 'Hola, vi la página de CLIC Inmobiliaria y me interesa conocer más sobre sus propiedades' :
+            language === 'en' ? 'Hello, I saw the CLIC Real Estate website and I\'m interested in learning more about your properties' :
+            'Bonjour, j\'ai vu le site web de CLIC Immobilier et je suis intéressé à en savoir plus sur vos propriétés'
+          )}`}
+          target="_blank"
+          class="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold text-lg shadow-lg"
+        >
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+          </svg>
+          WhatsApp
+        </a>
+      </div>
+      
+      <!-- Contact Info desde globalConfig -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-6 text-white/80">
+        <span class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+          </svg>
+          {pageData.globalConfig?.contact?.phone || "(829) 514-8080"}
+        </span>
+        <span class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          {pageData.globalConfig?.contact?.address || "C. Erik Leonard Ekman 34, Santo Domingo"}
+        </span>
+        <span class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          {pageData.globalConfig?.office?.hours || "Lun-Vie 9:00-18:00 | Sáb 9:00-15:00"}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schema.org con datos del content-backend -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "RealEstateAgent",
+    "name": "CLIC Inmobiliaria",
+    "alternateName": language === 'es' ? "La Inmobiliaria del Contenido" : 
+                     language === 'en' ? "The Content Real Estate Company" : 
+                     "L'Immobilier du Contenu",
+    "legalName": "CLIC Inmobiliaria SRL",
+    "founder": {
+      "@type": "Person",
+      "name": "René Castillo",
+      "jobTitle": language === 'es' ? "Fundador y Presentador de TV" : 
+                  language === 'en' ? "Founder and TV Host" : 
+                  "Fondateur et Présentateur TV",
+      "description": language === 'es' ? "Presentador dominicano con 18 años de experiencia en televisión y 6 años fundando empresas de bienes raíces" :
+                     language === 'en' ? "Dominican TV host with 18 years of television experience and 6 years founding real estate companies" :
+                     "Présentateur dominicain avec 18 ans d'expérience télévision et 6 ans fondant des entreprises immobilières"
+    },
+    "description": pageData.seo?.description || (language === 'es' ? "CLIC Inmobiliaria es la empresa líder en bienes raíces de República Dominicana, fundada por René Castillo, reconocido presentador de TV." :
+                                                 language === 'en' ? "CLIC Real Estate is the leading real estate company in Dominican Republic, founded by René Castillo, renowned TV host." :
+                                                 "CLIC Immobilier est l'entreprise immobilière leader en République Dominicaine, fondée par René Castillo, présentateur TV reconnu."),
+    "url": pageData.seo?.canonical_url || (language === 'es' ? "https://clicinmobiliaria.com" : `https://clicinmobiliaria.com/${language}`),
+    "telephone": pageData.globalConfig?.contact?.phone || "+1-829-514-8080",
+    "email": pageData.globalConfig?.contact?.email || "contacto@clic.do",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": pageData.globalConfig?.contact?.address || "C. Erik Leonard Ekman 34",
+      "addressLocality": "Santo Domingo",
+      "addressRegion": "Distrito Nacional",
+      "postalCode": "10101",
+      "addressCountry": "DO"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": testimonials.length.toString(),
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  })} />
+</Layout>

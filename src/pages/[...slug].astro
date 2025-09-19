@@ -1,11 +1,11 @@
 ---
-// src/pages/[...slug].astro - ROUTER UNIVERSAL CON DEBUGGING ROBUSTO
+// src/pages/[...slug].astro - ROUTER UNIVERSAL CON CONTENT-BACKEND INTEGRADO
 import PropertyListLayout from '../layouts/PropertyListLayout.astro';
 import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
 import Error404Layout from '../layouts/Error404Layout.astro';
-import Layout from '../layouts/Layout.astro';
+import HomepageLayout from '../layouts/HomepageLayout.astro';
 
-// Importar layouts para páginas especiales
+// Importar layouts para pÃ¡ginas especiales
 import AdvisorsLayout from '../layouts/AdvisorsLayout.astro';
 import SingleAdvisorLayout from '../layouts/SingleAdvisorLayout.astro';
 import FavoritesLayout from '../layouts/FavoritesLayout.astro';
@@ -16,7 +16,7 @@ import TestimonialsMainLayout from '../layouts/TestimonialsMainLayout.astro';
 import TestimonialsCategoryLayout from '../layouts/TestimonialsCategoryLayout.astro';
 import TestimonialsSingleLayout from '../layouts/TestimonialsSingleLayout.astro';
 
-// Importar layouts para artículos
+// Importar layouts para artÃ­culos
 import ArticlesMainLayout from '../layouts/ArticlesMainLayout.astro';
 import ArticlesCategoryLayout from '../layouts/ArticlesCategoryLayout.astro';
 import ArticlesSingleLayout from '../layouts/ArticlesSingleLayout.astro';
@@ -26,25 +26,22 @@ import VideosMainLayout from '../layouts/VideosMainLayout.astro';
 import VideosCategoryLayout from '../layouts/VideosCategoryLayout.astro';
 import VideosSingleLayout from '../layouts/VideosSingleLayout.astro';
 
-// Importar layouts para contacto, vender, rentas vacacionales y propiedades
+// Importar layouts para contenido y listados curados
 import ContactLayout from '../layouts/ContactLayout.astro';
 import SellLayout from '../layouts/SellLayout.astro';
 import VacationRentalsLayout from '../layouts/VacationRentalsLayout.astro';
 import VacationRentalsMainLayout from '../layouts/VacationRentalsMainLayout.astro';
 import VacationRentalsDynamicLayout from '../layouts/VacationRentalsDynamicLayout.astro';
-import PropertiesLayout from '../layouts/PropertiesLayout.astro';
+import CuratedListingsLayout from '../layouts/CuratedListingsLayout.astro';
+import CuratedListingsSingleLayout from '../layouts/CuratedListingsSingleLayout.astro';
 
-// Habilitar SSR para esta página
+// Habilitar SSR para esta pÃ¡gina
 export const prerender = false;
 
-export async function getStaticPaths() {
-  return [];
-}
-
-console.log('🔥 ROUTER START - All layouts imported successfully');
+console.log('ðŸ”¥ ROUTER START - All layouts imported successfully');
 
 // =====================================================
-// CONFIGURACIÓN DE IDIOMAS Y RUTAS ESPECIALES
+// CONFIGURACIÃ“N DE IDIOMAS Y RUTAS ESPECIALES
 // =====================================================
 
 const LANGUAGES = {
@@ -54,63 +51,65 @@ const LANGUAGES = {
 };
 
 const SPECIAL_ROUTES = {
-  // Español
+  // EspaÃ±ol
   'asesores': { type: 'advisors', layout: 'AdvisorsLayout' },
   'favoritos': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
   'testimonios': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
   'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
   'articulos': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
-  'ubicaciones': { type: 'locations', layout: 'LocationsLayout' },
   'contacto': { type: 'contact', layout: 'ContactLayout' },
   'rentas-vacacionales': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
   'planes-rentas-vacacionales': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
   'vender': { type: 'sell', layout: 'SellLayout' },
-  'propiedades': { type: 'properties', layout: 'PropertiesLayout' },
+  'listados-de': { type: 'curated-listings', layout: 'CuratedListingsLayout', subRoutes: true },
   
-  // Inglés
+  // InglÃ©s
   'advisors': { type: 'advisors', layout: 'AdvisorsLayout' },
   'favorites': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
   'testimonials': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
   'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
   'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
-  'locations': { type: 'locations', layout: 'LocationsLayout' },
   'contact': { type: 'contact', layout: 'ContactLayout' },
   'vacation-rentals': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
   'vacation-rental-plans': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
   'sell': { type: 'sell', layout: 'SellLayout' },
-  'properties': { type: 'properties', layout: 'PropertiesLayout' },
+  'listings-of': { type: 'curated-listings', layout: 'CuratedListingsLayout', subRoutes: true },
   
-  // Francés
+  // FrancÃ©s
   'conseillers': { type: 'advisors', layout: 'AdvisorsLayout' },
   'favoris': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
   'temoignages': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
   'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
   'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
-  'emplacements': { type: 'locations', layout: 'LocationsLayout' },
   'contact': { type: 'contact', layout: 'ContactLayout' },
   'locations-vacances': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
   'plans-locations-vacances': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
   'vendre': { type: 'sell', layout: 'SellLayout' },
-  'proprietes': { type: 'properties', layout: 'PropertiesLayout' }
+  'listes-de': { type: 'curated-listings', layout: 'CuratedListingsLayout', subRoutes: true }
 };
 
 // =====================================================
-// FUNCIÓN PARA FILTRAR RUTAS VÁLIDAS
+// FUNCIÃ“N PARA FILTRAR RUTAS VÃLIDAS
 // =====================================================
 function shouldProcessRoute(urlSegments, pathname) {
   try {
-    // EXCLUIR SITEMAP ESPECÍFICAMENTE
-    if (pathname === '/sitemap.xml' || pathname.endsWith('/sitemap.xml')) {
-      console.log('Excluding sitemap.xml from router processing');
+    // EXCLUIR carpeta paginas completa
+    if (pathname.startsWith('/paginas/')) {
+      console.log('Excluding /paginas/ from router');
+      return false;
+    }
+    
+    // EXCLUIR archivos especÃ­ficos
+    if (pathname === '/sitemap.xml' || pathname === '/robots.txt') {
+      console.log('Excluding sitemap/robots from router');
       return false;
     }
     
     const excludedPaths = [
       'images', 'img', 'assets', 'static', 'public',
-      'css', 'js', 'fonts', 'favicon.ico', 'robots.txt', 
+      'css', 'js', 'fonts', 'favicon.ico', 
       '_astro', 'api', 'admin', 'wp-admin', 'wp-content',
-      '.well-known', 'manifest.json', 'sw.js',
-      'debug' // También excluir debug
+      '.well-known', 'manifest.json', 'sw.js', 'debug'
     ];
     
     const excludedExtensions = [
@@ -118,11 +117,7 @@ function shouldProcessRoute(urlSegments, pathname) {
       '.css', '.js', '.json', '.txt', '.pdf', '.zip',
       '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mp3'
     ];
-    // Agregar excepciones específicas antes del filtro de extensiones
-const allowedXmlPaths = ['/sitemap.xml', '/robots.txt'];
-if (allowedXmlPaths.includes(pathname)) {
-  return false; // No procesar en el router, dejar que Astro maneje el archivo
-}
+    
     if (urlSegments.length > 0 && excludedPaths.includes(urlSegments[0].toLowerCase())) {
       return false;
     }
@@ -138,13 +133,13 @@ if (allowedXmlPaths.includes(pathname)) {
     
     return true;
   } catch (error) {
-    console.error('❌ Error in shouldProcessRoute:', error);
-    return true; // En caso de error, procesar la ruta
+    console.error('âš  Error in shouldProcessRoute:', error);
+    return true;
   }
 }
 
 // =====================================================
-// FUNCIÓN PARA DETECTAR IDIOMA Y RUTAS
+// FUNCIÃ“N PARA DETECTAR IDIOMA Y RUTAS
 // =====================================================
 function parseUrlSegments(urlSegments) {
   try {
@@ -204,7 +199,7 @@ function parseUrlSegments(urlSegments) {
       routeType: 'property'
     };
   } catch (error) {
-    console.error('❌ Error in parseUrlSegments:', error);
+    console.error('âš  Error in parseUrlSegments:', error);
     return {
       language: 'es',
       remainingSegments: urlSegments,
@@ -214,15 +209,15 @@ function parseUrlSegments(urlSegments) {
 }
 
 // =====================================================
-// FUNCIÓN ÚNICA PARA LLAMAR BACKEND - VERSIÓN CORREGIDA
+// FUNCIONES PARA LLAMAR BACKENDS
 // =====================================================
 
-const BASE_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
+const MAIN_BACKEND_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
+const CONTENT_BACKEND_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/content-backend';
 const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
 
-async function callBackendOnce(language, segments, searchParams) {
+async function callMainBackend(language, segments, searchParams) {
   try {
-    // Construir la ruta completa para la edge function
     let routePath = '';
     
     if (language !== 'es') {
@@ -233,22 +228,23 @@ async function callBackendOnce(language, segments, searchParams) {
       routePath += segments.join('/');
     }
     
-    const edgeFunctionURL = `${BASE_URL}/${routePath}${searchParams ? `?${searchParams}` : ''}`;
+    const backendURL = `${MAIN_BACKEND_URL}/${routePath}${searchParams ? `?${searchParams}` : ''}`;
     
-    console.log('🚀 Single call to backend:', edgeFunctionURL);
+    console.log('ðŸš€ Calling main backend:', backendURL);
     
-    const response = await fetch(edgeFunctionURL, {
+    const response = await fetch(backendURL, {
       method: 'GET',
       headers: {
         'Authorization': AUTH_TOKEN,
         'Content-Type': 'application/json',
-        'User-Agent': `Mozilla/5.0 CLIC-Router/${Astro.url.host}`,
+        'User-Agent': `CLIC-Router/${Astro.url.host}`,
+        'X-Original-Host': Astro.url.hostname, // 👈 AGREGAR ESTO
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend returned error: ${response.status} ${response.statusText} - ${errorText}`);
+      console.error(`âš  Main backend error: ${response.status} - ${errorText}`);
       
       return {
         pageType: '404',
@@ -261,11 +257,9 @@ async function callBackendOnce(language, segments, searchParams) {
     }
 
     const data = await response.json();
-    console.log('📦 Raw backend response:', data);
     
-    // ✅ NUEVA VALIDACIÓN: Detectar errores en la respuesta JSON
     if (data.error) {
-      console.error('❌ Backend returned error in JSON:', data.error);
+      console.error('âš  Main backend returned error:', data.error);
       return {
         pageType: '404',
         type: '404',
@@ -276,35 +270,25 @@ async function callBackendOnce(language, segments, searchParams) {
       };
     }
     
-    // ✅ VALIDACIÓN ADICIONAL: Verificar que la respuesta tenga contenido válido
-    const hasValidContent = (
-      data.property || 
-      (data.properties && Array.isArray(data.properties)) ||
-      data.type ||
-      data.pageType
-    );
-    
-    if (!hasValidContent) {
-      console.error('❌ Backend returned empty or invalid response:', data);
+    // Asegurar estructura vÃ¡lida
+    if (!data.property && !data.properties && !data.type && !data.pageType) {
+      console.error('âš  Invalid main backend response structure');
       return {
         pageType: '404',
         type: '404',
         language: language,
         error: 'Invalid response structure',
-        message: 'No valid content received from backend',
+        message: 'No valid content received',
         statusCode: 500
       };
     }
     
-    // Asegurar que tenga el idioma correcto
     data.language = language;
     
-    // NORMALIZAR: Asegurar que siempre use pageType
     if (data.type && !data.pageType) {
       data.pageType = data.type;
     }
     
-    // Si no tiene pageType definido, determinar basado en el contenido
     if (!data.pageType) {
       if (data.property && data.property.id) {
         data.pageType = 'single-property';
@@ -315,221 +299,207 @@ async function callBackendOnce(language, segments, searchParams) {
       }
     }
     
-    console.log('✅ Backend response processed:', {
+    console.log('âœ… Main backend response processed:', {
       type: data.pageType,
       language: data.language,
       hasProperties: data.properties?.length > 0,
-      hasProperty: !!data.property,
-      totalProperties: data.totalProperties || 0
+      hasProperty: !!data.property
     });
     
     return data;
     
   } catch (error) {
-    console.error('❌ Error calling backend:', error);
+    console.error('âš  Error calling main backend:', error);
     
     return {
       pageType: '404',
       type: '404',
       language: language,
       error: error.message,
-      message: 'Error connecting to backend',
+      message: 'Error connecting to main backend',
+      statusCode: 500
+    };
+  }
+}
+
+async function callContentBackend(language, segments, searchParams) {
+  try {
+    let routePath = '';
+    
+    if (language !== 'es') {
+      routePath = language + '/';
+    }
+    
+    if (segments.length > 0) {
+      routePath += segments.join('/');
+    }
+    
+    const backendURL = `${CONTENT_BACKEND_URL}/${routePath}${searchParams ? `?${searchParams}` : ''}`;
+    
+    console.log('ðŸ“ Calling content backend:', backendURL);
+    
+    const response = await fetch(backendURL, {
+      method: 'GET',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json',
+        'User-Agent': `CLIC-Content/${Astro.url.host}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`âš  Content backend error: ${response.status} - ${errorText}`);
+      
+      return {
+        pageType: '404',
+        type: '404',
+        language: language,
+        error: `Content backend error: ${response.status}`,
+        message: errorText || 'Content not found',
+        statusCode: response.status
+      };
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('âš  Content backend returned error:', data.error);
+      return {
+        pageType: '404',
+        type: '404',
+        language: language,
+        error: data.error,
+        message: data.message || 'Content error occurred',
+        statusCode: 500
+      };
+    }
+    
+    data.language = language;
+    
+    if (data.type && !data.pageType) {
+      data.pageType = data.type;
+    }
+    
+    console.log('âœ… Content backend response processed:', {
+      type: data.pageType,
+      language: data.language,
+      contentType: data.contentType
+    });
+    
+    return data;
+    
+  } catch (error) {
+    console.error('âš  Error calling content backend:', error);
+    
+    return {
+      pageType: '404',
+      type: '404',
+      language: language,
+      error: error.message,
+      message: 'Error connecting to content backend',
       statusCode: 500
     };
   }
 }
 
 // =====================================================
-// FUNCIONES PARA PÁGINAS ESPECIALES (SIN LLAMADAS API)
-// =====================================================
-
-function getSpecialPageData(specialRoute, language, segments, pathname) {
-  try {
-    const baseData = {
-      language: language,
-      originalUrl: pathname,
-      type: specialRoute.type
-    };
-
-    switch (specialRoute.type) {
-      case 'favorites':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'favorites-main' };
-        } else if (segments.length === 2 && segments[1] === 'compartir') {
-          return { ...baseData, type: 'favorites-shared' };
-        }
-        return { ...baseData, type: '404', pageType: '404' };
-
-      case 'testimonials':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'testimonials-main' };
-        } else if (segments.length === 2) {
-          return { ...baseData, type: 'testimonials-category', category: segments[1] };
-        } else if (segments.length === 3) {
-          return { ...baseData, type: 'testimonials-single', category: segments[1], testimonioSlug: segments[2] };
-        }
-        return { ...baseData, type: '404', pageType: '404' };
-
-      case 'advisors':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'advisors-list' };
-        } else if (segments.length === 2) {
-          return { ...baseData, type: 'advisor-single', advisorSlug: segments[1] };
-        }
-        return { ...baseData, type: '404', pageType: '404' };
-
-      case 'articles':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'articles-main' };
-        } else if (segments.length === 2) {
-          return { ...baseData, type: 'articles-category', categorySlug: segments[1] };
-        } else if (segments.length === 3) {
-          return { ...baseData, type: 'articles-single', categorySlug: segments[1], articleSlug: segments[2] };
-        }
-        return { ...baseData, type: '404', pageType: '404' };
-
-      case 'videos':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'videos-main' };
-        } else if (segments.length === 2) {
-          return { ...baseData, type: 'videos-category', categorySlug: segments[1] };
-        } else if (segments.length === 3) {
-          return { ...baseData, type: 'videos-single', categorySlug: segments[1], videoSlug: segments[2] };
-        }
-        return { ...baseData, type: '404', pageType: '404' };
-
-      case 'contact':
-        return { ...baseData, type: 'contact' };
-
-      case 'sell':
-        return { ...baseData, type: 'sell' };
-
-      case 'vacation-rentals':
-        if (segments.length === 1) {
-          return { ...baseData, type: 'vacation-rentals-main' };
-        } else if (segments[1] === 'planes') {
-          return { ...baseData, type: 'vacation-rentals-plans' };
-        } else {
-          return { ...baseData, type: 'vacation-rentals-dynamic', segments: segments.slice(1) };
-        }
-
-      case 'vacation-rentals-plans':
-        return { ...baseData, type: 'vacation-rentals-plans' };
-
-      case 'properties':
-        return { ...baseData, type: 'properties-main' };
-
-      default:
-        return { 
-          ...baseData, 
-          type: '404', 
-          pageType: '404',
-          message: `Página especial "${specialRoute.type}" en desarrollo` 
-        };
-    }
-  } catch (error) {
-    console.error('❌ Error in getSpecialPageData:', error);
-    return {
-      language: language,
-      originalUrl: pathname,
-      type: '404',
-      pageType: '404',
-      error: error.message,
-      message: 'Error processing special page'
-    };
-  }
-}
-
-// =====================================================
-// PROCESAMIENTO PRINCIPAL - VERSIÓN CON DEBUGGING
+// PROCESAMIENTO PRINCIPAL
 // =====================================================
 
 let pageData = null;
 let pageType = 'unknown';
 
 try {
-  console.log('🔥 ROUTER START - Processing request...');
+  console.log('ðŸ”¥ ROUTER START - Processing request...');
 
   const { slug } = Astro.params;
   let urlSegments = slug ? slug.split('/').filter(Boolean) : [];
   const pathname = Astro.url.pathname;
 
-  console.log('🎯 Router processing:', {
+  console.log('ðŸŽ¯ Router processing:', {
     slug,
     pathname,
-    segments: urlSegments,
-    astroParams: Astro.params,
-    astroUrl: Astro.url.href
+    segments: urlSegments
   });
 
-  if (!shouldProcessRoute(urlSegments, pathname)) {
-    console.log('❌ Excluded route:', pathname);
-    throw new Error('Route excluded');
-  }
-
+  // MANEJO ESPECIAL PARA RUTAS RAÃZ Y HOMEPAGE
   if (!slug || urlSegments.length === 0) {
-    const pathSegments = pathname.split('/').filter(Boolean);
-    urlSegments = [...pathSegments];
-    
-    if (!shouldProcessRoute(urlSegments, pathname)) {
-      console.log('❌ Excluded pathname route:', pathname);
-      throw new Error('Pathname route excluded');
+    // Si es la ruta raÃ­z (/), tratarla como homepage en espaÃ±ol
+    if (pathname === '/' || pathname === '') {
+      console.log('ðŸ  Processing root homepage (espaÃ±ol)');
+      const homeData = await callContentBackend('es', [], Astro.url.searchParams.toString());
+      pageData = homeData;
+      pageType = homeData.pageType || 'homepage';
+    } else {
+      const pathSegments = pathname.split('/').filter(Boolean);
+      urlSegments = [...pathSegments];
+      
+      if (!shouldProcessRoute(urlSegments, pathname)) {
+        console.log('âš  Excluded pathname route:', pathname);
+        throw new Error('Pathname route excluded');
+      }
     }
   }
 
-  const parsedRoute = parseUrlSegments(urlSegments);
-  const searchParams = Astro.url.searchParams.toString();
+  // Si no se procesÃ³ como homepage raÃ­z, continuar con lÃ³gica normal
+  if (!pageData) {
+    if (!shouldProcessRoute(urlSegments, pathname)) {
+      console.log('âš  Excluded route:', pathname);
+      throw new Error('Route excluded');
+    }
 
-  console.log('🔍 Parsed route:', parsedRoute);
+    const parsedRoute = parseUrlSegments(urlSegments);
+    const searchParams = Astro.url.searchParams.toString();
 
-  switch (parsedRoute.routeType) {
-    case 'home':
-      console.log('🏠 Processing home page');
-      const homeData = await callBackendOnce(parsedRoute.language, [], searchParams);
-      pageData = homeData;
-      pageType = homeData.pageType || '404';
-      break;
-    
-    case 'special':
-      console.log('⭐ Processing special route:', parsedRoute.specialRoute.type);
-      pageData = getSpecialPageData(parsedRoute.specialRoute, parsedRoute.language, parsedRoute.remainingSegments, pathname);
-      pageType = pageData.type;
-      break;
-    
-    case 'property':
-      console.log('🏠 Processing property route');
-      const backendData = await callBackendOnce(parsedRoute.language, parsedRoute.remainingSegments, searchParams);
-      pageData = backendData;
+    console.log('ðŸ“ Parsed route:', parsedRoute);
+
+    switch (parsedRoute.routeType) {
+      case 'home':
+        console.log('ðŸ  Processing home page via content backend');
+        const homeData = await callContentBackend(parsedRoute.language, [], searchParams);
+        pageData = homeData;
+        pageType = homeData.pageType || 'homepage';
+        break;
       
-      // USAR pageType CONSISTENTEMENTE
-      pageType = backendData.pageType || '404';
+      case 'special':
+        console.log('â­ Processing special route via content backend:', parsedRoute.specialRoute.type);
+        const contentData = await callContentBackend(parsedRoute.language, parsedRoute.remainingSegments, searchParams);
+        pageData = contentData;
+        pageType = contentData.pageType || '404';
+        break;
       
-      // Validación adicional de seguridad
-      const validPageTypes = ['single-property', 'property-list', '404'];
-      if (!validPageTypes.includes(pageType)) {
-        console.warn(`⚠️ Invalid pageType received: ${pageType}, defaulting to 404`);
+      case 'property':
+        console.log('ðŸ˜ Processing property route via main backend');
+        const backendData = await callMainBackend(parsedRoute.language, parsedRoute.remainingSegments, searchParams);
+        pageData = backendData;
+        pageType = backendData.pageType || '404';
+        
+        const validPageTypes = ['single-property', 'property-list', '404'];
+        if (!validPageTypes.includes(pageType)) {
+          console.warn(`âš  Invalid pageType received: ${pageType}, defaulting to 404`);
+          pageType = '404';
+          pageData.pageType = '404';
+        }
+        break;
+      
+      default:
+        console.log('â“ Unknown route type');
+        pageData = {
+          pageType: '404',
+          type: '404',
+          language: parsedRoute.language,
+          originalUrl: pathname,
+          message: 'Route not found'
+        };
         pageType = '404';
-        pageData.pageType = '404';
-      }
-      break;
-    
-    default:
-      console.log('❓ Unknown route type');
-      pageData = {
-        pageType: '404',
-        type: '404',
-        language: parsedRoute.language,
-        originalUrl: pathname,
-        message: 'Route not found'
-      };
-      pageType = '404';
-      break;
+        break;
+    }
   }
   
 } catch (error) {
-  console.error('❌ Error processing page:', error);
+  console.error('âš  Error processing page:', error);
   
-  // ESTRUCTURA CONSISTENTE PARA ERRORES
   pageData = {
     pageType: '404',
     type: '404',
@@ -541,7 +511,7 @@ try {
   pageType = '404';
 }
 
-// VALIDACIÓN FINAL: Asegurar que siempre haya datos mínimos para 404
+// ValidaciÃ³n final para 404
 if (pageType === '404') {
   if (!pageData) {
     pageData = {
@@ -552,32 +522,27 @@ if (pageType === '404') {
       message: 'Page not found'
     };
   } else {
-    // Asegurar que tenga los campos necesarios
     pageData.pageType = '404';
     pageData.type = '404';
     pageData.language = pageData.language || 'es';
     pageData.message = pageData.message || 'Page not found';
   }
   
-  // 🎯 SOLUCIÓN: Usar status 200 para 404 personalizados para asegurar que se renderice el layout
-  // Astro.response.status = 404;  // Esto causaba que algunos navegadores mostraran su 404 genérico
-  console.log('🎯 Setting status 200 for custom 404 layout to ensure proper rendering');
+  console.log('ðŸŽ¯ Setting status 200 for custom 404 layout');
 }
 
-console.log('✅ Page ready for render:', {
+console.log('âœ… Page ready for render:', {
   pageType: pageType,
   hasContent: !!pageData,
-  dataStructure: pageData ? Object.keys(pageData) : [],
-  finalPageData: pageData
+  hasGlobalConfig: !!pageData?.globalConfig,
+  finalPageData: pageData ? Object.keys(pageData) : []
 });
 
-// =====================================================
-// MAPEO SIMPLIFICADO DE TIPOS A COMPONENTES
-// =====================================================
-
+// Variables de renderizado
+const showHomepage = pageType === 'homepage';
 const showPropertyList = pageType === 'property-list';
 const showSingleProperty = pageType === 'single-property';
-const showAdvisorsList = pageType === 'advisors-list';
+const showAdvisorsList = pageType === 'advisors-list' || pageType === 'advisors-main';
 const showAdvisorSingle = pageType === 'advisor-single';
 const showFavoritesMain = pageType === 'favorites-main';
 const showFavoritesShared = pageType === 'favorites-shared';
@@ -586,7 +551,7 @@ const showTestimonialsCategory = pageType === 'testimonials-category';
 const showTestimonialsSingle = pageType === 'testimonials-single';
 const showArticlesMain = pageType === 'articles-main';
 const showArticlesCategory = pageType === 'articles-category';
-const showArticlesSingle = pageType === 'articles-single';
+const showArticlesSingle = pageType === 'articles-single' || pageType === 'articles-single-404';
 const showVideosMain = pageType === 'videos-main';
 const showVideosCategory = pageType === 'videos-category';
 const showVideosSingle = pageType === 'videos-single';
@@ -595,28 +560,24 @@ const showSell = pageType === 'sell';
 const showVacationRentalsMain = pageType === 'vacation-rentals-main';
 const showVacationRentalsPlans = pageType === 'vacation-rentals-plans';
 const showVacationRentalsDynamic = pageType === 'vacation-rentals-dynamic';
-const showPropertiesMain = pageType === 'properties-main';
+const showCuratedListingsMain = pageType === 'curated-listings-main';
+const showCuratedListingsSingle = pageType === 'curated-listings-single';
 const show404 = pageType === '404';
 
-console.log('🎨 Final render decision:', {
+console.log('ðŸŽ¨ Final render decision:', {
   pageType,
+  showHomepage,
   show404,
   showPropertyList,
   showSingleProperty,
-  hasError404Layout: !!Error404Layout,
-  hasPageData: !!pageData
+  showCuratedListingsMain,
+  showCuratedListingsSingle
 });
 ---
 
-<!-- DEBUGGING OUTPUT -->
-<script is:inline>
-  console.log('🔍 CLIENT DEBUG:', {
-    pageType: '{pageType}',
-    show404: {show404},
-    pathname: '{Astro.url.pathname}',
-    hasPageData: {!!pageData}
-  });
-</script>
+<!-- CLIENT DEBUG REMOVED TO AVOID SYNTAX ERRORS -->
+
+{showHomepage && <HomepageLayout data={pageData} language={pageData?.language || 'es'} />}
 
 {show404 && (
   <Error404Layout data={pageData} language={pageData?.language || 'es'} />
@@ -662,4 +623,6 @@ console.log('🎨 Final render decision:', {
 
 {showVacationRentalsDynamic && <VacationRentalsDynamicLayout data={pageData} language={pageData?.language || 'es'} />}
 
-{showPropertiesMain && <PropertiesLayout data={pageData} language={pageData?.language || 'es'} />}
+{showCuratedListingsMain && <CuratedListingsLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showCuratedListingsSingle && <CuratedListingsSingleLayout data={pageData} language={pageData?.language || 'es'} />}

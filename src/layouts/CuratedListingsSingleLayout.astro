@@ -1,0 +1,507 @@
+---
+// src/layouts/CuratedListingsSingleLayout.astro - Layout para listado individual curado
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+const listingSlug = data?.listingSlug || 'apartamentos-para-airbnb';
+
+// Usar datos del content-backend si existen, sino fallback estático
+let listingData = data;
+
+if (!listingData || !listingData.listing) {
+  console.log('🏢 CuratedListingsSingleLayout: Usando datos estáticos de fallback para:', listingSlug);
+  
+  // Función helper para traducciones
+  function translate(esText, enText, frText) {
+    if (language === 'en') return enText;
+    if (language === 'fr') return frText;
+    return esText;
+  }
+  
+  // Datos específicos según el slug del listing
+  const listingContent = {
+    'apartamentos-para-airbnb-en-santo-domingo': {
+      title: translate(
+        'Apartamentos para Airbnb en Santo Domingo',
+        'Apartments for Airbnb in Santo Domingo',
+        'Appartements pour Airbnb à Santo Domingo'
+      ),
+      subtitle: translate(
+        'Máxima rentabilidad en la capital',
+        'Maximum profitability in the capital',
+        'Rentabilité maximale dans la capitale'
+      ),
+      description: translate(
+        'Estos apartamentos han sido cuidadosamente seleccionados por su ubicación estratégica, características ideales para turistas y potencial de alta ocupación durante todo el año.',
+        'These apartments have been carefully selected for their strategic location, ideal features for tourists and high occupancy potential year-round.',
+        'Ces appartements ont été soigneusement sélectionnés pour leur emplacement stratégique, leurs caractéristiques idéales pour les touristes et leur potentiel de forte occupation toute l\'année.'
+      ),
+      stats: {
+        avgRoi: '12-15%',
+        occupancyRate: '85%',
+        avgNightly: '$85',
+        propertiesCount: 24
+      },
+      benefits: [
+        translate(
+          'Ubicaciones cerca del centro histórico y malecón',
+          'Locations near historic center and waterfront',
+          'Emplacements près du centre historique et du front de mer'
+        ),
+        translate(
+          'Apartamentos completamente amueblados',
+          'Fully furnished apartments',
+          'Appartements entièrement meublés'
+        ),
+        translate(
+          'Gestión de Airbnb incluida',
+          'Airbnb management included',
+          'Gestion Airbnb incluse'
+        ),
+        translate(
+          'ROI garantizado del 12% anual',
+          'Guaranteed 12% annual ROI',
+          'ROI garanti de 12% annuel'
+        )
+      ]
+    },
+    'para-comprar-desde-estados-unidos': {
+      title: translate(
+        'Propiedades para Comprar desde Estados Unidos',
+        'Properties to Buy from United States',
+        'Propriétés à Acheter depuis les États-Unis'
+      ),
+      subtitle: translate(
+        'Inversión segura e internacional',
+        'Safe international investment',
+        'Investissement international sûr'
+      ),
+      description: translate(
+        'Propiedades verificadas legalmente, con títulos limpios y proceso de compra simplificado para compradores internacionales. Incluye asistencia legal completa.',
+        'Legally verified properties with clean titles and simplified purchase process for international buyers. Includes complete legal assistance.',
+        'Propriétés légalement vérifiées avec titres propres et processus d\'achat simplifié pour acheteurs internationaux. Assistance juridique complète incluse.'
+      ),
+      stats: {
+        avgRoi: '8-10%',
+        occupancyRate: '92%',
+        avgNightly: '$120',
+        propertiesCount: 18
+      },
+      benefits: [
+        translate(
+          'Documentación legal 100% verificada',
+          'Legal documentation 100% verified',
+          'Documentation légale 100% vérifiée'
+        ),
+        translate(
+          'Asistencia legal en español e inglés',
+          'Legal assistance in Spanish and English',
+          'Assistance juridique en espagnol et anglais'
+        ),
+        translate(
+          'Financiamiento internacional disponible',
+          'International financing available',
+          'Financement international disponible'
+        ),
+        translate(
+          'Gestión de propiedades remota',
+          'Remote property management',
+          'Gestion immobilière à distance'
+        )
+      ]
+    }
+  };
+  
+  const currentListing = listingContent[listingSlug] || listingContent['apartamentos-para-airbnb-en-santo-domingo'];
+  
+  listingData = {
+    language: language,
+    listing: currentListing,
+    properties: [
+      {
+        slug: 'apartamento-zona-colonial-airbnb',
+        titulo: translate(
+          'Apartamento Zona Colonial - Airbnb Ready',
+          'Colonial Zone Apartment - Airbnb Ready',
+          'Appartement Zone Coloniale - Prêt Airbnb'
+        ),
+        precio: '$285,000',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Zona Colonial',
+        habitaciones: 2,
+        banos: 2,
+        area: '95 m²',
+        roi: '14%',
+        occupancy: '90%'
+      },
+      {
+        slug: 'apartamento-gazcue-inversion',
+        titulo: translate(
+          'Apartamento Gazcue - Inversión',
+          'Gazcue Apartment - Investment',
+          'Appartement Gazcue - Investissement'
+        ),
+        precio: '$225,000',
+        imagen: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
+        sector: 'Gazcue',
+        habitaciones: 1,
+        banos: 1,
+        area: '75 m²',
+        roi: '12%',
+        occupancy: '85%'
+      },
+      {
+        slug: 'apartamento-malecon-premium',
+        titulo: translate(
+          'Apartamento Malecón Premium',
+          'Premium Waterfront Apartment',
+          'Appartement Premium Front de Mer'
+        ),
+        precio: '$380,000',
+        imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        sector: 'Malecón',
+        habitaciones: 3,
+        banos: 2,
+        area: '140 m²',
+        roi: '15%',
+        occupancy: '95%'
+      }
+    ],
+    relatedListings: [
+      {
+        slug: 'casas-para-residir-permanente',
+        title: translate(
+          'Casas para Residir Permanente',
+          'Houses for Permanent Living',
+          'Maisons pour Résidence Permanente'
+        ),
+        count: 15,
+        image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop'
+      },
+      {
+        slug: 'villas-de-lujo-con-piscina',
+        title: translate(
+          'Villas de Lujo con Piscina',
+          'Luxury Villas with Pool',
+          'Villas de Luxe avec Piscine'
+        ),
+        count: 12,
+        image: 'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=400&h=300&fit=crop'
+      }
+    ]
+  };
+}
+
+const listing = listingData.listing || {};
+const properties = listingData.properties || [];
+const relatedListings = listingData.relatedListings || [];
+
+const TEXTS = {
+  es: {
+    backToListings: '← Volver a listados',
+    keyBenefits: 'Beneficios Clave',
+    availableProperties: 'Propiedades Disponibles',
+    viewProperty: 'Ver propiedad',
+    relatedListings: 'Otros Listados Relacionados',
+    contactSpecialist: 'Contactar especialista',
+    downloadGuide: 'Descargar guía',
+    requestInfo: 'Solicitar información',
+    properties: 'propiedades',
+    avgRoi: 'ROI promedio',
+    occupancyRate: 'Tasa ocupación',
+    avgNightly: 'Precio promedio/noche',
+    whyChoose: '¿Por qué elegir este listado?',
+    expertSelection: 'Selección de expertos',
+    legalSupport: 'Soporte legal incluido',
+    managementIncluded: 'Gestión incluida'
+  },
+  en: {
+    backToListings: '← Back to listings',
+    keyBenefits: 'Key Benefits',
+    availableProperties: 'Available Properties',
+    viewProperty: 'View property',
+    relatedListings: 'Other Related Listings',
+    contactSpecialist: 'Contact specialist',
+    downloadGuide: 'Download guide',
+    requestInfo: 'Request information',
+    properties: 'properties',
+    avgRoi: 'Average ROI',
+    occupancyRate: 'Occupancy rate',
+    avgNightly: 'Average price/night',
+    whyChoose: 'Why choose this listing?',
+    expertSelection: 'Expert selection',
+    legalSupport: 'Legal support included',
+    managementIncluded: 'Management included'
+  },
+  fr: {
+    backToListings: '← Retour aux listes',
+    keyBenefits: 'Avantages Clés',
+    availableProperties: 'Propriétés Disponibles',
+    viewProperty: 'Voir la propriété',
+    relatedListings: 'Autres Listes Connexes',
+    contactSpecialist: 'Contacter spécialiste',
+    downloadGuide: 'Télécharger le guide',
+    requestInfo: 'Demander des informations',
+    properties: 'propriétés',
+    avgRoi: 'ROI moyen',
+    occupancyRate: 'Taux occupation',
+    avgNightly: 'Prix moyen/nuit',
+    whyChoose: 'Pourquoi choisir cette liste?',
+    expertSelection: 'Sélection d\'experts',
+    legalSupport: 'Support légal inclus',
+    managementIncluded: 'Gestion incluse'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+const routes = {
+  es: { base: '/listados-de', contact: '/contacto', properties: '/propiedades' },
+  en: { base: '/en/listings-of', contact: '/en/contact', properties: '/en/properties' },
+  fr: { base: '/fr/listes-de', contact: '/fr/contact', properties: '/fr/proprietes' }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Helper functions para textos dinámicos
+const getReadyToInvestText = () => {
+  if (language === 'es') return '¿Listo para invertir?';
+  if (language === 'en') return 'Ready to invest?';
+  return 'Prêt à investir?';
+};
+
+const getInvestmentProcessText = () => {
+  if (language === 'es') return 'Nuestro equipo te guiará en cada paso del proceso de inversión.';
+  if (language === 'en') return 'Our team will guide you through every step of the investment process.';
+  return 'Notre équipe vous guidera à chaque étape du processus d\'investissement.';
+};
+
+const getViewOtherListingsText = () => {
+  if (language === 'es') return 'Ver otros listados';
+  if (language === 'en') return 'View other listings';
+  return 'Voir d\'autres listes';
+};
+---
+
+<Layout 
+  title={listing.title}
+  description={listing.description}
+  language={language}
+>
+  <!-- Breadcrumb -->
+  <nav class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <a 
+        href={currentRoutes.base}
+        class="text-blue-600 hover:text-blue-700 font-medium"
+      >
+        {text.backToListings}
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="py-16 bg-gradient-to-r from-blue-600 to-purple-700">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center text-white">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">
+          {listing.title}
+        </h1>
+        <p class="text-xl md:text-2xl mb-8 text-white/90">
+          {listing.subtitle}
+        </p>
+        
+        <!-- Stats -->
+        {listing.stats && (
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-2xl font-bold mb-1">{listing.stats.avgRoi}</div>
+              <div class="text-sm text-white/80">{text.avgRoi}</div>
+            </div>
+            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-2xl font-bold mb-1">{listing.stats.occupancyRate}</div>
+              <div class="text-sm text-white/80">{text.occupancyRate}</div>
+            </div>
+            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-2xl font-bold mb-1">{listing.stats.avgNightly}</div>
+              <div class="text-sm text-white/80">{text.avgNightly}</div>
+            </div>
+            <div class="bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-2xl font-bold mb-1">{listing.stats.propertiesCount}</div>
+              <div class="text-sm text-white/80">{text.properties}</div>
+            </div>
+          </div>
+        )}
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact}
+            class="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            {text.contactSpecialist}
+          </a>
+          <a 
+            href="#propiedades"
+            class="px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            {text.availableProperties}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Description & Benefits -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <!-- Description -->
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">
+              {text.whyChoose}
+            </h2>
+            <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+              {listing.description}
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4">
+              <a 
+                href={currentRoutes.contact}
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-center"
+              >
+                {text.requestInfo}
+              </a>
+              <a 
+                href="#"
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-center"
+              >
+                {text.downloadGuide}
+              </a>
+            </div>
+          </div>
+          
+          <!-- Benefits -->
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">
+              {text.keyBenefits}
+            </h3>
+            
+            {listing.benefits && (
+              <ul class="space-y-4 mb-8">
+                {listing.benefits.map((benefit) => (
+                  <li class="flex items-start">
+                    <svg class="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="text-gray-700">{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            
+            <!-- Additional Features -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-2xl mb-2">🏆</div>
+                <div class="text-sm font-semibold text-gray-900">{text.expertSelection}</div>
+              </div>
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-2xl mb-2">⚖️</div>
+                <div class="text-sm font-semibold text-gray-900">{text.legalSupport}</div>
+              </div>
+              <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-2xl mb-2">🛠️</div>
+                <div class="text-sm font-semibold text-gray-900">{text.managementIncluded}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Properties -->
+  {properties.length > 0 && (
+    <section id="propiedades" class="py-16 bg-gray-50">
+      <PropertyCarousel 
+        title={text.availableProperties}
+        subtitle={`${properties.length} ${text.properties}`}
+        properties={properties}
+        viewAllLink={currentRoutes.properties}
+        language={language}
+      />
+    </section>
+  )}
+
+  <!-- Related Listings -->
+  {relatedListings.length > 0 && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            {text.relatedListings}
+          </h2>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {relatedListings.map((related) => (
+            <a 
+              href={`${currentRoutes.base}/${related.slug}`}
+              class="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow border"
+            >
+              <div class="relative h-48">
+                <img 
+                  src={related.image} 
+                  alt={related.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div class="absolute bottom-4 left-4 text-white">
+                  <h3 class="text-lg font-bold mb-1">{related.title}</h3>
+                  <p class="text-sm text-white/80">{related.count} {text.properties}</p>
+                </div>
+              </div>
+              <div class="p-4">
+                <div class="text-blue-600 text-sm font-medium group-hover:underline">
+                  Ver listado →
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA -->
+  <section class="py-16 bg-gradient-to-r from-blue-600 to-purple-700">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {getReadyToInvestText()}
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {getInvestmentProcessText()}
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact}
+            class="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            {text.contactSpecialist}
+          </a>
+          <a 
+            href={`${currentRoutes.base}`}
+            class="px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            {getViewOtherListingsText()}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

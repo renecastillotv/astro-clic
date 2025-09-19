@@ -9,6 +9,13 @@ import Layout from './Layout.astro';
 const { data } = Astro.props;
 const language = data?.language || 'es';
 
+console.log('🏢 SellLayout: Received data:', {
+  hasData: !!data,
+  dataKeys: data ? Object.keys(data) : [],
+  hasServices: !!(data?.services),
+  servicesLength: data?.services?.length || 0
+});
+
 // ===================================================================
 // DATOS ESTÁTICOS DE FALLBACK 
 // ===================================================================
@@ -16,7 +23,7 @@ const language = data?.language || 'es';
 let sellData = data;
 
 // Si no hay datos, usar fallback estático
-if (!sellData || !sellData.services) {
+if (!sellData || !sellData.services || !Array.isArray(sellData.services)) {
   console.log('💼 SellLayout: Usando datos estáticos de fallback');
   
   sellData = {
@@ -162,12 +169,20 @@ if (!sellData || !sellData.services) {
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// PROCESAR DATOS FINALES CON VALIDACIÓN EXTRA
 // ===================================================================
 
-const services = sellData.services || [];
-const stats = sellData.stats || [];
-const testimonials = sellData.testimonials || [];
+// Usar validación más robusta para asegurar que siempre tenemos arrays
+const services = Array.isArray(sellData?.services) ? sellData.services : [];
+const stats = Array.isArray(sellData?.stats) ? sellData.stats : [];
+const testimonials = Array.isArray(sellData?.testimonials) ? sellData.testimonials : [];
+
+console.log('📊 SellLayout: Datos procesados:', {
+  servicesCount: services.length,
+  statsCount: stats.length,
+  testimonialsCount: testimonials.length,
+  language: language
+});
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -286,9 +301,11 @@ console.log('✅ SellLayout preparado:', {
 ---
 
 <Layout 
-  title={sellData.seo?.title || text.heroTitle}
-  description={sellData.seo?.description || text.heroSubtitle}
+  title={sellData?.seo?.title || text.heroTitle}
+  description={sellData?.seo?.description || text.heroSubtitle}
   language={language}
+  data={data}
+  globalConfig={data?.globalConfig}
 >
   <!-- Hero Section -->
   <section class="bg-white py-16">
@@ -302,14 +319,16 @@ console.log('✅ SellLayout preparado:', {
         </p>
         
         <!-- Simple Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-          {stats.map((stat) => (
-            <div class="text-center">
-              <div class="text-2xl font-bold text-[#f04e00] mb-1">{stat.number}</div>
-              <div class="text-sm text-gray-600">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        {stats.length > 0 && (
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            {stats.map((stat) => (
+              <div class="text-center">
+                <div class="text-2xl font-bold text-[#f04e00] mb-1">{stat.number}</div>
+                <div class="text-sm text-gray-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
         
         <a 
           href="#servicios" 
@@ -333,40 +352,44 @@ console.log('✅ SellLayout preparado:', {
         </p>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {services.map((servicio) => (
-          <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">
-              {servicio.title}
-              {servicio.membership && (
-                <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                  {text.membership}
-                </span>
+      {services.length > 0 && (
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {services.map((servicio) => (
+            <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                {servicio.title}
+                {servicio.membership && (
+                  <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    {text.membership}
+                  </span>
+                )}
+              </h3>
+              
+              <p class="text-gray-600 mb-6">{servicio.description}</p>
+              
+              {Array.isArray(servicio.benefits) && servicio.benefits.length > 0 && (
+                <ul class="space-y-2 mb-6">
+                  {servicio.benefits.map((benefit) => (
+                    <li class="flex items-start gap-2">
+                      <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span class="text-gray-700 text-sm">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </h3>
-            
-            <p class="text-gray-600 mb-6">{servicio.description}</p>
-            
-            <ul class="space-y-2 mb-6">
-              {servicio.benefits.map((benefit) => (
-                <li class="flex items-start gap-2">
-                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <span class="text-gray-700 text-sm">{benefit}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <a 
-              href={servicio.link}
-              class="block w-full text-center px-4 py-2 bg-[#f04e00] text-white rounded hover:bg-[#d94400] transition-colors"
-            >
-              {servicio.cta}
-            </a>
-          </div>
-        ))}
-      </div>
+              
+              <a 
+                href={servicio.link}
+                class="block w-full text-center px-4 py-2 bg-[#f04e00] text-white rounded hover:bg-[#d94400] transition-colors"
+              >
+                {servicio.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   </section>
 

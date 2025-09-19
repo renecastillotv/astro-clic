@@ -262,13 +262,23 @@ console.log('✅ AdvisorsLayout preparado:', {
   hasTeamProperties: teamProperties.length > 0,
   calculatedStats
 });
+
+const layoutProps = {
+  title: seo.title || text.title,
+  description: seo.description || text.subtitle,
+  ogImage: seo.open_graph?.image || '/og-default.jpg',
+  canonical: seo.canonical_url,
+  keywords: seo.keywords,
+  hreflangData: seo.hreflang || {},
+ globalConfig: data.globalConfig || advisorsData.globalConfig || {},
+  language: language,
+  trackingString: advisorsData.trackingString || '',
+  hotItems: advisorsData.hotItems || {},
+  country: advisorsData.country || {}
+};
 ---
 
-<Layout 
-  title={seo.title || text.title}
-  description={seo.description || text.subtitle}
-  language={language}
->
+<Layout {...layoutProps}>
   <div class="min-h-screen bg-gray-50">
     
     <!-- Hero Section -->
