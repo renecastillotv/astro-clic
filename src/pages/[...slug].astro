@@ -344,6 +344,7 @@ async function callContentBackend(language, segments, searchParams) {
         'Authorization': AUTH_TOKEN,
         'Content-Type': 'application/json',
         'User-Agent': `CLIC-Content/${Astro.url.host}`,
+          'X-Original-Host': Astro.url.hostname, // 👈 AGREGAR ESTO
       },
     });
 

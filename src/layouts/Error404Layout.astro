@@ -147,7 +147,8 @@ try {
     headers: {
       'Authorization': AUTH_TOKEN,
       'Content-Type': 'application/json',
-      'User-Agent': `Mozilla/5.0 CLIC-404/${Astro.url.host}`,
+     'User-Agent': `CLIC-404/${Astro.url.hostname}`,
+'X-Original-Host': Astro.url.hostname,
     },
   });
 
