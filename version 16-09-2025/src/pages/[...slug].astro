@@ -1,0 +1,506 @@
+---
+// src/pages/[...slug].astro - ROUTER UNIVERSAL SIMPLIFICADO
+import PropertyListLayout from '../layouts/PropertyListLayout.astro';
+import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
+import Error404Layout from '../layouts/Error404Layout.astro';
+import Layout from '../layouts/Layout.astro';
+
+// Importar layouts para páginas especiales
+import AdvisorsLayout from '../layouts/AdvisorsLayout.astro';
+import SingleAdvisorLayout from '../layouts/SingleAdvisorLayout.astro';
+import FavoritesLayout from '../layouts/FavoritesLayout.astro';
+import SharedFavoritesLayout from '../layouts/SharedFavoritesLayout.astro';
+
+// Importar layouts para testimonios
+import TestimonialsMainLayout from '../layouts/TestimonialsMainLayout.astro';
+import TestimonialsCategoryLayout from '../layouts/TestimonialsCategoryLayout.astro';
+import TestimonialsSingleLayout from '../layouts/TestimonialsSingleLayout.astro';
+
+// Importar layouts para artículos
+import ArticlesMainLayout from '../layouts/ArticlesMainLayout.astro';
+import ArticlesCategoryLayout from '../layouts/ArticlesCategoryLayout.astro';
+import ArticlesSingleLayout from '../layouts/ArticlesSingleLayout.astro';
+
+// Importar layouts para videos
+import VideosMainLayout from '../layouts/VideosMainLayout.astro';
+import VideosCategoryLayout from '../layouts/VideosCategoryLayout.astro';
+import VideosSingleLayout from '../layouts/VideosSingleLayout.astro';
+
+// Importar layouts para contacto, vender, rentas vacacionales y propiedades
+import ContactLayout from '../layouts/ContactLayout.astro';
+import SellLayout from '../layouts/SellLayout.astro';
+import VacationRentalsLayout from '../layouts/VacationRentalsLayout.astro';
+import VacationRentalsMainLayout from '../layouts/VacationRentalsMainLayout.astro';
+import VacationRentalsDynamicLayout from '../layouts/VacationRentalsDynamicLayout.astro';
+import PropertiesLayout from '../layouts/PropertiesLayout.astro';
+
+// Habilitar SSR para esta página
+export const prerender = false;
+
+export async function getStaticPaths() {
+  return [];
+}
+
+// =====================================================
+// CONFIGURACIÓN DE IDIOMAS Y RUTAS ESPECIALES
+// =====================================================
+
+const LANGUAGES = {
+  'es': { code: 'es', prefix: '', default: true },
+  'en': { code: 'en', prefix: 'en' },
+  'fr': { code: 'fr', prefix: 'fr' }
+};
+
+const SPECIAL_ROUTES = {
+  // Español
+  'asesores': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favoritos': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'testimonios': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articulos': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'ubicaciones': { type: 'locations', layout: 'LocationsLayout' },
+  'contacto': { type: 'contact', layout: 'ContactLayout' },
+  'rentas-vacacionales': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'planes-rentas-vacacionales': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'vender': { type: 'sell', layout: 'SellLayout' },
+  'propiedades': { type: 'properties', layout: 'PropertiesLayout' },
+  
+  // Inglés
+  'advisors': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favorites': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'testimonials': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'locations': { type: 'locations', layout: 'LocationsLayout' },
+  'contact': { type: 'contact', layout: 'ContactLayout' },
+  'vacation-rentals': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'vacation-rental-plans': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'sell': { type: 'sell', layout: 'SellLayout' },
+  'properties': { type: 'properties', layout: 'PropertiesLayout' },
+  
+  // Francés
+  'conseillers': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favoris': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'temoignages': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'emplacements': { type: 'locations', layout: 'LocationsLayout' },
+  'contact': { type: 'contact', layout: 'ContactLayout' },
+  'locations-vacances': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'plans-locations-vacances': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'vendre': { type: 'sell', layout: 'SellLayout' },
+  'proprietes': { type: 'properties', layout: 'PropertiesLayout' }
+};
+
+// =====================================================
+// FUNCIÓN PARA FILTRAR RUTAS VÁLIDAS
+// =====================================================
+function shouldProcessRoute(urlSegments, pathname) {
+  const excludedPaths = [
+    'images', 'img', 'assets', 'static', 'public',
+    'css', 'js', 'fonts', 'favicon.ico', 'robots.txt', 'sitemap.xml',
+    '_astro', 'api', 'admin', 'wp-admin', 'wp-content',
+    '.well-known', 'manifest.json', 'sw.js'
+  ];
+  
+  const excludedExtensions = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico',
+    '.css', '.js', '.json', '.xml', '.txt', '.pdf', '.zip',
+    '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mp3'
+  ];
+  
+  if (urlSegments.length > 0 && excludedPaths.includes(urlSegments[0].toLowerCase())) {
+    return false;
+  }
+  
+  const lastSegment = urlSegments[urlSegments.length - 1] || '';
+  if (excludedExtensions.some(ext => lastSegment.toLowerCase().endsWith(ext))) {
+    return false;
+  }
+  
+  if (excludedExtensions.some(ext => pathname.toLowerCase().endsWith(ext))) {
+    return false;
+  }
+  
+  return true;
+}
+
+// =====================================================
+// FUNCIÓN PARA DETECTAR IDIOMA Y RUTAS
+// =====================================================
+function parseUrlSegments(urlSegments) {
+  if (urlSegments.length === 0) {
+    return {
+      language: 'es',
+      remainingSegments: [],
+      routeType: 'home'
+    };
+  }
+
+  const firstSegment = urlSegments[0].toLowerCase();
+  
+  if (LANGUAGES[firstSegment]) {
+    const language = firstSegment;
+    const remainingSegments = urlSegments.slice(1);
+    
+    if (remainingSegments.length === 0) {
+      return {
+        language,
+        remainingSegments: [],
+        routeType: 'home'
+      };
+    }
+    
+    const nextSegment = remainingSegments[0];
+    if (SPECIAL_ROUTES[nextSegment]) {
+      return {
+        language,
+        remainingSegments,
+        routeType: 'special',
+        specialRoute: SPECIAL_ROUTES[nextSegment]
+      };
+    }
+    
+    return {
+      language,
+      remainingSegments,
+      routeType: 'property'
+    };
+  }
+  
+  const language = 'es';
+  
+  if (SPECIAL_ROUTES[firstSegment]) {
+    return {
+      language,
+      remainingSegments: urlSegments,
+      routeType: 'special',
+      specialRoute: SPECIAL_ROUTES[firstSegment]
+    };
+  }
+  
+  return {
+    language,
+    remainingSegments: urlSegments,
+    routeType: 'property'
+  };
+}
+
+// =====================================================
+// FUNCIÓN ÚNICA PARA LLAMAR BACKEND
+// =====================================================
+
+const BASE_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+async function callBackendOnce(language, segments, searchParams) {
+  try {
+    // Construir la ruta completa para la edge function
+    let routePath = '';
+    
+    if (language !== 'es') {
+      routePath = language + '/';
+    }
+    
+    if (segments.length > 0) {
+      routePath += segments.join('/');
+    }
+    
+    const edgeFunctionURL = `${BASE_URL}/${routePath}${searchParams ? `?${searchParams}` : ''}`;
+    
+    console.log('🚀 Single call to backend:', edgeFunctionURL);
+    
+    const response = await fetch(edgeFunctionURL, {
+      method: 'GET',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json',
+        'User-Agent': `Mozilla/5.0 CLIC-Router/${Astro.url.host}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Backend error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    // Asegurar que tenga el idioma correcto
+    data.language = language;
+    
+    console.log('✅ Backend response:', {
+      type: data.pageType || data.type,
+      language: data.language,
+      hasProperties: data.properties?.length > 0,
+      totalProperties: data.totalProperties || 0
+    });
+    
+    return data;
+    
+  } catch (error) {
+    console.error('❌ Error calling backend:', error);
+    
+    return {
+      type: '404',
+      language: language,
+      error: error.message
+    };
+  }
+}
+
+// =====================================================
+// FUNCIONES PARA PÁGINAS ESPECIALES (SIN LLAMADAS API)
+// =====================================================
+
+function getSpecialPageData(specialRoute, language, segments, pathname) {
+  const baseData = {
+    language: language,
+    originalUrl: pathname,
+    type: specialRoute.type
+  };
+
+  switch (specialRoute.type) {
+    case 'favorites':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'favorites-main' };
+      } else if (segments.length === 2 && segments[1] === 'compartir') {
+        return { ...baseData, type: 'favorites-shared' };
+      }
+      return { ...baseData, type: '404' };
+
+    case 'testimonials':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'testimonials-main' };
+      } else if (segments.length === 2) {
+        return { ...baseData, type: 'testimonials-category', category: segments[1] };
+      } else if (segments.length === 3) {
+        return { ...baseData, type: 'testimonials-single', category: segments[1], testimonioSlug: segments[2] };
+      }
+      return { ...baseData, type: '404' };
+
+    case 'advisors':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'advisors-list' };
+      } else if (segments.length === 2) {
+        return { ...baseData, type: 'advisor-single', advisorSlug: segments[1] };
+      }
+      return { ...baseData, type: '404' };
+
+    case 'articles':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'articles-main' };
+      } else if (segments.length === 2) {
+        return { ...baseData, type: 'articles-category', categorySlug: segments[1] };
+      } else if (segments.length === 3) {
+        return { ...baseData, type: 'articles-single', categorySlug: segments[1], articleSlug: segments[2] };
+      }
+      return { ...baseData, type: '404' };
+
+    case 'videos':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'videos-main' };
+      } else if (segments.length === 2) {
+        return { ...baseData, type: 'videos-category', categorySlug: segments[1] };
+      } else if (segments.length === 3) {
+        return { ...baseData, type: 'videos-single', categorySlug: segments[1], videoSlug: segments[2] };
+      }
+      return { ...baseData, type: '404' };
+
+    case 'contact':
+      return { ...baseData, type: 'contact' };
+
+    case 'sell':
+      return { ...baseData, type: 'sell' };
+
+    case 'vacation-rentals':
+      if (segments.length === 1) {
+        return { ...baseData, type: 'vacation-rentals-main' };
+      } else if (segments[1] === 'planes') {
+        return { ...baseData, type: 'vacation-rentals-plans' };
+      } else {
+        return { ...baseData, type: 'vacation-rentals-dynamic', segments: segments.slice(1) };
+      }
+
+    case 'vacation-rentals-plans':
+      return { ...baseData, type: 'vacation-rentals-plans' };
+
+    case 'properties':
+      return { ...baseData, type: 'properties-main' };
+
+    default:
+      return { ...baseData, type: '404', message: `Página especial "${specialRoute.type}" en desarrollo` };
+  }
+}
+
+// =====================================================
+// PROCESAMIENTO PRINCIPAL SIMPLIFICADO
+// =====================================================
+
+const { slug } = Astro.params;
+let urlSegments = slug ? slug.split('/').filter(Boolean) : [];
+const pathname = Astro.url.pathname;
+
+console.log('🎯 Simplified router processing:', {
+  slug,
+  pathname,
+  segments: urlSegments
+});
+
+if (!shouldProcessRoute(urlSegments, pathname)) {
+  console.log('❌ Excluded route:', pathname);
+  return new Response(null, { status: 404 });
+}
+
+if (!slug || urlSegments.length === 0) {
+  const pathSegments = pathname.split('/').filter(Boolean);
+  urlSegments = [...pathSegments];
+  
+  if (!shouldProcessRoute(urlSegments, pathname)) {
+    console.log('❌ Excluded pathname route:', pathname);
+    return new Response(null, { status: 404 });
+  }
+}
+
+const parsedRoute = parseUrlSegments(urlSegments);
+const searchParams = Astro.url.searchParams.toString();
+
+console.log('🔍 Parsed route:', parsedRoute);
+
+let pageData = null;
+let pageType = 'unknown';
+
+try {
+  switch (parsedRoute.routeType) {
+    case 'home':
+      console.log('🏠 Processing home page');
+      const homeData = await callBackendOnce(parsedRoute.language, [], searchParams);
+      pageData = homeData;
+      pageType = homeData.pageType || '404';
+      break;
+    
+    case 'special':
+      console.log('⭐ Processing special route:', parsedRoute.specialRoute.type);
+      pageData = getSpecialPageData(parsedRoute.specialRoute, parsedRoute.language, parsedRoute.remainingSegments, pathname);
+      pageType = pageData.type;
+      break;
+    
+    case 'property':
+      console.log('🏠 Processing property route');
+      const backendData = await callBackendOnce(parsedRoute.language, parsedRoute.remainingSegments, searchParams);
+      pageData = backendData;
+      
+      // LÓGICA SIMPLIFICADA: Solo 3 casos posibles
+      if (backendData.pageType === 'single-property') {
+        pageType = 'single-property';
+      } else if (backendData.pageType === 'property-list') {
+        pageType = 'property-list';
+      } else {
+        pageType = '404';
+      }
+      break;
+    
+    default:
+      console.log('❓ Unknown route type');
+      pageData = {
+        type: '404',
+        language: parsedRoute.language,
+        originalUrl: pathname
+      };
+      pageType = '404';
+      break;
+  }
+  
+} catch (error) {
+  console.error('❌ Error processing page:', error);
+  pageData = {
+    type: '404',
+    language: parsedRoute.language,
+    originalUrl: pathname,
+    error: error.message
+  };
+  pageType = '404';
+}
+
+if (pageType === '404') {
+  Astro.response.status = 404;
+}
+
+console.log('✅ Page ready:', {
+  routeType: parsedRoute.routeType,
+  language: parsedRoute.language,
+  pageType: pageType,
+  hasContent: !!pageData
+});
+
+// =====================================================
+// MAPEO SIMPLIFICADO DE TIPOS A COMPONENTES
+// =====================================================
+
+const showPropertyList = pageType === 'property-list';
+const showSingleProperty = pageType === 'single-property';
+const showAdvisorsList = pageType === 'advisors-list';
+const showAdvisorSingle = pageType === 'advisor-single';
+const showFavoritesMain = pageType === 'favorites-main';
+const showFavoritesShared = pageType === 'favorites-shared';
+const showTestimonialsMain = pageType === 'testimonials-main';
+const showTestimonialsCategory = pageType === 'testimonials-category';
+const showTestimonialsSingle = pageType === 'testimonials-single';
+const showArticlesMain = pageType === 'articles-main';
+const showArticlesCategory = pageType === 'articles-category';
+const showArticlesSingle = pageType === 'articles-single';
+const showVideosMain = pageType === 'videos-main';
+const showVideosCategory = pageType === 'videos-category';
+const showVideosSingle = pageType === 'videos-single';
+const showContact = pageType === 'contact';
+const showSell = pageType === 'sell';
+const showVacationRentalsMain = pageType === 'vacation-rentals-main';
+const showVacationRentalsPlans = pageType === 'vacation-rentals-plans';
+const showVacationRentalsDynamic = pageType === 'vacation-rentals-dynamic';
+const showPropertiesMain = pageType === 'properties-main';
+const show404 = pageType === '404';
+---
+
+{showPropertyList && <PropertyListLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showSingleProperty && <SinglePropertyLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showAdvisorsList && <AdvisorsLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showAdvisorSingle && <SingleAdvisorLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showFavoritesMain && <FavoritesLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showFavoritesShared && <SharedFavoritesLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsMain && <TestimonialsMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsCategory && <TestimonialsCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsSingle && <TestimonialsSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesMain && <ArticlesMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesCategory && <ArticlesCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesSingle && <ArticlesSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosMain && <VideosMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosCategory && <VideosCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosSingle && <VideosSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showContact && <ContactLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showSell && <SellLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsMain && <VacationRentalsMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsPlans && <VacationRentalsLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsDynamic && <VacationRentalsDynamicLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showPropertiesMain && <PropertiesLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{show404 && <Error404Layout data={pageData} language={pageData?.language || 'es'} />}

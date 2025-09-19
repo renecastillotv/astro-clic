@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Gestión de Contenido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        .editor-container {
+            min-height: 300px;
+        }
+        .tag-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            min-width: 120px;
+        }
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="contentAdminPanel()" x-init="init()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">Admin Panel - Gestión de Contenido</h1>
+                    <div class="flex space-x-2">
+                        <button @click="activeTab = 'properties'" 
+                                :class="activeTab === 'properties' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            Propiedades
+                        </button>
+                        <button @click="activeTab = 'articles'" 
+                                :class="activeTab === 'articles' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            Artículos
+                        </button>
+                        <button @click="activeTab = 'videos'" 
+                                :class="activeTab === 'videos' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            Videos
+                        </button>
+                        <button @click="activeTab = 'testimonials'" 
+                                :class="activeTab === 'testimonials' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            Testimonios
+                        </button>
+                        <button @click="activeTab = 'faqs'" 
+                                :class="activeTab === 'faqs' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            FAQs
+                        </button>
+                        <button @click="activeTab = 'tags'" 
+                                :class="activeTab === 'tags' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm">
+                            Tags
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading -->
+        <div x-show="loading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Properties Tab -->
+        <div x-show="activeTab === 'properties'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Search and Actions -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de Propiedades</h2>
+                    <button @click="createProperty()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nueva Propiedad
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input x-model="propertySearch" @input="searchProperties()" 
+                           placeholder="Buscar propiedades..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="propertyStatusFilter" @change="searchProperties()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos los estados</option>
+                        <option value="Publicada">Publicada</option>
+                        <option value="Borrador">Borrador</option>
+                        <option value="Pausada">Pausada</option>
+                    </select>
+                    <select x-model="propertyTypeFilter" @change="searchProperties()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos los tipos</option>
+                        <template x-for="category in propertyCategories" :key="category.id">
+                            <option :value="category.name" x-text="category.name"></option>
+                        </template>
+                    </select>
+                    <button @click="refreshProperties()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Properties List -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b">
+                    <h3 class="text-lg font-semibold">Propiedades (<span x-text="filteredProperties.length"></span>)</h3>
+                </div>
+                <div class="divide-y max-h-96 overflow-y-auto">
+                    <template x-for="property in paginatedProperties" :key="property.id">
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer" @click="editProperty(property)">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-3 mb-2">
+                                        <h4 class="font-semibold" x-text="property.name || property.private_name || 'Sin nombre'"></h4>
+                                        <span class="text-xs text-gray-500" x-text="'#' + (property.code || property.id)"></span>
+                                        <span :class="property.property_status === 'Publicada' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                              class="px-2 py-1 text-xs rounded-full" x-text="property.property_status"></span>
+                                        <span x-show="property.is_project" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded-full">
+                                            PROYECTO
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
+                                        <div>💰 <span x-text="formatPropertyPrice(property)"></span></div>
+                                        <div>🏠 <span x-text="property.property_categories?.name || 'Sin categoría'"></span></div>
+                                        <div>📍 <span x-text="property.cities?.name || 'Sin ciudad'"></span></div>
+                                        <div>🏘️ <span x-text="property.sectors?.name || 'Sin sector'"></span></div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button @click.stop="editProperty(property)" class="text-blue-500 hover:text-blue-700">✏️</button>
+                                    <button @click.stop="deleteProperty(property.id)" class="text-red-500 hover:text-red-700">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Articles Tab -->
+        <div x-show="activeTab === 'articles'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Articles Header -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de Artículos</h2>
+                    <button @click="createArticle()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nuevo Artículo
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="articleSearch" @input="searchArticles()" placeholder="Buscar artículos..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="articleStatusFilter" @change="searchArticles()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos los estados</option>
+                        <option value="published">Publicado</option>
+                        <option value="draft">Borrador</option>
+                        <option value="archived">Archivado</option>
+                    </select>
+                    <button @click="refreshArticles()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Articles List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="article in filteredArticles" :key="article.id">
+                    <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer" @click="editArticle(article)">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 text-xs rounded-full" x-text="article.category"></span>
+                            <div class="flex space-x-2">
+                                <button @click.stop="editArticle(article)" class="text-blue-500 hover:text-blue-700">✏️</button>
+                                <button @click.stop="deleteArticle(article.id)" class="text-red-500 hover:text-red-700">🗑️</button>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 line-clamp-2" x-text="article.title"></h3>
+                        <p class="text-gray-600 text-sm mb-3 line-clamp-3" x-text="article.excerpt"></p>
+                        <div class="flex justify-between items-center text-xs text-gray-500">
+                            <span x-text="article.status"></span>
+                            <span x-text="article.views || '0'"></span>
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            <template x-for="tag in (article.tags || []).slice(0, 3)" :key="tag">
+                                <span class="bg-gray-100 text-gray-700 px-2 py-1 text-xs rounded" x-text="tag"></span>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Videos Tab -->
+        <div x-show="activeTab === 'videos'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Videos Header -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de Videos</h2>
+                    <button @click="createVideo()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nuevo Video
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="videoSearch" @input="searchVideos()" placeholder="Buscar videos..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="videoCategoryFilter" @change="searchVideos()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las categorías</option>
+                        <option value="decoracion">Decoración</option>
+                        <option value="casa-famosos">Casa de Famosos</option>
+                        <option value="proyectos">Proyectos</option>
+                        <option value="recorridos">Recorridos</option>
+                        <option value="entrevistas">Entrevistas</option>
+                        <option value="tips">Tips</option>
+                    </select>
+                    <button @click="refreshVideos()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Videos List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="video in filteredVideos" :key="video.id">
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer" @click="editVideo(video)">
+                        <div class="aspect-video bg-gray-200 relative">
+                            <img x-show="video.thumbnail" :src="video.thumbnail" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                                <div class="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <span class="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded" x-text="video.duration"></span>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="bg-red-100 text-red-800 px-2 py-1 text-xs rounded-full" x-text="video.category"></span>
+                                <div class="flex space-x-2">
+                                    <button @click.stop="editVideo(video)" class="text-blue-500 hover:text-blue-700">✏️</button>
+                                    <button @click.stop="deleteVideo(video.id)" class="text-red-500 hover:text-red-700">🗑️</button>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-sm mb-2 line-clamp-2" x-text="video.title"></h3>
+                            <div class="flex justify-between items-center text-xs text-gray-500">
+                                <span x-text="video.views || '0'"></span>
+                                <span x-text="video.status"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Testimonials Tab -->
+        <div x-show="activeTab === 'testimonials'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Testimonials Header -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de Testimonios</h2>
+                    <button @click="createTestimonial()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nuevo Testimonio
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="testimonialSearch" @input="searchTestimonials()" placeholder="Buscar testimonios..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="testimonialCategoryFilter" @change="searchTestimonials()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las categorías</option>
+                        <option value="compradores">Compradores</option>
+                        <option value="vendedores">Vendedores</option>
+                        <option value="inversores">Inversores</option>
+                        <option value="inquilinos">Inquilinos</option>
+                    </select>
+                    <button @click="refreshTestimonials()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Testimonials List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <template x-for="testimonial in filteredTestimonials" :key="testimonial.id">
+                    <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer" @click="editTestimonial(testimonial)">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-green-100 text-green-800 px-2 py-1 text-xs rounded-full" x-text="testimonial.category"></span>
+                                <div class="flex text-yellow-400">
+                                    <template x-for="i in 5" :key="i">
+                                        <svg class="w-4 h-4" :class="i <= (testimonial.rating || 5) ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click.stop="editTestimonial(testimonial)" class="text-blue-500 hover:text-blue-700">✏️</button>
+                                <button @click.stop="deleteTestimonial(testimonial.id)" class="text-red-500 hover:text-red-700">🗑️</button>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2" x-text="testimonial.title"></h3>
+                        <p class="text-gray-600 text-sm mb-3 line-clamp-3" x-text="testimonial.excerpt"></p>
+                        <div class="flex items-center space-x-3 mb-2">
+                            <img x-show="testimonial.client_avatar" :src="testimonial.client_avatar" class="w-8 h-8 rounded-full">
+                            <div>
+                                <p class="font-medium text-sm" x-text="testimonial.client_name"></p>
+                                <p class="text-xs text-gray-500" x-text="testimonial.transaction_location"></p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-gray-500">
+                            <span x-text="testimonial.status"></span>
+                            <span x-text="testimonial.views || '0'"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- FAQs Tab -->
+        <div x-show="activeTab === 'faqs'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- FAQs Header -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de FAQs</h2>
+                    <button @click="createFAQ()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nueva FAQ
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="faqSearch" @input="searchFAQs()" placeholder="Buscar FAQs..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="faqCategoryFilter" @change="searchFAQs()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las categorías</option>
+                        <option value="general">General</option>
+                        <option value="precios">Precios</option>
+                        <option value="inversion">Inversión</option>
+                        <option value="proceso">Proceso</option>
+                        <option value="legal">Legal</option>
+                    </select>
+                    <button @click="refreshFAQs()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- FAQs List -->
+            <div class="space-y-4">
+                <template x-for="faq in filteredFAQs" :key="faq.id">
+                    <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 text-xs rounded-full" x-text="faq.category"></span>
+                            <div class="flex space-x-2">
+                                <button @click="editFAQ(faq)" class="text-blue-500 hover:text-blue-700">✏️</button>
+                                <button @click="deleteFAQ(faq.id)" class="text-red-500 hover:text-red-700">🗑️</button>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2" x-text="faq.question"></h3>
+                        <p class="text-gray-600 text-sm mb-3 line-clamp-2" x-text="faq.answer"></p>
+                        <div class="flex justify-between items-center text-xs text-gray-500">
+                            <div class="flex space-x-3">
+                                <span x-show="faq.context_location">📍 <span x-text="faq.context_location"></span></span>
+                                <span x-show="faq.context_property_type">🏠 <span x-text="faq.context_property_type"></span></span>
+                            </div>
+                            <span x-text="faq.status"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Tags Tab -->
+        <div x-show="activeTab === 'tags'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Tags Header -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Gestión de Tags</h2>
+                    <button @click="createTag()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                        + Nuevo Tag
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="tagSearch" @input="searchTags()" placeholder="Buscar tags..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="tagCategoryFilter" @change="searchTags()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todas las categorías</option>
+                        <option value="operacion">Operación</option>
+                        <option value="categoria">Categoría</option>
+                        <option value="ciudad">Ciudad</option>
+                        <option value="sector">Sector</option>
+                        <option value="caracteristica">Característica</option>
+                    </select>
+                    <button @click="refreshTags()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tags List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <template x-for="tag in filteredTags" :key="tag.id">
+                    <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="bg-gray-100 text-gray-800 px-2 py-1 text-xs rounded-full" x-text="tag.category"></span>
+                            <div class="flex space-x-1">
+                                <button @click="editTag(tag)" class="text-blue-500 hover:text-blue-700 text-sm">✏️</button>
+                                <button @click="deleteTag(tag.id)" class="text-red-500 hover:text-red-700 text-sm">🗑️</button>
+                            </div>
+                        </div>
+                        <h3 class="font-semibold text-sm mb-1" x-text="tag.name"></h3>
+                        <p class="text-xs text-gray-600 mb-2" x-text="tag.slug"></p>
+                        <p class="text-xs text-gray-500 line-clamp-2" x-text="tag.description"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Modal for editing content -->
+        <div x-show="showModal" x-transition class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[95vh] overflow-y-auto">
+                <div class="px-6 py-4 border-b bg-gray-50 sticky top-0 z-10">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-semibold" x-text="modalTitle"></h2>
+                        <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6" x-html="modalContent">
+                    <!-- Modal content will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div x-show="toast.show" x-transition 
+             :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+             class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            <p x-text="toast.message"></p>
+        </div>
+    </div>
+
+    <script>
+        function contentAdminPanel() {
+            return {
+                // Configuration
+                supabaseUrl: 'https://pacewqgypevfgjmdsorz.supabase.co',
+                supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs',
+                supabase: null,
+
+                // State
+                activeTab: 'properties',
+                loading: false,
+                showModal: false,
+                modalTitle: '',
+                modalContent: '',
+                currentItem: null,
+                
+                // Properties
+                properties: [],
+                filteredProperties: [],
+                paginatedProperties: [],
+                propertySearch: '',
+                propertyStatusFilter: '',
+                propertyTypeFilter: '',
+                propertyCategories: [],
+                currentPage: 1,
+                pageSize: 20,
+                
+                // Articles
+                articles: [],
+                filteredArticles: [],
+                articleSearch: '',
+                articleStatusFilter: '',
+                
+                // Videos
+                videos: [],
+                filteredVideos: [],
+                videoSearch: '',
+                videoCategoryFilter: '',
+                
+                // Testimonials
+                testimonials: [],
+                filteredTestimonials: [],
+                testimonialSearch: '',
+                testimonialCategoryFilter: '',
+                
+                // FAQs
+                faqs: [],
+                filteredFAQs: [],
+                faqSearch: '',
+                faqCategoryFilter: '',
+                
+                // Tags
+                tags: [],
+                filteredTags: [],
+                tagSearch: '',
+                tagCategoryFilter: '',
+                
+                // Related data
+                users: [],
+                contacts: [],
+                
+                // Toast
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
+
+                // Computed
+                get totalPages() {
+                    return Math.ceil(this.filteredProperties.length / this.pageSize);
+                },
+
+                // Initialize
+                async init() {
+                    try {
+                        this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
+                        await this.loadData();
+                    } catch (error) {
+                        this.showToast('Error conectando con Supabase: ' + error.message, 'error');
+                    }
+                },
+
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        await Promise.all([
+                            this.loadProperties(),
+                            this.loadArticles(),
+                            this.loadVideos(),
+                            this.loadTestimonials(),
+                            this.loadFAQs(),
+                            this.loadTags(),
+                            this.loadUsers(),
+                            this.loadContacts(),
+                            this.loadPropertyCategories()
+                        ]);
+                    } catch (error) {
+                        this.showToast('Error cargando datos: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Properties Methods
+                async loadProperties() {
+                    const { data, error } = await this.supabase
+                        .from('properties')
+                        .select(`
+                            id, code, name, private_name, property_status, availability, is_project,
+                            sale_price, sale_currency, rental_price, rental_currency,
+                            property_categories(name),
+                            cities(name),
+                            sectors(name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(200);
+
+                    if (error) throw error;
+                    this.properties = data || [];
+                    this.searchProperties();
+                },
+
+                async loadPropertyCategories() {
+                    const { data, error } = await this.supabase
+                        .from('property_categories')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+                    this.propertyCategories = data || [];
+                },
+
+                searchProperties() {
+                    let filtered = this.properties;
+
+                    if (this.propertySearch) {
+                        const search = this.propertySearch.toLowerCase();
+                        filtered = filtered.filter(p => 
+                            (p.name || '').toLowerCase().includes(search) ||
+                            (p.private_name || '').toLowerCase().includes(search) ||
+                            (p.code || '').toString().includes(search)
+                        );
+                    }
+
+                    if (this.propertyStatusFilter) {
+                        filtered = filtered.filter(p => p.property_status === this.propertyStatusFilter);
+                    }
+
+                    if (this.propertyTypeFilter) {
+                        filtered = filtered.filter(p => p.property_categories?.name === this.propertyTypeFilter);
+                    }
+
+                    this.filteredProperties = filtered;
+                    this.currentPage = 1;
+                    this.updatePagination();
+                },
+
+                updatePagination() {
+                    const start = (this.currentPage - 1) * this.pageSize;
+                    const end = start + this.pageSize;
+                    this.paginatedProperties = this.filteredProperties.slice(start, end);
+                },
+
+                async refreshProperties() {
+                    await this.loadProperties();
+                    this.showToast('Propiedades actualizadas');
+                },
+
+                createProperty() {
+                    this.currentItem = null;
+                    this.modalTitle = 'Nueva Propiedad';
+                    this.modalContent = this.generatePropertyForm();
+                    this.showModal = true;
+                },
+
+                editProperty(property) {
+                    this.currentItem = property;
+                    this.modalTitle = 'Editar Propiedad';
+                    this.modalContent = this.generatePropertyForm(property);
+                    this.showModal = true;
+                },
+
+                generatePropertyForm(property = null) {
+                    const isEdit = !!property;
+                    return `
+                        <form @submit.prevent="saveProperty()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Público</label>
+                                    <input type="text" x-model="propertyForm.name" 
+                                           value="${property?.name || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Privado</label>
+                                    <input type="text" x-model="propertyForm.private_name" 
+                                           value="${property?.private_name || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Código</label>
+                                    <input type="text" x-model="propertyForm.code" 
+                                           value="${property?.code || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                    <select x-model="propertyForm.property_status" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="Publicada" ${property?.property_status === 'Publicada' ? 'selected' : ''}>Publicada</option>
+                                        <option value="Borrador" ${property?.property_status === 'Borrador' ? 'selected' : ''}>Borrador</option>
+                                        <option value="Pausada" ${property?.property_status === 'Pausada' ? 'selected' : ''}>Pausada</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Venta</label>
+                                    <input type="number" x-model="propertyForm.sale_price" 
+                                           value="${property?.sale_price || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Moneda Venta</label>
+                                    <select x-model="propertyForm.sale_currency" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="USD" ${property?.sale_currency === 'USD' ? 'selected' : ''}>USD</option>
+                                        <option value="DOP" ${property?.sale_currency === 'DOP' ? 'selected' : ''}>DOP</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio de Alquiler</label>
+                                    <input type="number" x-model="propertyForm.rental_price" 
+                                           value="${property?.rental_price || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Moneda Alquiler</label>
+                                    <select x-model="propertyForm.rental_currency" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="USD" ${property?.rental_currency === 'USD' ? 'selected' : ''}>USD</option>
+                                        <option value="DOP" ${property?.rental_currency === 'DOP' ? 'selected' : ''}>DOP</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <textarea x-model="propertyForm.description" rows="4"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${property?.description || ''}</textarea>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Habitaciones</label>
+                                    <input type="number" x-model="propertyForm.bedrooms" 
+                                           value="${property?.bedrooms || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Baños</label>
+                                    <input type="number" step="0.5" x-model="propertyForm.bathrooms" 
+                                           value="${property?.bathrooms || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Área Construida (m²)</label>
+                                    <input type="number" x-model="propertyForm.built_area" 
+                                           value="${property?.built_area || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Parqueos</label>
+                                    <input type="number" x-model="propertyForm.parking_spots" 
+                                           value="${property?.parking_spots || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tags Relacionados</label>
+                                <div class="border rounded-lg p-3 min-h-[40px] flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-blue-500" 
+                                     @click="$refs.tagInput.focus()">
+                                    <template x-for="tag in selectedTags" :key="tag">
+                                        <span class="tag-badge">
+                                            <span x-text="tag"></span>
+                                            <button type="button" @click="removeTag(tag)" class="ml-1 hover:text-red-200">×</button>
+                                        </span>
+                                    </template>
+                                    <input x-ref="tagInput" type="text" x-model="tagInput" @keydown.enter.prevent="addTag()"
+                                           placeholder="Agregar tag..." class="tag-input flex-1">
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500">Presiona Enter para agregar tags</div>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} Propiedad
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // Article Methods
+                async loadArticles() {
+                    const { data, error } = await this.supabase
+                        .from('articles')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.articles = data || [];
+                    this.searchArticles();
+                },
+
+                searchArticles() {
+                    let filtered = this.articles;
+
+                    if (this.articleSearch) {
+                        const search = this.articleSearch.toLowerCase();
+                        filtered = filtered.filter(a => 
+                            a.title.toLowerCase().includes(search) ||
+                            (a.excerpt || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    if (this.articleStatusFilter) {
+                        filtered = filtered.filter(a => a.status === this.articleStatusFilter);
+                    }
+
+                    this.filteredArticles = filtered;
+                },
+
+                async refreshArticles() {
+                    await this.loadArticles();
+                    this.showToast('Artículos actualizados');
+                },
+
+                createArticle() {
+                    this.currentItem = null;
+                    this.modalTitle = 'Nuevo Artículo';
+                    this.modalContent = this.generateArticleForm();
+                    this.showModal = true;
+                },
+
+                editArticle(article) {
+                    this.currentItem = article;
+                    this.modalTitle = 'Editar Artículo';
+                    this.modalContent = this.generateArticleForm(article);
+                    this.showModal = true;
+                },
+
+                generateArticleForm(article = null) {
+                    const isEdit = !!article;
+                    return `
+                        <form @submit.prevent="saveArticle()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                                    <input type="text" x-model="articleForm.title" required
+                                           value="${article?.title || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                                    <input type="text" x-model="articleForm.slug" 
+                                           value="${article?.slug || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                    <input type="text" x-model="articleForm.category" 
+                                           value="${article?.category || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                    <select x-model="articleForm.status" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="draft" ${article?.status === 'draft' ? 'selected' : ''}>Borrador</option>
+                                        <option value="published" ${article?.status === 'published' ? 'selected' : ''}>Publicado</option>
+                                        <option value="archived" ${article?.status === 'archived' ? 'selected' : ''}>Archivado</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tiempo de Lectura (min)</label>
+                                    <input type="number" x-model="articleForm.read_time" 
+                                           value="${article?.read_time || '5'}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Imagen Destacada (URL)</label>
+                                    <input type="url" x-model="articleForm.featured_image" 
+                                           value="${article?.featured_image || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Extracto</label>
+                                <textarea x-model="articleForm.excerpt" rows="3"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${article?.excerpt || ''}</textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Contenido</label>
+                                <textarea x-model="articleForm.content" rows="10"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${article?.content || ''}</textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                                <div class="border rounded-lg p-3 min-h-[40px] flex flex-wrap gap-2 focus-within:ring-2 focus-within:ring-blue-500" 
+                                     @click="$refs.tagInput.focus()">
+                                    <template x-for="tag in selectedTags" :key="tag">
+                                        <span class="tag-badge">
+                                            <span x-text="tag"></span>
+                                            <button type="button" @click="removeTag(tag)" class="ml-1 hover:text-red-200">×</button>
+                                        </span>
+                                    </template>
+                                    <input x-ref="tagInput" type="text" x-model="tagInput" @keydown.enter.prevent="addTag()"
+                                           placeholder="Agregar tag..." class="tag-input flex-1">
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} Artículo
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // Video Methods
+                async loadVideos() {
+                    const { data, error } = await this.supabase
+                        .from('videos')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.videos = data || [];
+                    this.searchVideos();
+                },
+
+                searchVideos() {
+                    let filtered = this.videos;
+
+                    if (this.videoSearch) {
+                        const search = this.videoSearch.toLowerCase();
+                        filtered = filtered.filter(v => 
+                            v.title.toLowerCase().includes(search) ||
+                            (v.description || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    if (this.videoCategoryFilter) {
+                        filtered = filtered.filter(v => v.category === this.videoCategoryFilter);
+                    }
+
+                    this.filteredVideos = filtered;
+                },
+
+                async refreshVideos() {
+                    await this.loadVideos();
+                    this.showToast('Videos actualizados');
+                },
+
+                createVideo() {
+                    this.currentItem = null;
+                    this.modalTitle = 'Nuevo Video';
+                    this.modalContent = this.generateVideoForm();
+                    this.showModal = true;
+                },
+
+                editVideo(video) {
+                    this.currentItem = video;
+                    this.modalTitle = 'Editar Video';
+                    this.modalContent = this.generateVideoForm(video);
+                    this.showModal = true;
+                },
+
+                generateVideoForm(video = null) {
+                    const isEdit = !!video;
+                    return `
+                        <form @submit.prevent="saveVideo()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                                    <input type="text" x-model="videoForm.title" required
+                                           value="${video?.title || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Slug del Video</label>
+                                    <input type="text" x-model="videoForm.video_slug" 
+                                           value="${video?.video_slug || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ID del Video (YouTube)</label>
+                                    <input type="text" x-model="videoForm.video_id" 
+                                           value="${video?.video_id || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                    <select x-model="videoForm.category" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="decoracion" ${video?.category === 'decoracion' ? 'selected' : ''}>Decoración</option>
+                                        <option value="casa-famosos" ${video?.category === 'casa-famosos' ? 'selected' : ''}>Casa de Famosos</option>
+                                        <option value="proyectos" ${video?.category === 'proyectos' ? 'selected' : ''}>Proyectos</option>
+                                        <option value="recorridos" ${video?.category === 'recorridos' ? 'selected' : ''}>Recorridos</option>
+                                        <option value="entrevistas" ${video?.category === 'entrevistas' ? 'selected' : ''}>Entrevistas</option>
+                                        <option value="tips" ${video?.category === 'tips' ? 'selected' : ''}>Tips</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Duración</label>
+                                    <input type="text" x-model="videoForm.duration" placeholder="5:30"
+                                           value="${video?.duration || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Thumbnail (URL)</label>
+                                    <input type="url" x-model="videoForm.thumbnail" 
+                                           value="${video?.thumbnail || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <textarea x-model="videoForm.description" rows="4"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${video?.description || ''}</textarea>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} Video
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // Testimonial Methods
+                async loadTestimonials() {
+                    const { data, error } = await this.supabase
+                        .from('testimonials')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.testimonials = data || [];
+                    this.searchTestimonials();
+                },
+
+                searchTestimonials() {
+                    let filtered = this.testimonials;
+
+                    if (this.testimonialSearch) {const search = this.testimonialSearch.toLowerCase();
+                        filtered = filtered.filter(t => 
+                            t.title.toLowerCase().includes(search) ||
+                            (t.client_name || '').toLowerCase().includes(search) ||
+                            (t.excerpt || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    if (this.testimonialCategoryFilter) {
+                        filtered = filtered.filter(t => t.category === this.testimonialCategoryFilter);
+                    }
+
+                    this.filteredTestimonials = filtered;
+                },
+
+                async refreshTestimonials() {
+                    await this.loadTestimonials();
+                    this.showToast('Testimonios actualizados');
+                },
+
+                createTestimonial() {
+                    this.currentItem = null;
+                    this.initializeForms();
+                    this.modalTitle = 'Nuevo Testimonio';
+                    this.modalContent = this.generateTestimonialForm();
+                    this.showModal = true;
+                },
+
+                editTestimonial(testimonial) {
+                    this.currentItem = testimonial;
+                    this.initializeForms();
+                    this.populateTestimonialForm(testimonial);
+                    this.modalTitle = 'Editar Testimonio';
+                    this.modalContent = this.generateTestimonialForm(testimonial);
+                    this.showModal = true;
+                },
+
+                generateTestimonialForm(testimonial = null) {
+                    const isEdit = !!testimonial;
+                    return `
+                        <form @submit.prevent="saveTestimonial()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                                    <input type="text" x-model="testimonialForm.title" required
+                                           value="${testimonial?.title || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Cliente *</label>
+                                    <input type="text" x-model="testimonialForm.client_name" required
+                                           value="${testimonial?.client_name || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                    <select x-model="testimonialForm.category" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="compradores" ${testimonial?.category === 'compradores' ? 'selected' : ''}>Compradores</option>
+                                        <option value="vendedores" ${testimonial?.category === 'vendedores' ? 'selected' : ''}>Vendedores</option>
+                                        <option value="inversores" ${testimonial?.category === 'inversores' ? 'selected' : ''}>Inversores</option>
+                                        <option value="inquilinos" ${testimonial?.category === 'inquilinos' ? 'selected' : ''}>Inquilinos</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Calificación</label>
+                                    <select x-model="testimonialForm.rating" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="5" ${testimonial?.rating === 5 ? 'selected' : ''}>5 estrellas</option>
+                                        <option value="4" ${testimonial?.rating === 4 ? 'selected' : ''}>4 estrellas</option>
+                                        <option value="3" ${testimonial?.rating === 3 ? 'selected' : ''}>3 estrellas</option>
+                                        <option value="2" ${testimonial?.rating === 2 ? 'selected' : ''}>2 estrellas</option>
+                                        <option value="1" ${testimonial?.rating === 1 ? 'selected' : ''}>1 estrella</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Avatar del Cliente (URL)</label>
+                                    <input type="url" x-model="testimonialForm.client_avatar" 
+                                           value="${testimonial?.client_avatar || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación de la Transacción</label>
+                                    <input type="text" x-model="testimonialForm.transaction_location" 
+                                           value="${testimonial?.transaction_location || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                    <select x-model="testimonialForm.status" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="published" ${testimonial?.status === 'published' ? 'selected' : ''}>Publicado</option>
+                                        <option value="draft" ${testimonial?.status === 'draft' ? 'selected' : ''}>Borrador</option>
+                                        <option value="archived" ${testimonial?.status === 'archived' ? 'selected' : ''}>Archivado</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Video ID (YouTube)</label>
+                                    <input type="text" x-model="testimonialForm.video_id" 
+                                           value="${testimonial?.video_id || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Extracto</label>
+                                <textarea x-model="testimonialForm.excerpt" rows="3"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${testimonial?.excerpt || ''}</textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Testimonio Completo</label>
+                                <textarea x-model="testimonialForm.content" rows="6"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${testimonial?.content || ''}</textarea>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} Testimonio
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // FAQ Methods
+                async loadFAQs() {
+                    const { data, error } = await this.supabase
+                        .from('faqs')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.faqs = data || [];
+                    this.searchFAQs();
+                },
+
+                searchFAQs() {
+                    let filtered = this.faqs;
+
+                    if (this.faqSearch) {
+                        const search = this.faqSearch.toLowerCase();
+                        filtered = filtered.filter(f => 
+                            f.question.toLowerCase().includes(search) ||
+                            (f.answer || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    if (this.faqCategoryFilter) {
+                        filtered = filtered.filter(f => f.category === this.faqCategoryFilter);
+                    }
+
+                    this.filteredFAQs = filtered;
+                },
+
+                async refreshFAQs() {
+                    await this.loadFAQs();
+                    this.showToast('FAQs actualizados');
+                },
+
+                createFAQ() {
+                    this.currentItem = null;
+                    this.initializeForms();
+                    this.modalTitle = 'Nueva FAQ';
+                    this.modalContent = this.generateFAQForm();
+                    this.showModal = true;
+                },
+
+                editFAQ(faq) {
+                    this.currentItem = faq;
+                    this.initializeForms();
+                    this.populateFAQForm(faq);
+                    this.modalTitle = 'Editar FAQ';
+                    this.modalContent = this.generateFAQForm(faq);
+                    this.showModal = true;
+                },
+
+                generateFAQForm(faq = null) {
+                    const isEdit = !!faq;
+                    return `
+                        <form @submit.prevent="saveFAQ()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                    <select x-model="faqForm.category" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="general" ${faq?.category === 'general' ? 'selected' : ''}>General</option>
+                                        <option value="precios" ${faq?.category === 'precios' ? 'selected' : ''}>Precios</option>
+                                        <option value="inversion" ${faq?.category === 'inversion' ? 'selected' : ''}>Inversión</option>
+                                        <option value="proceso" ${faq?.category === 'proceso' ? 'selected' : ''}>Proceso</option>
+                                        <option value="legal" ${faq?.category === 'legal' ? 'selected' : ''}>Legal</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                    <select x-model="faqForm.status" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="active" ${faq?.status === 'active' ? 'selected' : ''}>Activa</option>
+                                        <option value="inactive" ${faq?.status === 'inactive' ? 'selected' : ''}>Inactiva</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación de Contexto</label>
+                                    <input type="text" x-model="faqForm.context_location" 
+                                           value="${faq?.context_location || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Propiedad de Contexto</label>
+                                    <input type="text" x-model="faqForm.context_property_type" 
+                                           value="${faq?.context_property_type || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Pregunta *</label>
+                                <input type="text" x-model="faqForm.question" required
+                                       value="${faq?.question || ''}"
+                                       class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Respuesta *</label>
+                                <textarea x-model="faqForm.answer" rows="6" required
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${faq?.answer || ''}</textarea>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} FAQ
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // Tag Methods
+                async loadTags() {
+                    const { data, error } = await this.supabase
+                        .from('tags')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+                    this.tags = data || [];
+                    this.searchTags();
+                },
+
+                searchTags() {
+                    let filtered = this.tags;
+
+                    if (this.tagSearch) {
+                        const search = this.tagSearch.toLowerCase();
+                        filtered = filtered.filter(t => 
+                            t.name.toLowerCase().includes(search) ||
+                            (t.description || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    if (this.tagCategoryFilter) {
+                        filtered = filtered.filter(t => t.category === this.tagCategoryFilter);
+                    }
+
+                    this.filteredTags = filtered;
+                },
+
+                async refreshTags() {
+                    await this.loadTags();
+                    this.showToast('Tags actualizados');
+                },
+
+                createTag() {
+                    this.currentItem = null;
+                    this.initializeForms();
+                    this.modalTitle = 'Nuevo Tag';
+                    this.modalContent = this.generateTagForm();
+                    this.showModal = true;
+                },
+
+                editTag(tag) {
+                    this.currentItem = tag;
+                    this.initializeForms();
+                    this.populateTagForm(tag);
+                    this.modalTitle = 'Editar Tag';
+                    this.modalContent = this.generateTagForm(tag);
+                    this.showModal = true;
+                },
+
+                generateTagForm(tag = null) {
+                    const isEdit = !!tag;
+                    return `
+                        <form @submit.prevent="saveTag()" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                                    <input type="text" x-model="tagForm.name" required
+                                           value="${tag?.name || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                                    <input type="text" x-model="tagForm.slug" 
+                                           value="${tag?.slug || ''}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                    <select x-model="tagForm.category" 
+                                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="operacion" ${tag?.category === 'operacion' ? 'selected' : ''}>Operación</option>
+                                        <option value="categoria" ${tag?.category === 'categoria' ? 'selected' : ''}>Categoría</option>
+                                        <option value="ciudad" ${tag?.category === 'ciudad' ? 'selected' : ''}>Ciudad</option>
+                                        <option value="sector" ${tag?.category === 'sector' ? 'selected' : ''}>Sector</option>
+                                        <option value="caracteristica" ${tag?.category === 'caracteristica' ? 'selected' : ''}>Característica</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                                    <input type="color" x-model="tagForm.color" 
+                                           value="${tag?.color || '#3b82f6'}"
+                                           class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <textarea x-model="tagForm.description" rows="3"
+                                          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">${tag?.description || ''}</textarea>
+                            </div>
+
+                            <div class="flex justify-end space-x-4 pt-4 border-t">
+                                <button type="button" @click="closeModal()" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancelar
+                                </button>
+                                <button type="submit" 
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    ${isEdit ? 'Actualizar' : 'Crear'} Tag
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                },
+
+                // Utility Methods
+                async loadUsers() {
+                    const { data, error } = await this.supabase
+                        .from('users')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.users = data || [];
+                },
+
+                async loadContacts() {
+                    const { data, error } = await this.supabase
+                        .from('contacts')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    this.contacts = data || [];
+                },
+
+                formatPropertyPrice(property) {
+                    if (property.sale_price) {
+                        const currency = property.sale_currency === 'USD' ? '$' : 'RD$';
+                        return `${currency}${property.sale_price.toLocaleString()}`;
+                    } else if (property.rental_price) {
+                        const currency = property.rental_currency === 'USD' ? '$' : 'RD$';
+                        return `${currency}${property.rental_price.toLocaleString()}/mes`;
+                    }
+                    return 'Precio no disponible';
+                },
+
+                // Form Handlers - Initialize forms
+                initializeForms() {
+                    this.propertyForm = {
+                        name: '',
+                        private_name: '',
+                        code: '',
+                        property_status: 'Borrador',
+                        sale_price: '',
+                        sale_currency: 'USD',
+                        rental_price: '',
+                        rental_currency: 'USD',
+                        description: '',
+                        bedrooms: '',
+                        bathrooms: '',
+                        built_area: '',
+                        parking_spots: ''
+                    };
+
+                    this.articleForm = {
+                        title: '',
+                        slug: '',
+                        category: '',
+                        status: 'draft',
+                        read_time: 5,
+                        featured_image: '',
+                        excerpt: '',
+                        content: ''
+                    };
+
+                    this.videoForm = {
+                        title: '',
+                        video_slug: '',
+                        video_id: '',
+                        category: 'decoracion',
+                        duration: '',
+                        thumbnail: '',
+                        description: ''
+                    };
+
+                    this.testimonialForm = {
+                        title: '',
+                        client_name: '',
+                        category: 'compradores',
+                        rating: 5,
+                        client_avatar: '',
+                        transaction_location: '',
+                        status: 'published',
+                        video_id: '',
+                        excerpt: '',
+                        content: ''
+                    };
+
+                    this.faqForm = {
+                        category: 'general',
+                        status: 'active',
+                        context_location: '',
+                        context_property_type: '',
+                        question: '',
+                        answer: ''
+                    };
+
+                    this.tagForm = {
+                        name: '',
+                        slug: '',
+                        category: 'caracteristica',
+                        color: '#3b82f6',
+                        description: ''
+                    };
+
+                    this.selectedTags = [];
+                    this.tagInput = '';
+                },
+
+                // Populate forms with existing data
+                populatePropertyForm(property) {
+                    this.propertyForm = {
+                        name: property.name || '',
+                        private_name: property.private_name || '',
+                        code: property.code || '',
+                        property_status: property.property_status || 'Borrador',
+                        sale_price: property.sale_price || '',
+                        sale_currency: property.sale_currency || 'USD',
+                        rental_price: property.rental_price || '',
+                        rental_currency: property.rental_currency || 'USD',
+                        description: property.description || '',
+                        bedrooms: property.bedrooms || '',
+                        bathrooms: property.bathrooms || '',
+                        built_area: property.built_area || '',
+                        parking_spots: property.parking_spots || ''
+                    };
+                    this.selectedTags = property.tags || [];
+                },
+
+                populateArticleForm(article) {
+                    this.articleForm = {
+                        title: article.title || '',
+                        slug: article.slug || '',
+                        category: article.category || '',
+                        status: article.status || 'draft',
+                        read_time: article.read_time || 5,
+                        featured_image: article.featured_image || '',
+                        excerpt: article.excerpt || '',
+                        content: article.content || ''
+                    };
+                    this.selectedTags = article.tags || [];
+                },
+
+                populateVideoForm(video) {
+                    this.videoForm = {
+                        title: video.title || '',
+                        video_slug: video.video_slug || '',
+                        video_id: video.video_id || '',
+                        category: video.category || 'decoracion',
+                        duration: video.duration || '',
+                        thumbnail: video.thumbnail || '',
+                        description: video.description || ''
+                    };
+                },
+
+                populateTestimonialForm(testimonial) {
+                    this.testimonialForm = {
+                        title: testimonial.title || '',
+                        client_name: testimonial.client_name || '',
+                        category: testimonial.category || 'compradores',
+                        rating: testimonial.rating || 5,
+                        client_avatar: testimonial.client_avatar || '',
+                        transaction_location: testimonial.transaction_location || '',
+                        status: testimonial.status || 'published',
+                        video_id: testimonial.video_testimonial || '',
+                        excerpt: testimonial.excerpt || '',
+                        content: testimonial.full_testimonial || ''
+                    };
+                },
+
+                populateFAQForm(faq) {
+                    this.faqForm = {
+                        category: faq.category || 'general',
+                        status: faq.status || 'active',
+                        context_location: faq.context_location || '',
+                        context_property_type: faq.context_property_type || '',
+                        question: faq.question || '',
+                        answer: faq.answer || ''
+                    };
+                },
+
+                populateTagForm(tag) {
+                    this.tagForm = {
+                        name: tag.name || '',
+                        slug: tag.slug || '',
+                        category: tag.category || 'caracteristica',
+                        color: tag.color || '#3b82f6',
+                        description: tag.description || ''
+                    };
+                },
+
+                // Tag management for forms
+                addTag() {
+                    if (this.tagInput.trim() && !this.selectedTags.includes(this.tagInput.trim())) {
+                        this.selectedTags.push(this.tagInput.trim());
+                        this.tagInput = '';
+                    }
+                },
+
+                removeTag(tag) {
+                    const index = this.selectedTags.indexOf(tag);
+                    if (index > -1) {
+                        this.selectedTags.splice(index, 1);
+                    }
+                },
+
+                // Save Methods
+                async saveProperty() {
+                    try {
+                        this.loading = true;
+                        
+                        // Initialize form if not exists
+                        if (!this.propertyForm) this.initializeForms();
+                        
+                        const propertyData = {
+                            ...this.propertyForm,
+                            tags: this.selectedTags
+                        };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('properties')
+                                .update(propertyData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('properties')
+                                .insert([propertyData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente');
+                        this.closeModal();
+                        await this.loadProperties();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveArticle() {
+                    try {
+                        this.loading = true;
+                        
+                        if (!this.articleForm) this.initializeForms();
+                        
+                        const articleData = {
+                            ...this.articleForm,
+                            tags: this.selectedTags
+                        };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('articles')
+                                .update(articleData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('articles')
+                                .insert([articleData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'Artículo actualizado exitosamente' : 'Artículo creado exitosamente');
+                        this.closeModal();
+                        await this.loadArticles();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveVideo() {
+                    try {
+                        this.loading = true;
+                        
+                        if (!this.videoForm) this.initializeForms();
+                        
+                        const videoData = { ...this.videoForm };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('videos')
+                                .update(videoData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('videos')
+                                .insert([videoData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'Video actualizado exitosamente' : 'Video creado exitosamente');
+                        this.closeModal();
+                        await this.loadVideos();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveTestimonial() {
+                    try {
+                        this.loading = true;
+                        
+                        if (!this.testimonialForm) this.initializeForms();
+                        
+                        const testimonialData = { ...this.testimonialForm };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('testimonials')
+                                .update(testimonialData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('testimonials')
+                                .insert([testimonialData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'Testimonio actualizado exitosamente' : 'Testimonio creado exitosamente');
+                        this.closeModal();
+                        await this.loadTestimonials();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveFAQ() {
+                    try {
+                        this.loading = true;
+                        
+                        if (!this.faqForm) this.initializeForms();
+                        
+                        const faqData = { ...this.faqForm };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('faqs')
+                                .update(faqData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('faqs')
+                                .insert([faqData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'FAQ actualizada exitosamente' : 'FAQ creada exitosamente');
+                        this.closeModal();
+                        await this.loadFAQs();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveTag() {
+                    try {
+                        this.loading = true;
+                        
+                        if (!this.tagForm) this.initializeForms();
+                        
+                        const tagData = { ...this.tagForm };
+
+                        let result;
+                        if (this.currentItem) {
+                            result = await this.supabase
+                                .from('tags')
+                                .update(tagData)
+                                .eq('id', this.currentItem.id);
+                        } else {
+                            result = await this.supabase
+                                .from('tags')
+                                .insert([tagData]);
+                        }
+
+                        if (result.error) throw result.error;
+
+                        this.showToast(this.currentItem ? 'Tag actualizado exitosamente' : 'Tag creado exitosamente');
+                        this.closeModal();
+                        await this.loadTags();
+                    } catch (error) {
+                        this.showToast('Error: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Delete Methods
+                async deleteProperty(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar esta propiedad?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('properties')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('Propiedad eliminada exitosamente');
+                        await this.loadProperties();
+                    } catch (error) {
+                        this.showToast('Error eliminando propiedad: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async deleteArticle(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar este artículo?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('articles')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('Artículo eliminado exitosamente');
+                        await this.loadArticles();
+                    } catch (error) {
+                        this.showToast('Error eliminando artículo: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async deleteVideo(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar este video?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('videos')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('Video eliminado exitosamente');
+                        await this.loadVideos();
+                    } catch (error) {
+                        this.showToast('Error eliminando video: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async deleteTestimonial(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar este testimonio?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('testimonials')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('Testimonio eliminado exitosamente');
+                        await this.loadTestimonials();
+                    } catch (error) {
+                        this.showToast('Error eliminando testimonio: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async deleteFAQ(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar esta FAQ?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('faqs')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('FAQ eliminada exitosamente');
+                        await this.loadFAQs();
+                    } catch (error) {
+                        this.showToast('Error eliminando FAQ: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async deleteTag(id) {
+                    if (!confirm('¿Estás seguro de que quieres eliminar este tag?')) return;
+
+                    try {
+                        this.loading = true;
+                        const { error } = await this.supabase
+                            .from('tags')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) throw error;
+
+                        this.showToast('Tag eliminado exitosamente');
+                        await this.loadTags();
+                    } catch (error) {
+                        this.showToast('Error eliminando tag: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Modal Management
+                closeModal() {
+                    this.showModal = false;
+                    this.modalTitle = '';
+                    this.modalContent = '';
+                    this.currentItem = null;
+                    this.initializeForms();
+                },
+
+                // Toast Management
+                showToast(message, type = 'success') {
+                    this.toast = {
+                        show: true,
+                        message: message,
+                        type: type
+                    };
+
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

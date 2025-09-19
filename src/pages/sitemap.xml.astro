@@ -1,0 +1,148 @@
+---
+// src/pages/sitemap.xml.astro
+export const prerender = false;
+
+const SITEMAP_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/sitemap-data';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+const host = Astro.request.headers.get('host') || 'clicinmobiliaria.com';
+const currentDate = new Date().toISOString();
+
+let sitemapContent = '';
+let backendWorking = false;
+let data = null;
+
+try {
+  console.log('Sitemap: Calling backend for host:', host);
+  
+  const response = await fetch(`${SITEMAP_URL}?domain=${host}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': AUTH_TOKEN,
+      'Content-Type': 'application/json',
+      'User-Agent': `SitemapGenerator/${host}`,
+    },
+  });
+
+  console.log('Sitemap: Response status:', response.status);
+
+  if (response.ok) {
+    data = await response.json();
+    console.log('Sitemap: Data received:', !!data);
+    console.log('Sitemap: URLs count:', data.urls?.length || 0);
+    
+    if (data && data.urls && Array.isArray(data.urls) && data.urls.length > 0) {
+      backendWorking = true;
+      console.log('Sitemap: Backend working with', data.urls.length, 'URLs');
+    }
+  } else {
+    console.warn('Sitemap: Backend error:', response.status);
+  }
+} catch (error) {
+  console.warn('Sitemap: Fetch error:', error.message);
+}
+
+// Generar contenido del sitemap
+let xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+if (backendWorking && data && data.urls) {
+  console.log('Sitemap: Using database URLs');
+  
+  data.urls.forEach(urlData => {
+    // Español
+    if (urlData.url_es) {
+      const cleanUrl = urlData.url_es.startsWith('/') ? urlData.url_es.substring(1) : urlData.url_es;
+      xmlContent += `
+  <url>
+    <loc>https://${host}/${cleanUrl}</loc>
+    <lastmod>${urlData.lastmod}</lastmod>
+    <changefreq>${urlData.changefreq}</changefreq>
+    <priority>${urlData.priority}</priority>
+  </url>`;
+    }
+    
+    // Inglés
+    if (urlData.url_en) {
+      const cleanUrl = urlData.url_en.startsWith('/') ? urlData.url_en.substring(1) : urlData.url_en;
+      xmlContent += `
+  <url>
+    <loc>https://${host}/${cleanUrl}</loc>
+    <lastmod>${urlData.lastmod}</lastmod>
+    <changefreq>${urlData.changefreq}</changefreq>
+    <priority>${urlData.priority}</priority>
+  </url>`;
+    }
+    
+    // Francés
+    if (urlData.url_fr) {
+      const cleanUrl = urlData.url_fr.startsWith('/') ? urlData.url_fr.substring(1) : urlData.url_fr;
+      xmlContent += `
+  <url>
+    <loc>https://${host}/${cleanUrl}</loc>
+    <lastmod>${urlData.lastmod}</lastmod>
+    <changefreq>${urlData.changefreq}</changefreq>
+    <priority>${urlData.priority}</priority>
+  </url>`;
+    }
+  });
+  
+} else {
+  console.log('Sitemap: Using fallback URLs');
+  
+  // Fallback URLs
+  const fallbackUrls = [
+    { es: '', en: 'en/', fr: 'fr/', priority: '1.0' },
+    { es: 'comprar', en: 'en/buy', fr: 'fr/acheter', priority: '0.9' },
+    { es: 'alquilar', en: 'en/rent', fr: 'fr/louer', priority: '0.9' },
+    { es: 'contacto', en: 'en/contact', fr: 'fr/contact', priority: '0.8' },
+    { es: 'vender', en: 'en/sell', fr: 'fr/vendre', priority: '0.7' },
+  ];
+
+  fallbackUrls.forEach(url => {
+    // Español
+    xmlContent += `
+  <url>
+    <loc>https://${host}/${url.es}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`;
+    
+    // Inglés
+    if (url.en) {
+      xmlContent += `
+  <url>
+    <loc>https://${host}/${url.en}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`;
+    }
+    
+    // Francés
+    if (url.fr) {
+      xmlContent += `
+  <url>
+    <loc>https://${host}/${url.fr}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`;
+    }
+  });
+}
+
+xmlContent += `
+</urlset>`;
+
+sitemapContent = xmlContent;
+
+const source = backendWorking ? 'database' : 'fallback';
+console.log(`Sitemap: Generated using ${source} for ${host}`);
+
+// Configurar headers
+Astro.response.headers.set('Content-Type', 'application/xml; charset=utf-8');
+Astro.response.headers.set('Cache-Control', 'public, max-age=3600');
+---
+{sitemapContent}

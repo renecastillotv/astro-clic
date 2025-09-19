@@ -1,0 +1,271 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Categorías de videos con sus datos
+const videoCategories = [
+  {
+    id: 'casa-famosos',
+    slug: 'la-casa-de-los-famosos',
+    title: 'La Casa de los Famosos',
+    description: 'Tours exclusivos por las propiedades de las celebridades dominicanas',
+    thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+    videoCount: 24,
+    featured: true,
+    popularVideos: [
+      'Casa de Luz García en Cacicazgos',
+      'Penthouse de Romeo Santos',
+      'Villa de Juan Luis Guerra'
+    ]
+  },
+  {
+    id: 'decoracion',
+    slug: 'tips-de-decoracion',
+    title: 'Tips de Decoración',
+    description: 'Consejos profesionales para transformar tu hogar en un espacio de ensueño',
+    thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
+    videoCount: 18,
+    popularVideos: [
+      '5 Tips para decorar como profesional',
+      'Transforma tu villa con $1000',
+      'Decoración minimalista moderna'
+    ]
+  },
+  {
+    id: 'proyectos',
+    slug: 'proyectos-nuevos',
+    title: 'Proyectos Nuevos',
+    description: 'Recorridos virtuales por los desarrollos más exclusivos de República Dominicana',
+    thumbnail: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop',
+    videoCount: 32,
+    featured: true,
+    popularVideos: [
+      'Vista Cana - Lo mejor de Bávaro',
+      'Cap Cana Heritage',
+      'Torre Anacaona 27'
+    ]
+  },
+  {
+    id: 'recorridos',
+    slug: 'recorridos-de-propiedades',
+    title: 'Recorridos de Propiedades',
+    description: 'Tours detallados por propiedades disponibles para venta y alquiler',
+    thumbnail: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+    videoCount: 45,
+    popularVideos: [
+      'Villa frente al mar en Punta Cana',
+      'Penthouse de lujo en Naco',
+      'Casa moderna en Arroyo Hondo'
+    ]
+  },
+  {
+    id: 'entrevistas',
+    slug: 'entrevistas-exclusivas',
+    title: 'Entrevistas Exclusivas',
+    description: 'Conversaciones con personalidades sobre sus hogares y estilo de vida',
+    thumbnail: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
+    videoCount: 15,
+    popularVideos: [
+      'Juan Luis Guerra habla de su nueva casa',
+      'El Mayor Clásico y su penthouse',
+      'Natti Natasha: Mi refugio en RD'
+    ]
+  },
+  {
+    id: 'tips',
+    slug: 'tips-de-inversion',
+    title: 'Tips de Inversión',
+    description: 'Guías expertas para maximizar tu inversión inmobiliaria',
+    thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+    videoCount: 28,
+    popularVideos: [
+      'ROI en Airbnb: Caso real 2024',
+      'Cómo evaluar una propiedad',
+      'Mejores zonas para invertir'
+    ]
+  }
+];
+
+// Separar categorías destacadas
+const featuredCategories = videoCategories.filter(cat => cat.featured);
+const regularCategories = videoCategories.filter(cat => !cat.featured);
+
+// Stats
+const totalVideos = videoCategories.reduce((sum, cat) => sum + cat.videoCount, 0);
+---
+
+<Layout 
+  title="Videos Inmobiliarios - CLIC" 
+  description="Explora nuestra colección de videos: tours de propiedades, casas de famosos, tips de decoración e inversión inmobiliaria en República Dominicana"
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          Centro de Videos CLIC Inmobiliaria
+        </h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+          Descubre propiedades, conoce las casas de los famosos, aprende tips de decoración 
+          e inversión con el canal inmobiliario #1 de República Dominicana
+        </p>
+        
+        {/* Stats */}
+        <div class="flex flex-wrap justify-center gap-8">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">200K+</div>
+            <div class="text-sm text-gray-600">Suscriptores</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">{totalVideos}</div>
+            <div class="text-sm text-gray-600">Videos disponibles</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">10M+</div>
+            <div class="text-sm text-gray-600">Visualizaciones</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Categories -->
+  {featuredCategories.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Categorías Destacadas</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredCategories.map((category) => (
+            <a 
+              href={`/videos/${category.slug}`}
+              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div class="aspect-[16/9] relative">
+                <img 
+                  src={category.thumbnail} 
+                  alt={category.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                
+                {/* Content overlay */}
+                <div class="absolute bottom-0 left-0 right-0 p-8">
+                  <h3 class="text-3xl font-bold text-white mb-2">{category.title}</h3>
+                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/80">
+                      {category.videoCount} videos disponibles
+                    </span>
+                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                      Ver categoría
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
+                  
+                  {/* Popular videos preview */}
+                  <div class="mt-4 pt-4 border-t border-white/20">
+                    <p class="text-sm text-white/70 mb-2">Videos populares:</p>
+                    <ul class="text-sm text-white/90 space-y-1">
+                      {category.popularVideos.slice(0, 3).map(video => (
+                        <li class="flex items-center gap-2">
+                          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                          {video}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Regular Categories -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Todas las Categorías</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularCategories.map((category) => (
+          <a 
+            href={`/videos/${category.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+          >
+            <div class="aspect-video relative overflow-hidden rounded-t-lg">
+              <img 
+                src={category.thumbnail} 
+                alt={category.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg class="w-8 h-8 text-[#f04e00] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div class="p-6">
+              <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                {category.title}
+              </h3>
+              <p class="text-gray-600 mb-4">{category.description}</p>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">
+                  {category.videoCount} videos
+                </span>
+                <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  Ver todos
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿No encuentras lo que buscas?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Suscríbete a nuestro canal de YouTube para no perderte ningún video nuevo
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href="https://youtube.com/@clicinmobiliaria" 
+          target="_blank"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+          Suscribirse al canal
+        </a>
+        <a 
+          href="/contacto" 
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors"
+        >
+          Solicitar un video personalizado
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

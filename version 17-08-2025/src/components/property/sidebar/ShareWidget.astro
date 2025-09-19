@@ -1,0 +1,71 @@
+---
+// src/components/property/sidebar/ShareWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+---
+
+<!-- Share Property Widget -->
+<div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Compartir Propiedad</h3>
+  
+  <!-- Iconos en una sola línea -->
+  <div class="flex items-center justify-center gap-4 mb-4">
+    <!-- Facebook -->
+    <a 
+      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title="Compartir en Facebook"
+    >
+      <i class="fab fa-facebook-f text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- Twitter -->
+    <a 
+      href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`${property.title} - ${property.price}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title="Compartir en Twitter"
+    >
+      <i class="fab fa-twitter text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- WhatsApp -->
+    <a 
+      href={`https://wa.me/?text=${encodeURIComponent(`${property.title} - ${property.price} ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title="Compartir por WhatsApp"
+    >
+      <i class="fab fa-whatsapp text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- Email -->
+    <a 
+      href={`mailto:?subject=${encodeURIComponent(`${property.title} - CLIC Inmobiliaria`)}&body=${encodeURIComponent(`Te comparto esta propiedad: ${property.title}\nPrecio: ${property.price}\nUbicación: ${property.location}\n\nVer más: ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title="Compartir por Email"
+    >
+      <i class="fas fa-envelope text-gray-600 text-sm"></i>
+    </a>
+  </div>
+
+  <!-- Copy Link -->
+  <button 
+    onclick="copyPropertyLink()"
+    class="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 border border-gray-200"
+  >
+    <i class="fas fa-link text-gray-500 text-sm"></i>
+    <span class="text-sm">Copiar enlace</span>
+  </button>
+</div>

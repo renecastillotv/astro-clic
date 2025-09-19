@@ -1,0 +1,336 @@
+---
+export const prerender = false;
+import Layout from '../../../layouts/Layout.astro';
+import PropertyCarousel from '../../../components/PropertyCarousel.astro';
+import VideoGallery from '../../../components/VideoGallery.astro';
+import AreaAdvisors from '../../../components/AreaAdvisors.astro';
+
+// Mock de datos para el video
+const { category, video } = Astro.params;
+
+// Datos del video específico
+const videoData = {
+  'la-casa-de-luz-garcia': {
+    title: 'La Casa de Luz García en Cacicazgos',
+    subtitle: 'Tour exclusivo por la espectacular villa de la presentadora dominicana',
+    description: `Acompáñanos en este recorrido exclusivo por la impresionante villa de Luz García ubicada en el exclusivo sector de Cacicazgos. 
+    
+    Esta propiedad de más de 450 metros cuadrados combina elegancia moderna con toques tropicales, creando el hogar perfecto para una de las figuras más queridas de la televisión dominicana.
+    
+    Características destacadas:
+    • 5 habitaciones con baño privado
+    • Cocina gourmet con isla central
+    • Sala de entretenimiento y bar
+    • Piscina infinita con vista al jardín
+    • Gazebo y área de BBQ
+    • Gimnasio privado
+    • Oficina en casa
+    
+    La decoración, supervisada personalmente por Luz, refleja su estilo sofisticado pero acogedor, con obras de arte dominicano y mobiliario importado.`,
+    videoId: 'dQw4w9WgXcQ',
+    duration: '18:45',
+    views: '342,567',
+    publishedAt: '2024-03-15',
+    category: 'La Casa de los Famosos',
+    categorySlug: 'la-casa-de-los-famosos',
+    location: 'Cacicazgos, Santo Domingo',
+    propertyType: 'Villa de Lujo',
+    
+    // Galería de fotos adicionales
+    photoGallery: [
+      {
+        url: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
+        caption: 'Fachada principal de la villa'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop',
+        caption: 'Sala principal con doble altura'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
+        caption: 'Cocina gourmet'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+        caption: 'Master bedroom con vista al jardín'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop',
+        caption: 'Área de piscina y entretenimiento'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
+        caption: 'Gazebo y área de BBQ'
+      }
+    ],
+    
+    // Propiedades similares disponibles
+    similarProperties: [
+      {
+        slug: 'villa-cacicazgos-moderna',
+        titulo: 'Villa Moderna en Cacicazgos',
+        precio: '$950,000',
+        imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+        sector: 'Cacicazgos',
+        habitaciones: 5,
+        banos: 5,
+        metros: 480,
+        tipo: 'Villa de Lujo',
+        destacado: true
+      },
+      {
+        slug: 'villa-arroyo-hondo-premium',
+        titulo: 'Villa Premium en Arroyo Hondo',
+        precio: '$750,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        sector: 'Arroyo Hondo',
+        habitaciones: 4,
+        banos: 4,
+        metros: 420,
+        tipo: 'Villa'
+      },
+      {
+        slug: 'casa-los-rios-exclusiva',
+        titulo: 'Casa Exclusiva en Los Ríos',
+        precio: '$850,000',
+        imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+        sector: 'Los Ríos',
+        habitaciones: 5,
+        banos: 4,
+        metros: 450,
+        tipo: 'Casa de Lujo'
+      }
+    ],
+    
+    // Videos relacionados
+    relatedVideos: [
+      {
+        id: '1',
+        title: 'El Penthouse de Romeo Santos en Naco',
+        thumbnail: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=450&fit=crop',
+        duration: '22:30',
+        views: '289K',
+        category: 'casa-famosos',
+        videoId: 'xxx'
+      },
+      {
+        id: '2',
+        title: 'La Villa de Juan Luis Guerra',
+        thumbnail: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=450&fit=crop',
+        duration: '25:12',
+        views: '567K',
+        category: 'casa-famosos',
+        videoId: 'xxx'
+      },
+      {
+        id: '3',
+        title: '5 Tips de decoración estilo Luz García',
+        thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=450&fit=crop',
+        duration: '12:45',
+        views: '89K',
+        category: 'decoracion',
+        videoId: 'xxx'
+      }
+    ],
+    
+    // Asesores especializados en la zona
+    areaAdvisors: [
+      {
+        slug: 'maria-rodriguez',
+        name: 'María Rodríguez',
+        title: 'Especialista en Propiedades de Lujo',
+        avatar: 'https://i.pravatar.cc/150?img=5',
+        specialties: ['Cacicazgos', 'Arroyo Hondo', 'Los Ríos'],
+        areas: ['Propiedades de Lujo', 'Villas'],
+        languages: ['Español', 'Inglés', 'Francés'],
+        phone: '+1 809 555 0101',
+        whatsapp: '18095550101',
+        rating: 4.9,
+        reviewCount: 127
+      },
+      {
+        slug: 'carlos-santana',
+        name: 'Carlos Santana',
+        title: 'Experto en Zona Norte SD',
+        avatar: 'https://i.pravatar.cc/150?img=8',
+        specialties: ['Inversión de Lujo', 'Propiedades Exclusivas'],
+        areas: ['Cacicazgos', 'Anacaona', 'Los Ríos'],
+        languages: ['Español', 'Inglés'],
+        phone: '+1 809 555 0108',
+        whatsapp: '18095550108',
+        rating: 4.8,
+        reviewCount: 98
+      }
+    ]
+  }
+};
+
+const currentVideo = videoData[video] || videoData['la-casa-de-luz-garcia'];
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+---
+
+<Layout 
+  title={`${currentVideo.title} - Video CLIC`} 
+  description={currentVideo.subtitle}
+>
+  <!-- Breadcrumbs -->
+  <section class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600">
+        <a href="/videos" class="hover:text-[#f04e00]">Videos</a>
+        <span class="mx-2">/</span>
+        <a href={`/videos/${currentVideo.categorySlug}`} class="hover:text-[#f04e00]">
+          {currentVideo.category}
+        </a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{currentVideo.title}</span>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Video Section -->
+  <section class="py-8">
+    <div class="container mx-auto px-4">
+      <div class="max-w-6xl mx-auto">
+        <!-- Title and metadata -->
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          {currentVideo.title}
+        </h1>
+        <p class="text-xl text-gray-600 mb-6">{currentVideo.subtitle}</p>
+        
+        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-8">
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            {currentVideo.views} vistas
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            {formatDate(currentVideo.publishedAt)}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            {currentVideo.location}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            {currentVideo.propertyType}
+          </span>
+        </div>
+
+        <!-- Video Embed -->
+        <div class="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-8">
+          <iframe 
+            src={`https://www.youtube.com/embed/${currentVideo.videoId}`}
+            title={currentVideo.title}
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            class="w-full h-full"
+          ></iframe>
+        </div>
+
+        <!-- Description -->
+        <div class="prose prose-lg max-w-none mb-12">
+          <h2 class="text-2xl font-bold mb-4">Descripción</h2>
+          <div class="whitespace-pre-line text-gray-700">{currentVideo.description}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Photo Gallery -->
+  {currentVideo.photoGallery && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          Galería de Fotos Exclusivas
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {currentVideo.photoGallery.map((photo, index) => (
+            <div class="group cursor-pointer">
+              <div class="aspect-[4/3] overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-shadow">
+                <img 
+                  src={photo.url} 
+                  alt={photo.caption}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <p class="mt-2 text-sm text-gray-600 text-center">{photo.caption}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Similar Properties -->
+  {currentVideo.similarProperties && (
+    <PropertyCarousel 
+      title="Propiedades similares disponibles"
+      subtitle="Encuentra tu hogar ideal en las mejores zonas de Santo Domingo"
+      properties={currentVideo.similarProperties}
+      viewAllLink="/comprar/villa/santo-domingo?zona=norte"
+    />
+  )}
+
+  <!-- Related Videos -->
+  {currentVideo.relatedVideos && (
+    <VideoGallery 
+      videos={currentVideo.relatedVideos}
+      title="Videos que te pueden interesar"
+      subtitle="Continúa explorando propiedades exclusivas"
+    />
+  )}
+
+  <!-- Area Advisors -->
+  {currentVideo.areaAdvisors && (
+    <AreaAdvisors 
+      advisors={currentVideo.areaAdvisors}
+      title="Asesores especializados en propiedades de lujo"
+      location="Santo Domingo Norte"
+    />
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿Te gustó esta propiedad?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Podemos mostrarte propiedades similares disponibles en las mejores zonas
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href="/contacto" 
+          class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+        >
+          Agenda una visita
+        </a>
+        <a 
+          href={`/comprar/villa/${currentVideo.location.toLowerCase().replace(/,.*/, '').replace(/\s+/g, '-')}`}
+          class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+        >
+          Ver propiedades en {currentVideo.location.split(',')[0]}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

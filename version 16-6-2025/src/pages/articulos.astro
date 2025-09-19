@@ -1,0 +1,389 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// Categorías de artículos
+const articleCategories = [
+  {
+    id: 'guias-compra',
+    slug: 'guias-de-compra',
+    title: 'Guías de Compra',
+    description: 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana',
+    thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+    articleCount: 45,
+    featured: true,
+    popularArticles: [
+      'Guía completa para comprar una villa en Punta Cana',
+      'Documentos necesarios para extranjeros',
+      'Cómo evaluar el precio justo de una propiedad'
+    ],
+    icon: '📚'
+  },
+  {
+    id: 'inversion',
+    slug: 'inversion-inmobiliaria',
+    title: 'Inversión Inmobiliaria',
+    description: 'Estrategias y análisis para maximizar tu retorno de inversión',
+    thumbnail: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=600&fit=crop',
+    articleCount: 38,
+    featured: true,
+    popularArticles: [
+      'ROI en Airbnb: Análisis 2024',
+      'Las 10 mejores zonas para invertir',
+      'Cómo calcular la rentabilidad real'
+    ],
+    icon: '📈'
+  },
+  {
+    id: 'mercado',
+    slug: 'analisis-de-mercado',
+    title: 'Análisis de Mercado',
+    description: 'Tendencias, estadísticas y proyecciones del mercado inmobiliario dominicano',
+    thumbnail: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&h=600&fit=crop',
+    articleCount: 32,
+    popularArticles: [
+      'Tendencias del mercado 2024',
+      'Impacto del turismo en los precios',
+      'Proyecciones para 2025'
+    ],
+    icon: '📊'
+  },
+  {
+    id: 'legal',
+    slug: 'aspectos-legales',
+    title: 'Aspectos Legales',
+    description: 'Información legal esencial para compradores y vendedores',
+    thumbnail: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&h=600&fit=crop',
+    articleCount: 28,
+    popularArticles: [
+      'Proceso legal de compra-venta',
+      'Impuestos y tasas inmobiliarias',
+      'Contratos y garantías'
+    ],
+    icon: '⚖️'
+  },
+  {
+    id: 'lifestyle',
+    slug: 'estilo-de-vida',
+    title: 'Estilo de Vida',
+    description: 'Vivir en República Dominicana: cultura, comunidades y experiencias',
+    thumbnail: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+    articleCount: 42,
+    popularArticles: [
+      'Las mejores zonas para familias',
+      'Vida de playa vs ciudad',
+      'Comunidades de expatriados'
+    ],
+    icon: '🌴'
+  },
+  {
+    id: 'decoracion',
+    slug: 'decoracion-y-diseno',
+    title: 'Decoración y Diseño',
+    description: 'Ideas y tendencias para transformar tu propiedad',
+    thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
+    articleCount: 35,
+    popularArticles: [
+      'Decoración tropical moderna',
+      'Maximizar espacios pequeños',
+      'Tendencias 2024 en interiores'
+    ],
+    icon: '🎨'
+  }
+];
+
+// Separar categorías destacadas
+const featuredCategories = articleCategories.filter(cat => cat.featured);
+const regularCategories = articleCategories.filter(cat => !cat.featured);
+
+// Stats
+const totalArticles = articleCategories.reduce((sum, cat) => sum + cat.articleCount, 0);
+
+// Artículos más leídos (mock)
+const trendingArticles = [
+  {
+    slug: 'roi-airbnb-punta-cana-2024',
+    title: 'ROI de Airbnb en Punta Cana: Análisis Completo 2024',
+    excerpt: 'Descubre las zonas más rentables y las estrategias para maximizar tus ingresos',
+    featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop',
+    category: 'Inversión',
+    readTime: 12,
+    views: '45.2K'
+  },
+  {
+    slug: 'guia-comprar-extranjero',
+    title: 'Guía Definitiva para Extranjeros que Compran en RD',
+    excerpt: 'Todo el proceso legal, documentos necesarios y consejos prácticos',
+    featuredImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop',
+    category: 'Guías de Compra',
+    readTime: 15,
+    views: '38.7K'
+  },
+  {
+    slug: 'mejores-zonas-familias-2024',
+    title: 'Las 10 Mejores Zonas para Familias en Santo Domingo',
+    excerpt: 'Análisis de seguridad, colegios, amenidades y calidad de vida',
+    featuredImage: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop',
+    category: 'Estilo de Vida',
+    readTime: 8,
+    views: '29.3K'
+  }
+];
+
+// Propiedades relacionadas con artículos populares
+const relatedProperties = [
+  {
+    slug: 'villa-punta-cana-airbnb-ready',
+    titulo: 'Villa lista para Airbnb en Punta Cana',
+    precio: '$325,000',
+    imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    sector: 'Bávaro',
+    habitaciones: 3,
+    banos: 3,
+    metros: 180,
+    tipo: 'Villa',
+    destacado: true,
+    descuento: 'ROI 18%'
+  },
+  {
+    slug: 'apartamento-familiar-evaristo',
+    titulo: 'Apartamento familiar en Evaristo Morales',
+    precio: '$285,000',
+    imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    sector: 'Evaristo Morales',
+    habitaciones: 3,
+    banos: 2,
+    metros: 165,
+    tipo: 'Apartamento',
+    nuevo: true
+  },
+  {
+    slug: 'casa-arroyo-hondo-colegios',
+    titulo: 'Casa cerca de colegios en Arroyo Hondo',
+    precio: '$425,000',
+    imagen: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=600&fit=crop',
+    sector: 'Arroyo Hondo',
+    habitaciones: 4,
+    banos: 3,
+    metros: 280,
+    tipo: 'Casa'
+  }
+];
+---
+
+<Layout 
+  title="Blog Inmobiliario - CLIC" 
+  description="Guías, análisis y consejos expertos sobre el mercado inmobiliario en República Dominicana"
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center text-white">
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">
+          Centro de Conocimiento Inmobiliario
+        </h1>
+        <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+          Más de {totalArticles} artículos escritos por expertos para ayudarte a tomar 
+          las mejores decisiones en bienes raíces
+        </p>
+        
+        {/* Search bar */}
+        <div class="max-w-2xl mx-auto">
+          <div class="relative">
+            <input 
+              type="text" 
+              placeholder="Buscar artículos..."
+              class="w-full px-6 py-4 rounded-lg text-gray-900 placeholder-gray-500 shadow-lg"
+            />
+            <button class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trending Articles -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+        🔥 Artículos más leídos esta semana
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {trendingArticles.map((article, index) => (
+          <a 
+            href={`/articulos/${article.category.toLowerCase().replace(/\s+/g, '-')}/${article.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+          >
+            <div class="flex items-start gap-4 p-6">
+              <div class="text-3xl font-bold text-[#f04e00]/20">
+                {index + 1}
+              </div>
+              <div class="flex-1">
+                <span class="text-xs text-[#f04e00] font-medium">
+                  {article.category}
+                </span>
+                <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors mt-1 mb-2">
+                  {article.title}
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">
+                  {article.excerpt}
+                </p>
+                <div class="flex items-center gap-4 text-xs text-gray-500">
+                  <span>{article.readTime} min</span>
+                  <span>•</span>
+                  <span>{article.views} vistas</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Categories -->
+  {featuredCategories.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Categorías Destacadas</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredCategories.map((category) => (
+            <a 
+              href={`/articulos/${category.slug}`}
+              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div class="aspect-[16/9] relative">
+                <img 
+                  src={category.thumbnail} 
+                  alt={category.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                
+                {/* Content overlay */}
+                <div class="absolute bottom-0 left-0 right-0 p-8">
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="text-4xl">{category.icon}</span>
+                    <h3 class="text-3xl font-bold text-white">{category.title}</h3>
+                  </div>
+                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/80">
+                      {category.articleCount} artículos
+                    </span>
+                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                      Explorar categoría
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
+                  
+                  {/* Popular articles preview */}
+                  {category.popularArticles && (
+                    <div class="mt-4 pt-4 border-t border-white/20">
+                      <p class="text-sm text-white/70 mb-2">Artículos populares:</p>
+                      <ul class="text-sm text-white/90 space-y-1">
+                        {category.popularArticles.slice(0, 3).map(article => (
+                          <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            {article}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- All Categories -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Todas las Categorías</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularCategories.map((category) => (
+          <a 
+            href={`/articulos/${category.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
+          >
+            <div class="flex items-start gap-4">
+              <span class="text-4xl flex-shrink-0">{category.icon}</span>
+              <div class="flex-1">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                  {category.title}
+                </h3>
+                <p class="text-gray-600 mb-4">{category.description}</p>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-500">
+                    {category.articleCount} artículos
+                  </span>
+                  <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    Leer más
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  <PropertyCarousel 
+    title="Propiedades relacionadas con nuestros artículos más populares"
+    subtitle="Encuentra oportunidades basadas en nuestros análisis y guías"
+    properties={relatedProperties}
+    viewAllLink="/comprar?fuente=blog"
+  />
+
+  <!-- Newsletter CTA -->
+  <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        No te pierdas ningún artículo
+      </h2>
+      <p class="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
+        Suscríbete a nuestro newsletter y recibe análisis exclusivos del mercado inmobiliario
+      </p>
+      
+      <form class="max-w-md mx-auto flex gap-4">
+        <input 
+          type="email" 
+          placeholder="Tu correo electrónico"
+          class="flex-1 px-4 py-3 rounded-lg text-gray-900"
+        />
+        <button 
+          type="submit"
+          class="px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-medium"
+        >
+          Suscribirse
+        </button>
+      </form>
+      
+      <p class="text-sm text-white/60 mt-4">
+        Enviamos máximo 2 correos al mes. Puedes cancelar cuando quieras.
+      </p>
+    </div>
+  </section>
+</Layout>

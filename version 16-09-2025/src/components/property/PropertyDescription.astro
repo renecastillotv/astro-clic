@@ -1,0 +1,148 @@
+---
+// src/components/property/PropertyDescription.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+
+// Función mejorada para limpiar texto y formatear descripciones
+function cleanText(text) {
+  if (!text) return '';
+  
+  // Primero remover todas las etiquetas HTML y estilos inline
+  let cleaned = text
+    .replace(/<[^>]*>/g, ' ')  // Remover etiquetas HTML
+    .replace(/style\s*=\s*[^;>]*[;>]/gi, ' ')  // Remover estilos inline
+    .replace(/\b(span|div|p|strong|em|br|nbsp)\b/gi, ' ')  // Remover nombres de etiquetas sueltos
+    .replace(/[^\w\s\.,;:!?¿¡áéíóúüñÁÉÍÓÚÜÑ()-]/g, ' ')  // Remover caracteres especiales
+    .replace(/\s+/g, ' ')  // Múltiples espacios a uno solo
+    .replace(/\.\s+([a-záéíóúüñ])/gi, (match, letter) => '. ' + letter.toUpperCase())  // Capitalizar después de punto
+    .trim();
+  
+  // Formatear párrafos y estructura
+  cleaned = cleaned
+    .replace(/(\w)\s+(El primer nivel|En el segundo nivel|El tercer nivel)/gi, '$1.\n\n$2')  // Separar niveles
+    .replace(/(\w)\s+(La propiedad también cuenta)/gi, '$1.\n\n$2')  // Separar características adicionales
+    .replace(/(\w)\s+(¡No te pierdas)/gi, '$1.\n\n$2')  // Separar llamada a la acción
+    .replace(/\n\n+/g, '\n\n')  // Normalizar saltos de línea
+    .trim();
+  
+  return cleaned;
+}
+
+// Función para formatear descripción como HTML limpio
+function formatDescription(text) {
+  if (!text) return '';
+  
+  const cleaned = cleanText(text);
+  const paragraphs = cleaned.split('\n\n').filter(p => p.trim().length > 0);
+  
+  return paragraphs.map(paragraph => {
+    const trimmed = paragraph.trim();
+    // Destacar títulos de niveles
+    if (trimmed.includes('primer nivel') || trimmed.includes('segundo nivel') || trimmed.includes('tercer nivel')) {
+      return `<p class="font-semibold text-gray-900 mb-2">${trimmed}</p>`;
+    }
+    // Destacar llamadas a la acción
+    if (trimmed.includes('No te pierdas') || trimmed.includes('increíble oportunidad')) {
+      return `<p class="font-medium text-[#f04e00] mt-4">${trimmed}</p>`;
+    }
+    // Párrafos normales
+    return `<p class="mb-3 leading-relaxed">${trimmed}</p>`;
+  }).join('');
+}
+
+const formattedDescription = formatDescription(property.description);
+
+console.log('📝 PropertyDescription loaded:', {
+  hasDescription: !!property.description,
+  descriptionLength: property.description?.length || 0,
+  formattedLength: formattedDescription.length,
+  needsReadMore: formattedDescription.length > 600
+});
+---
+
+<!-- Description Section -->
+<div class="space-y-4">
+  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+    Descripción
+  </h2>
+  {property.description ? (
+    <div class="prose prose-lg max-w-none text-gray-700">
+      <div id="description-preview">
+        <div set:html={formattedDescription.length > 600 ? 
+          formattedDescription.substring(0, 600) + '...' : 
+          formattedDescription
+        }></div>
+      </div>
+      {formattedDescription.length > 600 && (
+        <div>
+          <div id="description-full" class="hidden">
+            <div set:html={formattedDescription}></div>
+          </div>
+          <button 
+            id="read-more-btn" 
+            onclick="toggleDescription()"
+            class="text-[#f04e00] font-semibold hover:text-[#d94400] transition-colors mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg"
+          >
+            <span>Leer más</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div class="prose prose-lg max-w-none text-gray-700">
+      <p class="mb-3 leading-relaxed">
+        Excelente oportunidad de inversión en una de las zonas de mayor crecimiento de República Dominicana.
+      </p>
+      <p class="mb-3 leading-relaxed">
+        Esta propiedad ofrece acabados de primera calidad y una ubicación estratégica, perfecta para familias que buscan comodidad y tranquilidad.
+      </p>
+      <p class="font-medium text-[#f04e00]">
+        ¡No te pierdas esta increíble oportunidad de inversión!
+      </p>
+    </div>
+  )}
+</div>
+
+<script>
+  // Toggle description functionality
+  function toggleDescription() {
+    const preview = document.getElementById('description-preview');
+    const full = document.getElementById('description-full');
+    const btn = document.getElementById('read-more-btn');
+    
+    if (full && full.classList.contains('hidden')) {
+      if (preview) preview.style.display = 'none';
+      full.classList.remove('hidden');
+      if (btn) {
+        btn.innerHTML = `
+          <span>Leer menos</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+          </svg>
+        `;
+      }
+    } else if (full) {
+      if (preview) preview.style.display = 'block';
+      full.classList.add('hidden');
+      if (btn) {
+        btn.innerHTML = `
+          <span>Leer más</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        `;
+      }
+    }
+  }
+  
+  // Make function globally available
+  window.toggleDescription = toggleDescription;
+</script>

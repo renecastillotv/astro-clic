@@ -1,0 +1,245 @@
+---
+// src/components/property/PropertyAmenities.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+// Función para deducir el icono basado en el nombre de la amenidad
+function getAmenityIcon(amenityName) {
+  const name = amenityName.toLowerCase();
+  
+  // Mapeo de palabras clave a iconos de Font Awesome
+  const iconMap = {
+    // Parqueo y transporte
+    'parqueo': 'fas fa-car',
+    'parking': 'fas fa-car',
+    'garage': 'fas fa-warehouse',
+    'garaje': 'fas fa-warehouse',
+    'elevador': 'fas fa-elevator',
+    'ascensor': 'fas fa-elevator',
+    'elevator': 'fas fa-elevator',
+    
+    // Aire acondicionado y clima
+    'aire acondicionado': 'fas fa-snowflake',
+    'aire': 'fas fa-snowflake',
+    'air conditioning': 'fas fa-snowflake',
+    'air': 'fas fa-snowflake',
+    'climatizado': 'fas fa-snowflake',
+    'ac': 'fas fa-snowflake',
+    'a/c': 'fas fa-snowflake',
+    
+    // Planta eléctrica y energía
+    'planta electrica': 'fas fa-bolt',
+    'planta eléctrica': 'fas fa-bolt',
+    'planta': 'fas fa-bolt',
+    'generador': 'fas fa-bolt',
+    'generator': 'fas fa-bolt',
+    'electrica': 'fas fa-bolt',
+    'eléctrica': 'fas fa-bolt',
+    'backup': 'fas fa-bolt',
+    'power': 'fas fa-bolt',
+    
+    // Agua y recreación
+    'piscina': 'fas fa-swimmer',
+    'pool': 'fas fa-swimmer',
+    'jacuzzi': 'fas fa-hot-tub',
+    'spa': 'fas fa-spa',
+    'sauna': 'fas fa-thermometer-half',
+    'playa': 'fas fa-umbrella-beach',
+    'beach': 'fas fa-umbrella-beach',
+    
+    // Ejercicio y deporte
+    'gimnasio': 'fas fa-dumbbell',
+    'gym': 'fas fa-dumbbell',
+    'fitness': 'fas fa-dumbbell',
+    'ejercicio': 'fas fa-dumbbell',
+    'tennis': 'fas fa-table-tennis',
+    'tenis': 'fas fa-table-tennis',
+    'squash': 'fas fa-table-tennis',
+    'basketball': 'fas fa-basketball-ball',
+    'basquet': 'fas fa-basketball-ball',
+    'cancha': 'fas fa-futbol',
+    'deportes': 'fas fa-running',
+    'yoga': 'fas fa-leaf',
+    
+    // Seguridad
+    'seguridad 24/7': 'fas fa-shield-alt',
+    'seguridad': 'fas fa-shield-alt',
+    'security': 'fas fa-shield-alt',
+    'vigilancia': 'fas fa-video',
+    'cámara': 'fas fa-video',
+    'camera': 'fas fa-video',
+    'portero': 'fas fa-user-shield',
+    'guardia': 'fas fa-user-shield',
+    'acceso': 'fas fa-key',
+    'control': 'fas fa-key',
+    
+    // Entretenimiento y social
+    'salon': 'fas fa-users',
+    'salón': 'fas fa-users',
+    'eventos': 'fas fa-calendar-check',
+    'fiesta': 'fas fa-glass-cheers',
+    'party': 'fas fa-glass-cheers',
+    'terraza': 'fas fa-building',
+    'roof': 'fas fa-building',
+    'rooftop': 'fas fa-building',
+    'bbq': 'fas fa-fire',
+    'parrilla': 'fas fa-fire',
+    'bar': 'fas fa-cocktail',
+    'restaurant': 'fas fa-utensils',
+    'restaurante': 'fas fa-utensils',
+    'café': 'fas fa-coffee',
+    'coffee': 'fas fa-coffee',
+    'cine': 'fas fa-film',
+    'cinema': 'fas fa-film',
+    'theater': 'fas fa-theater-masks',
+    'teatro': 'fas fa-theater-masks',
+    
+    // Servicios y comodidades
+    'lavanderia': 'fas fa-tshirt',
+    'laundry': 'fas fa-tshirt',
+    'lavado': 'fas fa-tshirt',
+    'conserje': 'fas fa-concierge-bell',
+    'concierge': 'fas fa-concierge-bell',
+    'recepción': 'fas fa-desk',
+    'reception': 'fas fa-desk',
+    'lobby': 'fas fa-door-open',
+    'wifi': 'fas fa-wifi',
+    'internet': 'fas fa-wifi',
+    
+    // Espacios verdes y exterior
+    'jardín': 'fas fa-seedling',
+    'garden': 'fas fa-seedling',
+    'jardin': 'fas fa-seedling',
+    'plantas': 'fas fa-leaf',
+    'verde': 'fas fa-leaf',
+    'green': 'fas fa-leaf',
+    'playground': 'fas fa-child',
+    'juegos': 'fas fa-child',
+    'niños': 'fas fa-child',
+    'kids': 'fas fa-child',
+    'mascotas': 'fas fa-paw',
+    'pets': 'fas fa-paw',
+    'pet': 'fas fa-paw',
+    'dog': 'fas fa-dog',
+    'perro': 'fas fa-dog',
+    
+    // Trabajo y negocio
+    'oficina': 'fas fa-briefcase',
+    'office': 'fas fa-briefcase',
+    'trabajo': 'fas fa-laptop',
+    'coworking': 'fas fa-laptop',
+    'business': 'fas fa-briefcase',
+    'center': 'fas fa-building',
+    'meeting': 'fas fa-handshake',
+    'sala': 'fas fa-users',
+    'conferencia': 'fas fa-presentation',
+    
+    // Salud y bienestar
+    'medical': 'fas fa-user-md',
+    'médico': 'fas fa-user-md',
+    'doctor': 'fas fa-user-md',
+    'enfermeria': 'fas fa-first-aid',
+    'farmacia': 'fas fa-pills',
+    'pharmacy': 'fas fa-pills',
+    
+    // Compras y servicios
+    'tienda': 'fas fa-shopping-cart',
+    'shop': 'fas fa-shopping-cart',
+    'store': 'fas fa-shopping-cart',
+    'market': 'fas fa-shopping-basket',
+    'mercado': 'fas fa-shopping-basket',
+    'banco': 'fas fa-university',
+    'bank': 'fas fa-university',
+    'atm': 'fas fa-credit-card',
+    'cajero': 'fas fa-credit-card'
+  };
+  
+  // Buscar coincidencias en el nombre
+  for (const [keyword, icon] of Object.entries(iconMap)) {
+    if (name.includes(keyword)) {
+      return icon;
+    }
+  }
+  
+  // Icono por defecto si no encuentra coincidencia
+  return 'fas fa-star';
+}
+
+// Función para obtener el color basado en el tipo de amenidad
+function getAmenityColor(amenityName) {
+  const name = amenityName.toLowerCase();
+  
+  if (name.includes('parqueo') || name.includes('parking') || name.includes('garage')) return '#3b82f6'; // Azul
+  if (name.includes('aire') || name.includes('ac') || name.includes('climatizado')) return '#06b6d4'; // Cyan
+  if (name.includes('planta') || name.includes('generador') || name.includes('eléctrica')) return '#f59e0b'; // Amarillo
+  if (name.includes('piscina') || name.includes('pool') || name.includes('jacuzzi')) return '#06b6d4'; // Cyan
+  if (name.includes('gimnasio') || name.includes('gym') || name.includes('fitness')) return '#10b981'; // Verde
+  if (name.includes('seguridad') || name.includes('security') || name.includes('vigilancia')) return '#dc2626'; // Rojo
+  if (name.includes('elevador') || name.includes('ascensor') || name.includes('elevator')) return '#8b5cf6'; // Violeta
+  
+  return '#f04e00'; // Color por defecto
+}
+
+// Procesar amenidades y agregar iconos y colores si no los tienen
+const processedAmenities = data.amenities?.map(amenity => {
+  // Si es string, convertir a objeto
+  if (typeof amenity === 'string') {
+    return {
+      name: amenity,
+      icon: getAmenityIcon(amenity),
+      color: getAmenityColor(amenity)
+    };
+  }
+  
+  // Si es objeto pero no tiene icono, agregarlo
+  if (typeof amenity === 'object' && !amenity.icon) {
+    const name = amenity.name || amenity.title || amenity.description || '';
+    return {
+      ...amenity,
+      icon: getAmenityIcon(name),
+      color: getAmenityColor(name)
+    };
+  }
+  
+  // Si ya tiene icono, usarlo
+  return {
+    ...amenity,
+    color: amenity.color || getAmenityColor(amenity.name || '')
+  };
+}) || [];
+
+console.log('🏢 PropertyAmenities loaded:', {
+  hasAmenities: processedAmenities.length > 0,
+  amenitiesCount: processedAmenities.length,
+  amenities: processedAmenities.map(a => ({ name: a.name, icon: a.icon, color: a.color }))
+});
+---
+
+<!-- Amenidades de la Propiedad -->
+{processedAmenities.length > 0 && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      Amenidades de la Propiedad
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {processedAmenities.map((amenity, index) => (
+        <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+          <div 
+            class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" 
+            style={`background-color: ${amenity.color}15`}
+          >
+            <i class={`${amenity.icon} text-sm`} style={`color: ${amenity.color}`}></i>
+          </div>
+          
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium text-gray-900 text-sm truncate">{amenity.name}</h4>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}

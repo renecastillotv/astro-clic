@@ -1,0 +1,329 @@
+---
+// src/pages/[...slug].astro - VERSIÓN SIMPLIFICADA CON LAYOUTS ESPECIALIZADOS
+import PropertyListLayout from '../layouts/PropertyListLayout.astro';
+import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
+import Layout from '../layouts/Layout.astro';
+import { getSingleProperty, getPropertyList } from '../data/hybridProvider';
+
+// Habilitar SSR para esta página
+export const prerender = false;
+
+export async function getStaticPaths() {
+  return [];
+}
+
+const { slug } = Astro.params;
+const urlSegments = slug ? slug.split('/').filter(Boolean) : [];
+
+// Debug: Log para ver qué estamos recibiendo
+console.log('🔍 Debug [...slug] página:', {
+  slug,
+  segments: urlSegments,
+  url: Astro.url.pathname,
+  params: Astro.params
+});
+
+// Si no hay slug, extraer de la URL directamente
+if (!slug || urlSegments.length === 0) {
+  console.log('⚠️ No hay slug definido, usando segmentos por defecto');
+  const pathSegments = Astro.url.pathname.split('/').filter(Boolean);
+  urlSegments.push(...pathSegments);
+}
+
+// Obtener parámetros de búsqueda
+const searchParams = Astro.url.searchParams;
+const page = parseInt(searchParams.get('page') || '1');
+const ref = searchParams.get('ref');
+
+let pageData = null;
+let pageType = 'unknown';
+
+try {
+  // PASO 1: Intentar obtener propiedad individual
+  console.log('🏠 Intentando búsqueda de propiedad individual con:', urlSegments);
+  const singlePropertyResult = await getSingleProperty(urlSegments, searchParams);
+  
+  if (singlePropertyResult && singlePropertyResult.type === 'property') {
+    pageData = singlePropertyResult;
+    pageType = singlePropertyResult.isProject ? 'project' : 'property';
+    console.log('✅ Encontrada propiedad individual:', pageType);
+  } else {
+    // PASO 2: Buscar como listado de propiedades
+    console.log('📋 Buscando como listado de propiedades con:', urlSegments);
+    const propertyListResult = await getPropertyList(urlSegments, searchParams);
+    
+    console.log('📋 Resultado listado:', {
+      type: propertyListResult?.type,
+      propertiesCount: propertyListResult?.properties?.length || 0,
+      hasProperties: !!(propertyListResult?.properties?.length)
+    });
+    
+    if (propertyListResult && propertyListResult.type === 'property-list') {
+      pageData = propertyListResult;
+      pageType = 'property-list';
+      console.log('✅ Encontrado listado de propiedades:', propertyListResult.properties?.length || 0);
+    } else {
+      // PASO 3: Mostrar debug en lugar de 404 por ahora
+      console.log('❌ No se encontró contenido para:', slug);
+      console.log('🔧 Debug - Provider disponible:', {
+        getSingleProperty: typeof getSingleProperty,
+        getPropertyList: typeof getPropertyList
+      });
+      
+      // Crear página de debug
+      pageData = {
+        type: 'debug',
+        debug: {
+          slug,
+          urlSegments,
+          pathname: Astro.url.pathname,
+          searchParams: Object.fromEntries(searchParams.entries()),
+          singlePropertyResult,
+          propertyListResult
+        }
+      };
+      pageType = 'debug';
+    }
+  }
+} catch (error) {
+  console.error('❌ Error procesando página:', error);
+  
+  // Crear página de error
+  pageData = {
+    type: 'error',
+    error: {
+      message: error.message,
+      stack: error.stack,
+      slug,
+      urlSegments
+    }
+  };
+  pageType = 'error';
+}
+
+// Preparar metadatos SEO
+const seoData = pageData?.seo || {};
+const title = seoData.title || 'CLIC Inmobiliaria';
+const description = seoData.description || 'Encuentra tu próxima propiedad en República Dominicana';
+const ogImage = seoData.og?.image || '/og-default.jpg';
+
+console.log('📄 Página preparada:', {
+  type: pageType,
+  title: title.substring(0, 50) + '...',
+  hasContent: !!pageData
+});
+---
+
+<!-- ROUTER DE LAYOUTS -->
+{pageType === 'property-list' && (
+  <PropertyListLayout data={pageData} />
+)}
+
+{(pageType === 'property' || pageType === 'project') && (
+  <SinglePropertyLayout data={pageData} />
+)}
+
+{pageType === 'debug' && (
+  <Layout title="Debug - CLIC Inmobiliaria" description="Página de debug">
+    <div class="min-h-screen bg-gray-100 py-12">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+              🔧 Modo Debug - Página [...slug]
+            </h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800">Información de Ruta</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <div><strong>Slug:</strong> {pageData.debug.slug || 'undefined'}</div>
+                  <div><strong>URL Pathname:</strong> {pageData.debug.pathname}</div>
+                  <div><strong>Segmentos:</strong> [{pageData.debug.urlSegments.join(', ')}]</div>
+                  <div><strong>Search Params:</strong> {JSON.stringify(pageData.debug.searchParams)}</div>
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800">Resultados Provider</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <div><strong>Single Property:</strong> {pageData.debug.singlePropertyResult ? JSON.stringify(pageData.debug.singlePropertyResult, null, 2).substring(0, 200) + '...' : 'null'}</div>
+                  <div><strong>Property List:</strong> {pageData.debug.propertyListResult ? JSON.stringify(pageData.debug.propertyListResult, null, 2).substring(0, 200) + '...' : 'null'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+              <h3 class="text-lg font-semibold text-blue-900 mb-2">¿Qué revisar?</h3>
+              <ul class="text-blue-800 space-y-1">
+                <li>1. ¿Está el provider importado correctamente?</li>
+                <li>2. ¿Las funciones getSingleProperty y getPropertyList están funcionando?</li>
+                <li>3. ¿La Edge Function está respondiendo?</li>
+                <li>4. ¿Los segmentos de URL son los correctos?</li>
+              </ul>
+            </div>
+            
+            <div class="mt-6 flex gap-4">
+              <a href="/" class="px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
+                Volver al Inicio
+              </a>
+              <button onclick="location.reload()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                Recargar Página
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Layout>
+)}
+
+{pageType === 'error' && (
+  <Layout title="Error - CLIC Inmobiliaria" description="Ha ocurrido un error">
+    <div class="min-h-screen bg-red-50 py-12">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-red-500">
+            <h1 class="text-3xl font-bold text-red-900 mb-6 flex items-center gap-3">
+              ❌ Error en Página [...slug]
+            </h1>
+            
+            <div class="space-y-6">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Mensaje de Error</h2>
+                <div class="bg-red-50 p-4 rounded-lg">
+                  <code class="text-red-800">{pageData.error.message}</code>
+                </div>
+              </div>
+              
+              <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Información de Debug</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <div><strong>Slug:</strong> {pageData.error.slug || 'undefined'}</div>
+                  <div><strong>Segmentos:</strong> [{pageData.error.urlSegments.join(', ')}]</div>
+                </div>
+              </div>
+              
+              {pageData.error.stack && (
+                <details class="bg-gray-50 p-4 rounded-lg">
+                  <summary class="cursor-pointer font-semibold text-gray-800 mb-2">Stack Trace</summary>
+                  <pre class="text-xs text-gray-600 overflow-auto">{pageData.error.stack}</pre>
+                </details>
+              )}
+            </div>
+            
+            <div class="mt-8 flex gap-4">
+              <a href="/" class="px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
+                Volver al Inicio
+              </a>
+              <button onclick="location.reload()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Layout>
+)}<strong>URL Pathname:</strong> {pageData.debug.pathname}</div>
+                  <div><strong>Segmentos:</strong> [{pageData.debug.urlSegments.join(', ')}]</div>
+                  <div><strong>Search Params:</strong> {JSON.stringify(pageData.debug.searchParams)}</div>
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800">Resultados Provider</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <div><strong>Single Property:</strong> {pageData.debug.singlePropertyResult ? JSON.stringify(pageData.debug.singlePropertyResult, null, 2).substring(0, 200) + '...' : 'null'}</div>
+                  <div><strong>Property List:</strong> {pageData.debug.propertyListResult ? JSON.stringify(pageData.debug.propertyListResult, null, 2).substring(0, 200) + '...' : 'null'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+              <h3 class="text-lg font-semibold text-blue-900 mb-2">¿Qué revisar?</h3>
+              <ul class="text-blue-800 space-y-1">
+                <li>1. ¿Está el provider importado correctamente?</li>
+                <li>2. ¿Las funciones getSingleProperty y getPropertyList están funcionando?</li>
+                <li>3. ¿La Edge Function está respondiendo?</li>
+                <li>4. ¿Los segmentos de URL son los correctos?</li>
+              </ul>
+            </div>
+            
+            <div class="mt-6 flex gap-4">
+              <a href="/" class="px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
+                Volver al Inicio
+              </a>
+              <button onclick="location.reload()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                Recargar Página
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- PÁGINA ERROR -->
+  {pageType === 'error' && (
+    <div class="min-h-screen bg-red-50 py-12">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-red-500">
+            <h1 class="text-3xl font-bold text-red-900 mb-6 flex items-center gap-3">
+              ❌ Error en Página [...slug]
+            </h1>
+            
+            <div class="space-y-6">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Mensaje de Error</h2>
+                <div class="bg-red-50 p-4 rounded-lg">
+                  <code class="text-red-800">{pageData.error.message}</code>
+                </div>
+              </div>
+              
+              <div>
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Información de Debug</h2>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 font-mono text-sm">
+                  <div><strong>Slug:</strong> {pageData.error.slug || 'undefined'}</div>
+                  <div><strong>Segmentos:</strong> [{pageData.error.urlSegments.join(', ')}]</div>
+                </div>
+              </div>
+              
+              {pageData.error.stack && (
+                <details class="bg-gray-50 p-4 rounded-lg">
+                  <summary class="cursor-pointer font-semibold text-gray-800 mb-2">Stack Trace</summary>
+                  <pre class="text-xs text-gray-600 overflow-auto">{pageData.error.stack}</pre>
+                </details>
+              )}
+            </div>
+            
+            <div class="mt-8 flex gap-4">
+              <a href="/" class="px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
+                Volver al Inicio
+              </a>
+              <button onclick="location.reload()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {})}></script>
+
+<style>
+  /* Asegurar que los detalles se abran suavemente */
+  details[open] summary ~ * {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>

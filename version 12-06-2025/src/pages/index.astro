@@ -1,0 +1,208 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SearchComponent from '../components/SearchComponent.astro';
+
+// Mock de propiedades destacadas
+const featuredProperties = [
+  {
+    slug: 'villa-punta-cana-golf',
+    titulo: 'Villa en Punta Cana con vista al golf',
+    precio: '$650,000',
+    imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+    sector: 'Punta Cana',
+    habitaciones: 4,
+    banos: 4,
+    metros: 400,
+    tipo: 'Villa de Lujo'
+  },
+  {
+    slug: 'apartamento-blue-mall',
+    titulo: 'Apartamento moderno cerca de Blue Mall',
+    precio: '$225,000',
+    imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    sector: 'Piantini, D.N.',
+    habitaciones: 2,
+    banos: 2,
+    metros: 120,
+    tipo: 'Apartamento'
+  },
+  {
+    slug: 'penthouse-anacaona',
+    titulo: 'Penthouse exclusivo en Anacaona',
+    precio: '$550,000',
+    imagen: 'https://images.unsplash.com/photo-1567684014761-b65e2e59b9eb?w=800&h=600&fit=crop',
+    sector: 'Bella Vista, D.N.',
+    habitaciones: 4,
+    banos: 3,
+    metros: 300,
+    tipo: 'Penthouse'
+  }
+];
+
+const popularLocations = [
+  { name: 'Punta Cana', slug: 'punta-cana', count: 156, image: 'https://images.unsplash.com/photo-1589923188651-268a9765e432?w=400&h=300&fit=crop' },
+  { name: 'Santo Domingo', slug: 'santo-domingo', count: 243, image: 'https://images.unsplash.com/photo-1568515045052-f9a854d70bfd?w=400&h=300&fit=crop' },
+  { name: 'Santiago', slug: 'santiago', count: 89, image: 'https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?w=400&h=300&fit=crop' },
+  { name: 'Casa de Campo', slug: 'casa-de-campo', count: 67, image: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400&h=300&fit=crop' }
+];
+---
+
+<Layout title="Inicio" description="CLIC Inmobiliaria - Tu socio de confianza en el mercado inmobiliario de República Dominicana">
+  <!-- Hero Section -->
+  <section class="relative h-[600px] flex items-center justify-center">
+    <!-- Background Image -->
+    <div class="absolute inset-0 z-0">
+      <img 
+        src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&h=800&fit=crop" 
+        alt="Propiedades de lujo en República Dominicana"
+        class="w-full h-full object-cover"
+      />
+      <div class="absolute inset-0 bg-black/40"></div>
+    </div>
+    
+    <!-- Content -->
+    <div class="relative z-10 container mx-auto px-4 text-center text-white">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+        Encuentra tu hogar ideal en<br/>República Dominicana
+      </h1>
+      <p class="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
+        Más de 500 propiedades disponibles en las mejores ubicaciones del país
+      </p>
+      
+      <!-- Advanced Search Component -->
+      <div class="max-w-6xl mx-auto">
+        <SearchComponent showTitle={false} />
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">500+</div>
+          <div class="text-gray-600 mt-2">Propiedades</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">15+</div>
+          <div class="text-gray-600 mt-2">Años de experiencia</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">1,200+</div>
+          <div class="text-gray-600 mt-2">Clientes satisfechos</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">25+</div>
+          <div class="text-gray-600 mt-2">Asesores expertos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Properties -->
+  <section class="py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Propiedades Destacadas
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Descubre las mejores oportunidades de inversión seleccionadas por nuestros expertos
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {featuredProperties.map((property) => (
+          <a href={`/comprar/${property.tipo?.toLowerCase().replace(/\s+/g, '-') || 'propiedad'}/${property.sector?.toLowerCase().split(',')[0].trim().replace(/\s+/g, '-') || 'rd'}/${property.slug}`} class="group">
+            <article class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+              <div class="relative aspect-[4/3] overflow-hidden">
+                <img 
+                  src={property.imagen} 
+                  alt={property.titulo}
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+                <div class="absolute top-3 left-3 bg-[#f04e00] text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {property.tipo}
+                </div>
+              </div>
+              <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                  {property.titulo}
+                </h3>
+                <p class="text-gray-600 mb-4">{property.sector}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-2xl font-bold text-[#f04e00]">{property.precio}</span>
+                  <div class="flex gap-3 text-sm text-gray-600">
+                    <span>{property.habitaciones} hab</span>
+                    <span>{property.banos} baños</span>
+                    <span>{property.metros} m²</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </a>
+        ))}
+      </div>
+
+      <div class="text-center mt-12">
+        <a href="/comprar" class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors">
+          Ver todas las propiedades
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Locations -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Ubicaciones Populares
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Explora propiedades en las zonas más demandadas del país
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {popularLocations.map((location) => (
+          <a href={`/comprar/${location.slug}`} class="group relative overflow-hidden rounded-xl">
+            <div class="aspect-[4/3] relative">
+              <img 
+                src={location.image} 
+                alt={location.name}
+                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 p-6 text-white">
+                <h3 class="text-2xl font-bold mb-1">{location.name}</h3>
+                <p class="text-sm opacity-90">{location.count} propiedades</p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿Necesitas ayuda para encontrar tu propiedad ideal?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Nuestros asesores expertos están listos para guiarte en cada paso del proceso
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/contacto" class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-md hover:bg-gray-100 transition-colors font-medium">
+          Contactar un asesor
+        </a>
+        <a href="https://wa.me/18095550123" class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-md hover:bg-white/30 transition-colors font-medium">
+          WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

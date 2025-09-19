@@ -1,0 +1,250 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Servicios simples
+const servicios = [
+  {
+    title: 'Vende tu Propiedad',
+    description: 'Te ayudamos a vender tu casa, apartamento o villa. Marketing profesional y acompañamiento en todo el proceso.',
+    benefits: [
+      'Evaluación gratuita de tu propiedad',
+      'Fotos profesionales',
+      'Publicación en portales principales',
+      'Te acompañamos hasta el cierre'
+    ],
+    cta: 'Quiero vender',
+    link: '/contacto?servicio=vender'
+  },
+  {
+    title: 'Desarrolladores',
+    description: 'Comercializamos tu proyecto inmobiliario. Desde la preventa hasta la entrega final.',
+    benefits: [
+      'Estrategia de ventas personalizada',
+      'Marketing digital del proyecto',
+      'Equipo de ventas dedicado',
+      'Reportes de progreso semanales'
+    ],
+    cta: 'Presentar proyecto',
+    link: '/contacto?servicio=desarrollo'
+  },
+  {
+    title: 'Rentas Vacacionales',
+    description: 'Membresía mensual para listar tu propiedad de alquiler vacacional en nuestra plataforma.',
+    benefits: [
+      'Listado en nuestra web',
+      'Acceso a nuestra base de clientes',
+      'Tú manejas las reservas directamente',
+      'Sin comisiones por booking'
+    ],
+    cta: 'Ver precios',
+    link: '/planes-rentas-vacacionales#planes',
+    membership: true
+  }
+];
+
+// Estadísticas reales y modestas
+const stats = [
+  { number: '150+', label: 'Propiedades vendidas' },
+  { number: '3', label: 'Años de experiencia' },
+  { number: '95%', label: 'Clientes satisfechos' },
+  { number: '60', label: 'Días promedio de venta' }
+];
+
+// Un par de testimonios reales
+const testimonios = [
+  {
+    text: 'CLIC me ayudó a vender mi apartamento en Naco. El proceso fue transparente y me mantuvieron informada todo el tiempo.',
+    author: 'Carmen Pérez',
+    property: 'Apartamento en Naco'
+  },
+  {
+    text: 'Confiamos en CLIC para comercializar nuestro pequeño proyecto. Logramos vender el 70% en preventa.',
+    author: 'Constructora Familiar',
+    property: 'Proyecto de 12 unidades'
+  }
+];
+---
+
+<Layout 
+  title="Vender con CLIC - Servicios Inmobiliarios" 
+  description="¿Tienes una propiedad para vender o un proyecto para desarrollar? Te ayudamos con honestidad y profesionalismo."
+>
+  <!-- Hero Section -->
+  <section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          ¿Tienes algo que vender?
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+          Te ayudamos a vender tu propiedad o comercializar tu proyecto con honestidad y profesionalismo. 
+          Somos una empresa joven pero comprometida con tus resultados.
+        </p>
+        
+        {/* Simple Stats */}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          {stats.map((stat) => (
+            <div class="text-center">
+              <div class="text-2xl font-bold text-[#f04e00] mb-1">{stat.number}</div>
+              <div class="text-sm text-gray-600">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <a 
+          href="#servicios" 
+          class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+        >
+          Ver cómo te ayudamos
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="servicios" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">
+          Nuestros Servicios
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Tres formas en las que podemos trabajar juntos
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {servicios.map((servicio) => (
+          <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+              {servicio.title}
+              {servicio.membership && (
+                <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  Membresía
+                </span>
+              )}
+            </h3>
+            
+            <p class="text-gray-600 mb-6">{servicio.description}</p>
+            
+            <ul class="space-y-2 mb-6">
+              {servicio.benefits.map((benefit) => (
+                <li class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700 text-sm">{benefit}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <a 
+              href={servicio.link}
+              class="block w-full text-center px-4 py-2 bg-[#f04e00] text-white rounded hover:bg-[#d94400] transition-colors"
+            >
+              {servicio.cta}
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Simple Process -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl font-bold text-gray-900 mb-12">
+          Cómo trabajamos contigo
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="text-center">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold">1</span>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Conversamos</h3>
+            <p class="text-gray-600 text-sm">
+              Nos cuentas qué tienes y qué necesitas. Todo sin compromiso.
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold">2</span>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Planificamos</h3>
+            <p class="text-gray-600 text-sm">
+              Creamos una estrategia realista para tu propiedad o proyecto.
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold">3</span>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Ejecutamos</h3>
+            <p class="text-gray-600 text-sm">
+              Trabajamos juntos hasta lograr tus objetivos.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">
+          Lo que dicen nuestros clientes
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {testimonios.map((testimonio) => (
+            <div class="bg-white rounded-lg p-6 shadow-md">
+              <blockquote class="text-gray-700 mb-4 italic">
+                "{testimonio.text}"
+              </blockquote>
+              <div class="text-sm">
+                <div class="font-semibold text-gray-900">{testimonio.author}</div>
+                <div class="text-gray-600">{testimonio.property}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Simple CTA -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-2xl mx-auto text-white">
+        <h2 class="text-3xl font-bold mb-4">
+          ¿Hablamos de tu proyecto?
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          Conversemos sin compromiso sobre cómo podemos ayudarte
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="/contacto" 
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            Contactar ahora
+          </a>
+          <a 
+            href="https://wa.me/18095550100" 
+            target="_blank"
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

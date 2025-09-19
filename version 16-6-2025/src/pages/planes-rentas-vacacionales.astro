@@ -1,0 +1,560 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// Planes de membresía
+const memberships = [
+  {
+    name: 'Básico',
+    price: '$49',
+    period: '/mes',
+    description: 'Ideal para propietarios con 1-2 propiedades',
+    features: [
+      'Hasta 2 propiedades listadas',
+      'Fotos básicas incluidas',
+      'Calendario de disponibilidad',
+      'Mensajería con huéspedes',
+      'Soporte por email',
+      'Comisión 0% por booking'
+    ],
+    popular: false,
+    savings: 'Ahorra vs Airbnb: $180/mes'
+  },
+  {
+    name: 'Profesional',
+    price: '$89',
+    period: '/mes',
+    description: 'Perfecto para gestores de múltiples propiedades',
+    features: [
+      'Hasta 5 propiedades listadas',
+      'Fotografía profesional incluida',
+      'Tour virtual 360° incluido',
+      'Marketing en redes sociales',
+      'Reportes de ocupación detallados',
+      'Optimización de precios automática',
+      'Soporte prioritario',
+      'Comisión 0% por booking'
+    ],
+    popular: true,
+    savings: 'Ahorra vs Airbnb: $450/mes'
+  },
+  {
+    name: 'Premium',
+    price: '$149',
+    period: '/mes',
+    description: 'Para operadores serios con portafolios grandes',
+    features: [
+      'Propiedades ilimitadas',
+      'Video promocional profesional',
+      'Gestión completa de booking',
+      'Channel manager integrado',
+      'Dashboard analítico avanzado',
+      'Account manager dedicado',
+      'Check-in automático',
+      'Limpieza coordinada',
+      'Comisión 0% por booking'
+    ],
+    popular: false,
+    savings: 'Ahorra vs Airbnb: $800+/mes'
+  }
+];
+
+// Estadísticas reales de propietarios
+const stats = [
+  { number: '32%', label: 'Aumento promedio en ingresos' },
+  { number: '0%', label: 'Comisión por booking' },
+  { number: '75%', label: 'Ocupación promedio' },
+  { number: '180+', label: 'Propietarios activos' }
+];
+
+// Casos de éxito
+const casosExito = [
+  {
+    owner: 'María González',
+    property: 'Villa en Punta Cana',
+    beforeIncome: '$3,200/mes',
+    afterIncome: '$4,800/mes',
+    increase: '+50%',
+    plan: 'Profesional',
+    testimonial: 'Desde que me uní a CLIC, mis ingresos aumentaron significativamente. El equipo maneja todo y yo solo recibo el dinero.',
+    avatar: 'https://i.pravatar.cc/150?img=5'
+  },
+  {
+    owner: 'Carlos Martínez',
+    property: '3 Apartamentos en Bávaro',
+    beforeIncome: '$5,400/mes',
+    afterIncome: '$7,200/mes',
+    increase: '+33%',
+    plan: 'Premium',
+    testimonial: 'La plataforma me permite gestionar mis 3 propiedades desde una sola dashboard. Los reportes son excelentes.',
+    avatar: 'https://i.pravatar.cc/150?img=8'
+  },
+  {
+    owner: 'Ana Rodríguez',
+    property: 'Casa en Las Terrenas',
+    beforeIncome: '$1,800/mes',
+    afterIncome: '$2,600/mes',
+    increase: '+44%',
+    plan: 'Básico',
+    testimonial: 'Perfecta para empezar. Sin complicaciones y con excelentes resultados desde el primer mes.',
+    avatar: 'https://i.pravatar.cc/150?img=16'
+  }
+];
+
+// Comparación vs competencia
+const comparison = [
+  {
+    feature: 'Comisión por booking',
+    clic: '0%',
+    airbnb: '3% huésped + 14-16% anfitrión',
+    booking: '15-25%',
+    vrbo: '8% + 3%'
+  },
+  {
+    feature: 'Costo mensual',
+    clic: '$49-149',
+    airbnb: '$0 + comisiones altas',
+    booking: '$0 + comisiones altas',
+    vrbo: '$0 + comisiones altas'
+  },
+  {
+    feature: 'Fotografía profesional',
+    clic: '✓ Incluida',
+    airbnb: '✗ Costo extra',
+    booking: '✗ Costo extra',
+    vrbo: '✗ Costo extra'
+  },
+  {
+    feature: 'Account manager',
+    clic: '✓ Plan Premium',
+    airbnb: '✗ Solo Superhost',
+    booking: '✗ No disponible',
+    vrbo: '✗ No disponible'
+  },
+  {
+    feature: 'Optimización precios',
+    clic: '✓ Automática',
+    airbnb: '✗ Manual',
+    booking: '✗ Manual',
+    vrbo: '✗ Manual'
+  }
+];
+
+// Propiedades exitosas de miembros
+const propiedadesExitosas = [
+  {
+    slug: 'villa-maria-punta-cana',
+    titulo: 'Villa de María - Punta Cana',
+    precio: 'Genera $4,800/mes',
+    imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    sector: 'Punta Cana',
+    habitaciones: 4,
+    banos: 4,
+    ocupacion: '85%',
+    tipo: 'Villa',
+    plan: 'Profesional',
+    destacado: true
+  },
+  {
+    slug: 'apartamentos-carlos-bavaro',
+    titulo: 'Portafolio de Carlos - Bávaro',
+    precio: 'Genera $7,200/mes',
+    imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    sector: 'Bávaro',
+    habitaciones: 'Multi',
+    banos: 'Multi',
+    ocupacion: '78%',
+    tipo: '3 Apartamentos',
+    plan: 'Premium'
+  },
+  {
+    slug: 'casa-ana-las-terrenas',
+    titulo: 'Casa de Ana - Las Terrenas',
+    precio: 'Genera $2,600/mes',
+    imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+    sector: 'Las Terrenas',
+    habitaciones: 3,
+    banos: 2,
+    ocupacion: '72%',
+    tipo: 'Casa',
+    plan: 'Básico'
+  }
+];
+
+// FAQ para propietarios
+const faqs = [
+  {
+    question: '¿Realmente no cobran comisión por booking?',
+    answer: 'Correcto. Solo pagas tu membresía mensual. Te quedas con el 100% de los ingresos de cada reserva, sin comisiones ocultas.'
+  },
+  {
+    question: '¿Qué incluye la fotografía profesional?',
+    answer: 'Sesión completa con fotógrafo profesional, edición, y hasta 20 fotos en alta resolución. En plan Premium incluimos video también.'
+  },
+  {
+    question: '¿Puedo cancelar mi membresía cuando quiera?',
+    answer: 'Sí, puedes cancelar en cualquier momento sin penalizaciones. Tu membresía seguirá activa hasta el final del período pagado.'
+  },
+  {
+    question: '¿Cómo manejan la comunicación con huéspedes?',
+    answer: 'Tú mantienes control total. Nosotros facilitamos la plataforma, pero tú decides cómo comunicarte con tus huéspedes.'
+  },
+  {
+    question: '¿Qué tan rápido puedo empezar a recibir reservas?',
+    answer: 'Una vez completado tu perfil y fotos, tu propiedad estará live en 2-3 días. Las primeras reservas suelen llegar en la primera semana.'
+  }
+];
+---
+
+<Layout 
+  title="Planes para Propietarios - Rentas Vacacionales CLIC" 
+  description="Maximiza tus ingresos por rentas vacacionales. Planes desde $49/mes, sin comisiones por booking. Fotografía profesional incluida."
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-20 overflow-hidden min-h-[600px]">
+    <!-- Background Image -->
+    <div class="absolute inset-0">
+      <img 
+        src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
+        alt="Propiedades de lujo para rentas vacacionales"
+        class="w-full h-full object-cover opacity-30"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-[#f04e00]/85 to-[#ff7a3d]/80"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center text-white">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+          Maximiza tus Ingresos por <br/>
+          <span class="text-yellow-200">Rentas Vacacionales</span>
+        </h1>
+        <p class="text-xl md:text-2xl mb-8 text-white drop-shadow-md">
+          Únete a 180+ propietarios que generan más ingresos con nuestra plataforma. 
+          Sin comisiones por booking, solo membresía mensual.
+        </p>
+        
+
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          {stats.map((stat) => (
+            <div class="text-center bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-3xl font-bold text-yellow-200 mb-2">{stat.number}</div>
+              <div class="text-sm text-white">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="#planes"
+            class="inline-block px-8 py-4 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold shadow-lg"
+          >
+            Ver planes y precios
+          </a>
+          <a 
+            href="#casos-exito"
+            class="inline-block px-8 py-4 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            Casos de éxito
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Success Cases -->
+  <section id="casos-exito" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Casos de Éxito Reales
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Propietarios reales que han aumentado significativamente sus ingresos
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {casosExito.map((caso) => (
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center gap-4 mb-6">
+              <img 
+                src={caso.avatar} 
+                alt={caso.owner}
+                class="w-16 h-16 rounded-full object-cover"
+              />
+              <div>
+                <h3 class="font-bold text-gray-900">{caso.owner}</h3>
+                <p class="text-sm text-gray-600">{caso.property}</p>
+                <span class="text-xs bg-[#f04e00] text-white px-2 py-1 rounded-full">
+                  Plan {caso.plan}
+                </span>
+              </div>
+            </div>
+            
+            <div class="mb-6">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Antes:</span>
+                <span class="font-medium text-gray-700">{caso.beforeIncome}</span>
+              </div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Ahora:</span>
+                <span class="font-bold text-[#f04e00]">{caso.afterIncome}</span>
+              </div>
+              <div class="text-center">
+                <span class="text-2xl font-bold text-green-600">{caso.increase}</span>
+                <span class="text-sm text-gray-600 block">de aumento</span>
+              </div>
+            </div>
+            
+            <blockquote class="text-gray-700 italic">
+              "{caso.testimonial}"
+            </blockquote>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Membership Plans -->
+  <section id="planes" class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Planes de Membresía
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Elige el plan que mejor se adapte a tu portafolio de propiedades
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {memberships.map((plan) => (
+          <div class={`relative bg-white rounded-2xl shadow-lg border-2 p-8 ${plan.popular ? 'border-[#f04e00] scale-105 shadow-2xl' : 'border-gray-200'}`}>
+            {plan.popular && (
+              <div class="absolute -top-2 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-b-lg text-xs font-bold shadow-lg z-10">
+                RECOMENDADO
+              </div>
+            )}
+            
+            <div class="text-center mb-6">
+              <h3 class="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <div class="mb-4">
+                <span class="text-4xl font-bold text-[#f04e00]">{plan.price}</span>
+                <span class="text-gray-600">{plan.period}</span>
+              </div>
+              <p class="text-gray-600 mb-2">{plan.description}</p>
+              <p class="text-sm text-green-600 font-medium">{plan.savings}</p>
+            </div>
+            
+            <ul class="space-y-3 mb-8">
+              {plan.features.map((feature) => (
+                <li class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <a 
+              href={`/contacto?servicio=rentas&plan=${plan.name.toLowerCase()}`}
+              class={`block w-full text-center px-6 py-3 rounded-lg font-semibold transition-colors ${
+                plan.popular 
+                ? 'bg-[#f04e00] text-white hover:bg-[#d94400]' 
+                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              Empezar con {plan.name}
+            </a>
+          </div>
+        ))}
+      </div>
+      
+      <div class="text-center mt-12">
+        <p class="text-gray-600 mb-4">
+          ¿Tienes más de 10 propiedades? Contacta para un plan personalizado
+        </p>
+        <a 
+          href="/contacto?servicio=rentas&plan=enterprise"
+          class="inline-block px-6 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+        >
+          Plan Enterprise personalizado
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          CLIC vs Competencia
+        </h2>
+        <p class="text-xl text-gray-600">
+          Compara y descubre por qué CLIC es la mejor opción para propietarios
+        </p>
+      </div>
+      
+      <div class="max-w-5xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-[#f04e00] text-white">
+                <tr>
+                  <th class="px-6 py-4 text-left">Característica</th>
+                  <th class="px-6 py-4 text-center">CLIC</th>
+                  <th class="px-6 py-4 text-center">Airbnb</th>
+                  <th class="px-6 py-4 text-center">Booking.com</th>
+                  <th class="px-6 py-4 text-center">VRBO</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((row, index) => (
+                  <tr class={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                    <td class="px-6 py-4 font-medium text-gray-900">{row.feature}</td>
+                    <td class="px-6 py-4 text-center font-bold text-[#f04e00]">{row.clic}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">{row.airbnb}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">{row.booking}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">{row.vrbo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Success Properties -->
+  <PropertyCarousel 
+    title="Propiedades Exitosas de Nuestros Miembros"
+    subtitle="Estas propiedades están generando excelentes ingresos con nuestros planes"
+    properties={propiedadesExitosas}
+    viewAllLink="/rentas-vacacionales"
+  />
+
+  <!-- How It Works -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Cómo Funciona
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          Proceso simple para empezar a generar más ingresos
+        </p>
+      </div>
+      
+      <div class="max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-2xl text-white font-bold">1</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Elige tu Plan</h3>
+            <p class="text-gray-600 text-sm">
+              Selecciona la membresía que mejor se adapte a tu portafolio
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-2xl text-white font-bold">2</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Setup Completo</h3>
+            <p class="text-gray-600 text-sm">
+              Creamos tu perfil, tomamos fotos profesionales y listamos tu propiedad
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-2xl text-white font-bold">3</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Recibe Reservas</h3>
+            <p class="text-gray-600 text-sm">
+              Empiezas a recibir reservas calificadas desde la primera semana
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-2xl text-white font-bold">4</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Maximiza Ingresos</h3>
+            <p class="text-gray-600 text-sm">
+              Optimizamos precios y ocupación para maximizar tus ganancias
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Preguntas Frecuentes
+          </h2>
+          <p class="text-xl text-gray-600">
+            Respuestas a las dudas más comunes de propietarios
+          </p>
+        </div>
+        
+        <div class="space-y-6">
+          {faqs.map((faq) => (
+            <div class="bg-white rounded-lg shadow-md p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                {faq.question}
+              </h3>
+              <p class="text-gray-600">
+                {faq.answer}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          ¿Listo para Maximizar tus Ingresos?
+        </h2>
+        <p class="text-xl mb-8 text-orange-100">
+          Únete a 180+ propietarios que ya están generando más dinero con CLIC
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="#planes"
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            Elegir mi plan
+          </a>
+          <a 
+            href="/contacto?servicio=rentas"
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            Hablar con especialista
+          </a>
+        </div>
+        
+        <p class="text-sm text-orange-200 mt-6">
+          ✓ Sin compromisos a largo plazo • ✓ Puedes cancelar cuando quieras • ✓ Setup incluido
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>

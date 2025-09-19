@@ -1,0 +1,998 @@
+---
+// MiniSearchBar.astro - Simplificado con lógica clara
+import { Search, BedDouble, Bath, Car, Home, MapPin, Filter, ChevronDown, X } from "lucide-astro";
+
+export interface Props {
+  currentFilters?: {
+    accion?: string;
+    tipo?: string;
+    ubicacion?: string;
+    sector?: string;
+    precioMin?: string;
+    precioMax?: string;
+    moneda?: string;
+    habitaciones?: string;
+    banos?: string;
+    parqueos?: string;
+    estado?: string;
+    caracteristicas?: string[];
+  };
+  isSticky?: boolean;
+}
+
+const { currentFilters = {}, isSticky = false } = Astro.props;
+
+// Data para los dropdowns - DEFINIR ANTES de extractFiltersFromURL
+const ubicaciones = [
+  { value: "", label: "Ubicación" },
+  { value: "distrito-nacional", label: "Distrito Nacional" },
+  { value: "santiago", label: "Santiago" },
+  { value: "punta-cana", label: "Punta Cana" },
+  { value: "puerto-plata", label: "Puerto Plata" },
+  { value: "la-romana", label: "La Romana" },
+  { value: "san-pedro", label: "San Pedro de Macorís" }
+];
+
+const sectoresPorUbicacion = {
+  "distrito-nacional": [
+    { value: "", label: "Todos los sectores" },
+    { value: "piantini", label: "Piantini" },
+    { value: "bella-vista", label: "Bella Vista" },
+    { value: "evaristo-morales", label: "Evaristo Morales" },
+    { value: "naco", label: "Naco" },
+    { value: "gazcue", label: "Gazcue" },
+    { value: "zona-universitaria", label: "Zona Universitaria" }
+  ],
+  "santiago": [
+    { value: "", label: "Todos los sectores" },
+    { value: "cerros-de-gurabo", label: "Cerros de Gurabo" },
+    { value: "jardines-metropolitanos", label: "Jardines Metropolitanos" },
+    { value: "bella-vista-santiago", label: "Bella Vista" },
+    { value: "los-jardines", label: "Los Jardines" }
+  ],
+  "punta-cana": [
+    { value: "", label: "Todos los sectores" },
+    { value: "bavaro", label: "Bávaro" },
+    { value: "cap-cana", label: "Cap Cana" },
+    { value: "uvero-alto", label: "Uvero Alto" },
+    { value: "cortecito", label: "Cortecito" }
+  ]
+};
+
+const tiposInmueble = [
+  { value: "", label: "Tipo de Inmueble" },
+  { value: "apartamento", label: "Apartamento" },
+  { value: "villa", label: "Villa" },
+  { value: "casa", label: "Casa" },
+  { value: "penthouse", label: "Penthouse" },
+  { value: "terreno", label: "Terreno" },
+  { value: "local-comercial", label: "Local Comercial" }
+];
+
+// 🔧 Función mejorada para extraer filtros desde la URL actual
+function extractFiltersFromURL(url: URL) {
+  const pathname = url.pathname;
+  const segments = pathname.split('/').filter(Boolean);
+  
+  const filters: any = {
+    accion: 'comprar',
+    moneda: 'USD',
+    ubicacion: '',
+    sector: '',
+    tipo: '',
+    habitaciones: '',
+    banos: '',
+    parqueos: '',
+    precio: '',
+    caracteristicas: []
+  };
+
+  // Listas de valores conocidos para mejor detección
+  const tiposConocidos = ['apartamento', 'villa', 'casa', 'penthouse', 'terreno', 'local-comercial'];
+  const ubicacionesConocidas = ['distrito-nacional', 'santiago', 'punta-cana', 'puerto-plata', 'la-romana', 'san-pedro'];
+  const sectoresConocidos = [
+    'piantini', 'bella-vista', 'evaristo-morales', 'naco', 'gazcue', 'zona-universitaria',
+    'cerros-de-gurabo', 'jardines-metropolitanos', 'bella-vista-santiago', 'los-jardines',
+    'bavaro', 'cap-cana', 'uvero-alto', 'cortecito'
+  ];
+
+  if (segments.length > 0) {
+    // Primera parte: acción (comprar/alquilar)
+    if (['comprar', 'alquilar'].includes(segments[0])) {
+      filters.accion = segments[0];
+    }
+
+    // 🔧 FIX: Procesar segmentos por tipo, no por posición fija
+    for (let i = 1; i < segments.length; i++) {
+      const segment = segments[i];
+      
+      // Tipo de propiedad
+      if (tiposConocidos.includes(segment) && !filters.tipo) {
+        filters.tipo = segment;
+      }
+      
+      // Ubicaciones
+      else if (ubicacionesConocidas.includes(segment) && !filters.ubicacion) {
+        filters.ubicacion = segment;
+      }
+      
+      // 🔧 FIX: Sectores - verificar que hay ubicación Y que el sector pertenece a esa ubicación
+      else if (sectoresConocidos.includes(segment) && !filters.sector) {
+        // Verificar si este sector pertenece a la ubicación ya detectada
+        if (filters.ubicacion && sectoresPorUbicacion[filters.ubicacion]) {
+          const sectorValido = sectoresPorUbicacion[filters.ubicacion].some(s => s.value === segment);
+          if (sectorValido) {
+            filters.sector = segment;
+          }
+        }
+        // Si no hay ubicación aún, buscar en qué ubicación está este sector
+        else {
+          for (const [ubicacion, sectores] of Object.entries(sectoresPorUbicacion)) {
+            const sectorEncontrado = sectores.some(s => s.value === segment);
+            if (sectorEncontrado && !filters.ubicacion) {
+              filters.ubicacion = ubicacion;
+              filters.sector = segment;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Precio
+      else if (segment.startsWith('precio-desde-')) {
+        const priceMatch = segment.match(/^precio-desde-(\d+)(?:-(\d+))?-(usd|dop)$/i);
+        if (priceMatch) {
+          const [, min, max, currency] = priceMatch;
+          filters.moneda = currency.toUpperCase();
+          filters.precio = max ? `${min}-${max}` : `${min}+`;
+        }
+      }
+      
+      // Habitaciones
+      else if (segment.includes('-habitaciones')) {
+        const match = segment.match(/^(\d+|\d+\+)-habitaciones$/);
+        if (match) filters.habitaciones = match[1];
+      }
+      
+      // Baños
+      else if (segment.includes('-banos')) {
+        const match = segment.match(/^(\d+|\d+\+)-banos$/);
+        if (match) filters.banos = match[1];
+      }
+      
+      // Parqueos
+      else if (segment.includes('-parqueos')) {
+        const match = segment.match(/^(\d+|\d+\+)-parqueos$/);
+        if (match) filters.parqueos = match[1];
+      }
+      
+      // Características
+      else if (['amueblado', 'planta-full', 'airbnb-friendly', 'no-mascotas', 'no-fumadores', 
+                'ninos-bienvenidos', 'piscina', 'gimnasio', 'area-social', 'seguridad-24-7', 
+                'porton-electrico', 'camaras-de-seguridad', 'terraza', 'vista-al-mar', 
+                'ascensor', 'jacuzzi', 'aire-acondicionado', 'internet'].includes(segment)) {
+        filters.caracteristicas.push(segment);
+      }
+    }
+  }
+
+  return filters;
+}
+
+// Extraer filtros actuales desde la URL
+const urlFilters = extractFiltersFromURL(Astro.url);
+const mergedFilters = { ...urlFilters, ...currentFilters };
+
+const rangosPrecios = {
+  comprar: {
+    USD: [
+      { value: "", label: "Precio" },
+      { value: "0-100000", label: "$0 - $100K" },
+      { value: "100000-250000", label: "$100K - $250K" },
+      { value: "250000-500000", label: "$250K - $500K" },
+      { value: "500000-1000000", label: "$500K - $1M" },
+      { value: "1000000-2000000", label: "$1M - $2M" },
+      { value: "2000000+", label: "$2M+" }
+    ],
+    DOP: [
+      { value: "", label: "Precio" },
+      { value: "0-5000000", label: "RD$0 - RD$5M" },
+      { value: "5000000-12500000", label: "RD$5M - RD$12.5M" },
+      { value: "12500000-25000000", label: "RD$12.5M - RD$25M" },
+      { value: "25000000-50000000", label: "RD$25M - RD$50M" },
+      { value: "50000000-100000000", label: "RD$50M - RD$100M" },
+      { value: "100000000+", label: "RD$100M+" }
+    ]
+  },
+  alquilar: {
+    USD: [
+      { value: "", label: "Precio" },
+      { value: "0-500", label: "$0 - $500" },
+      { value: "500-1000", label: "$500 - $1K" },
+      { value: "1000-2000", label: "$1K - $2K" },
+      { value: "2000-3000", label: "$2K - $3K" },
+      { value: "3000-5000", label: "$3K - $5K" },
+      { value: "5000+", label: "$5K+" }
+    ],
+    DOP: [
+      { value: "", label: "Precio" },
+      { value: "0-25000", label: "RD$0 - RD$25K" },
+      { value: "25000-50000", label: "RD$25K - RD$50K" },
+      { value: "50000-100000", label: "RD$50K - RD$100K" },
+      { value: "100000-150000", label: "RD$100K - RD$150K" },
+      { value: "150000-250000", label: "RD$150K - RD$250K" },
+      { value: "250000+", label: "RD$250K+" }
+    ]
+  }
+};
+
+const caracteristicasExtras = [
+  { value: "amueblado", label: "Amueblado" },
+  { value: "planta-full", label: "Planta full" },
+  { value: "airbnb-friendly", label: "Airbnb friendly" },
+  { value: "no-mascotas", label: "No mascotas" },
+  { value: "no-fumadores", label: "No fumadores" },
+  { value: "ninos-bienvenidos", label: "Niños bienvenidos" },
+  { value: "piscina", label: "Piscina" },
+  { value: "gimnasio", label: "Gimnasio" },
+  { value: "area-social", label: "Área social" },
+  { value: "seguridad-24-7", label: "Seguridad 24/7" },
+  { value: "porton-electrico", label: "Portón eléctrico" },
+  { value: "camaras-de-seguridad", label: "Cámaras de seguridad" },
+  { value: "terraza", label: "Terraza" },
+  { value: "vista-al-mar", label: "Vista al mar" },
+  { value: "ascensor", label: "Ascensor" },
+  { value: "jacuzzi", label: "Jacuzzi" },
+  { value: "aire-acondicionado", label: "Aire acondicionado" },
+  { value: "internet", label: "Internet" }
+];
+---
+
+<div 
+  id={isSticky ? "mini-searchbar-sticky" : undefined} 
+  class={`bg-white/90 backdrop-blur-md shadow-md border-b border-gray-200 ${isSticky ? 'sticky top-0 z-50' : ''}`}
+>
+  <div class="container mx-auto px-4 py-4">
+    <!-- 🎯 FILTROS PRINCIPALES (5 filtros + 2 botones) -->
+    <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 mb-3">
+      
+      <!-- 1. ACCIÓN: Comprar/Alquilar -->
+      <div class="flex bg-gray-100 rounded-xl p-1">
+        <button 
+          id="action-comprar" 
+          class="mini-action-btn px-3 py-2 text-sm font-semibold rounded-lg transition-all"
+          data-action="comprar"
+        >
+          COMPRAR
+        </button>
+        <button 
+          id="action-alquilar" 
+          class="mini-action-btn px-3 py-2 text-sm font-semibold rounded-lg transition-all"
+          data-action="alquilar"
+        >
+          ALQUILAR
+        </button>
+      </div>
+
+      <!-- 2. TIPO DE INMUEBLE -->
+      <div class="relative">
+        <select id="mini-tipo" class="mini-select-with-icon w-55 pl-10 pr-8 text-sm appearance-none">
+          {tiposInmueble.map(tipo => (
+            <option value={tipo.value}>{tipo.label}</option>
+          ))}
+        </select>
+        <Home class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+        <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+      </div>
+
+      <!-- 3. UBICACIÓN -->
+      <div class="relative">
+        <select id="mini-ubicacion" class="mini-select-with-icon w-50 pl-10 pr-8 text-sm appearance-none">
+          {ubicaciones.map(ubicacion => (
+            <option value={ubicacion.value}>{ubicacion.label}</option>
+          ))}
+        </select>
+        <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+        <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+      </div>
+
+      <!-- 4. SECTOR -->
+      <div class="relative">
+        <select id="mini-sector" class="mini-select-with-icon w-45 pl-8 pr-8 text-sm appearance-none" disabled>
+          <option value="">Sector</option>
+        </select>
+        <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+      </div>
+
+      <!-- 5. PRECIO con toggle moneda -->
+      <div class="relative flex items-center bg-gray-50 rounded-xl border border-gray-200">
+        <div class="flex bg-gray-100 rounded-l-xl">
+          <button id="currency-usd" class="mini-currency-btn px-2 py-2 text-xs font-medium rounded-l-xl transition-all border-r border-gray-200">
+            USD
+          </button>
+          <button id="currency-dop" class="mini-currency-btn px-2 py-2 text-xs font-medium transition-all">
+            DOP
+          </button>
+        </div>
+        <select id="mini-precio" class="appearance-none bg-transparent border-none outline-none pl-2 pr-8 py-2 text-sm w-40">
+          {rangosPrecios.comprar.USD.map(rango => (
+            <option value={rango.value}>{rango.label}</option>
+          ))}
+        </select>
+        <ChevronDown class="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+      </div>
+
+      <!-- BOTÓN: Más filtros -->
+      <button id="more-filters-toggle" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-[#f04e00] text-gray-600 hover:text-[#f04e00] rounded-xl transition-all group text-sm font-medium whitespace-nowrap">
+        <span class="text-xs">Más filtros</span>
+        <svg class="w-3.5 h-3.5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+
+      <!-- BOTÓN: Buscar (visible en desktop) -->
+      <button id="mini-search-btn" class="hidden lg:flex items-center gap-2 px-4 py-2 bg-[#f04e00] hover:bg-[#d94400] text-white rounded-xl transition-all font-semibold text-sm">
+        <Search class="w-4 h-4" />
+        <span>Buscar</span>
+      </button>
+    </div>
+
+    <!-- 🔧 MODAL: Filtros Secundarios -->
+    <div id="advanced-filters-panel" class="hidden mt-4 p-6 bg-gray-50 rounded-xl border">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">Filtros adicionales</h3>
+      
+      <!-- Habitaciones, Baños, Parqueos -->
+      <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-gray-700">Habitaciones</label>
+          <select id="modal-habitaciones" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+            <option value="">Cualquiera</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5+">5+</option>
+          </select>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-gray-700">Baños</label>
+          <select id="modal-banos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+            <option value="">Cualquiera</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5+">5+</option>
+          </select>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-gray-700">Parqueos</label>
+          <select id="modal-parqueos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+            <option value="">Cualquiera</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4+">4+</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Características -->
+      <div class="mb-6">
+        <h4 class="text-sm font-semibold text-gray-700 mb-3">Características</h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {caracteristicasExtras.map(caracteristica => (
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                value={caracteristica.value}
+                class="modal-checkbox rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]"
+              />
+              <span class="text-sm text-gray-700">{caracteristica.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      
+      <!-- Botones del modal -->
+      <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+        <button id="clear-secondary-filters" class="text-sm text-gray-600 hover:text-gray-800 font-medium">
+          Limpiar filtros secundarios
+        </button>
+        <div class="flex gap-3">
+          <button id="close-advanced" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            Cerrar
+          </button>
+          <button id="apply-secondary-filters" class="px-4 py-2 text-sm bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
+            Aplicar filtros
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón Buscar móvil -->
+    <button id="mini-search-btn-mobile" class="lg:hidden w-full mt-3 py-3 bg-[#f04e00] hover:bg-[#d94400] text-white rounded-xl transition-all font-semibold flex items-center justify-center gap-2">
+      <Search class="w-5 h-5 text-white" />
+      <span>Buscar propiedades</span>
+    </button>
+  </div>
+</div>
+
+{isSticky && (
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const observer = new IntersectionObserver(entries => {
+        const miniBar = document.querySelector('#mini-searchbar-sticky');
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            miniBar?.classList.add('hidden');
+          } else {
+            miniBar?.classList.remove('hidden');
+          }
+        });
+      }, {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+      });
+
+      const footer = document.querySelector('#footer') || 
+                    document.querySelector('#contacto') || 
+                    document.querySelector('footer') ||
+                    document.querySelector('[data-footer]');
+      
+      if (footer) {
+        observer.observe(footer);
+      }
+
+      window.addEventListener('beforeunload', () => {
+        observer.disconnect();
+      });
+    });
+  </script>
+)}
+
+<script define:vars={{ sectoresPorUbicacion, rangosPrecios, caracteristicasExtras, mergedFilters }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 MiniSearchBar Simplificado - Iniciando');
+    console.log('Filtros de URL:', mergedFilters);
+    
+    // 🎯 ESTADO SIMPLE - Solo lo necesario
+    let currentState = {
+      // PRINCIPALES (búsqueda inmediata)
+      accion: 'comprar',
+      tipo: '',
+      ubicacion: '',
+      sector: '',
+      precio: '',
+      moneda: 'USD',
+      
+      // SECUNDARIOS (solo en modal)
+      habitaciones: '',
+      banos: '',
+      parqueos: '',
+      caracteristicas: [],
+      
+      // Aplicar filtros de URL
+      ...mergedFilters
+    };
+
+    // 🔧 ANTI-CHUNKY: Flags para evitar doble ejecución
+    let isUpdatingFromCode = false;
+    let isInitializing = true;
+    let searchTimeout = null;
+
+    // Preservar moneda desde localStorage si no viene en URL
+    const savedCurrency = localStorage.getItem('mini-search-currency');
+    if (!currentState.moneda && savedCurrency && ['USD', 'DOP'].includes(savedCurrency)) {
+      currentState.moneda = savedCurrency;
+    }
+
+    console.log('Estado inicial:', currentState);
+
+    // 📍 REFERENCIAS DOM
+    const actionBtns = document.querySelectorAll('.mini-action-btn');
+    const currencyBtns = document.querySelectorAll('.mini-currency-btn');
+    const tipoSelect = document.getElementById('mini-tipo');
+    const ubicacionSelect = document.getElementById('mini-ubicacion');
+    const sectorSelect = document.getElementById('mini-sector');
+    const precioSelect = document.getElementById('mini-precio');
+    const moreFiltersToggle = document.getElementById('more-filters-toggle');
+    const advancedPanel = document.getElementById('advanced-filters-panel');
+    const searchBtn = document.getElementById('mini-search-btn');
+    const searchBtnMobile = document.getElementById('mini-search-btn-mobile');
+    
+    // Modal elements
+    const modalHabitaciones = document.getElementById('modal-habitaciones');
+    const modalBanos = document.getElementById('modal-banos');
+    const modalParqueos = document.getElementById('modal-parqueos');
+    const closeAdvanced = document.getElementById('close-advanced');
+    const applySecondaryFilters = document.getElementById('apply-secondary-filters');
+    const clearSecondaryFilters = document.getElementById('clear-secondary-filters');
+
+    // 🔧 FUNCIÓN COMPARTIDA: Construir URL - IGUAL que SearchComponent
+    function buildSearchURL() {
+      const urlParts = [];
+      
+      // 1. Acción
+      urlParts.push(currentState.accion || 'comprar');
+      
+      // 2. Tipo
+      if (currentState.tipo) {
+        urlParts.push(currentState.tipo);
+      }
+      
+      // 3. Ubicación
+      if (currentState.ubicacion) {
+        urlParts.push(currentState.ubicacion);
+        
+        // 4. Sector (solo si hay ubicación)
+        if (currentState.sector) {
+          urlParts.push(currentState.sector);
+        }
+      }
+      
+      // 5. Precio
+      if (currentState.precio) {
+        const currency = currentState.moneda.toLowerCase();
+        if (currentState.precio.includes('-')) {
+          const [min, max] = currentState.precio.split('-');
+          urlParts.push(`precio-desde-${min}-${max}-${currency}`);
+        } else if (currentState.precio.includes('+')) {
+          const min = currentState.precio.replace('+', '');
+          urlParts.push(`precio-desde-${min}-${currency}`);
+        }
+      }
+      
+      // 6-8. Filtros secundarios
+      if (currentState.habitaciones) {
+        urlParts.push(`${currentState.habitaciones}-habitaciones`);
+      }
+      if (currentState.banos) {
+        urlParts.push(`${currentState.banos}-banos`);
+      }
+      if (currentState.parqueos) {
+        urlParts.push(`${currentState.parqueos}-parqueos`);
+      }
+      
+      // 9. Características
+      if (currentState.caracteristicas && currentState.caracteristicas.length > 0) {
+        const caracteristicasOrdenadas = [...currentState.caracteristicas].sort();
+        caracteristicasOrdenadas.forEach(caracteristica => {
+          urlParts.push(caracteristica);
+        });
+      }
+      
+      const finalURL = '/' + urlParts.join('/');
+      console.log('🔗 URL construida:', finalURL);
+      return finalURL;
+    }
+
+    // ⚡ FUNCIÓN: Ejecutar búsqueda inmediata con View Transitions
+    function executeSearch() {
+      // Evitar búsquedas durante inicialización
+      if (isInitializing) return;
+      
+      // Debounce para evitar múltiples búsquedas rápidas
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      
+      searchTimeout = setTimeout(() => {
+        console.log('🔍 Ejecutando búsqueda...');
+        localStorage.setItem('mini-search-currency', currentState.moneda);
+        const url = buildSearchURL();
+        
+        // 🚀 View Transitions API para navegación suave
+        if (document.startViewTransition) {
+          document.startViewTransition(() => {
+            window.location.href = url;
+          });
+        } else {
+          window.location.href = url;
+        }
+      }, 100); // 100ms debounce
+    }
+
+    // 🎨 FUNCIONES DE UI
+    function updateActionToggle(action) {
+      actionBtns.forEach(btn => {
+        if (btn.dataset.action === action) {
+          btn.classList.add('bg-[#f04e00]', 'text-white', 'shadow-sm');
+          btn.classList.remove('text-gray-600');
+        } else {
+          btn.classList.remove('bg-[#f04e00]', 'text-white', 'shadow-sm');
+          btn.classList.add('text-gray-600');
+        }
+      });
+    }
+
+    function updateCurrencyToggle(currency) {
+      currencyBtns.forEach(btn => {
+        if ((currency === 'USD' && btn.id === 'currency-usd') || 
+            (currency === 'DOP' && btn.id === 'currency-dop')) {
+          btn.classList.add('bg-white', 'text-[#f04e00]', 'shadow-sm');
+          btn.classList.remove('text-gray-600');
+        } else {
+          btn.classList.remove('bg-white', 'text-[#f04e00]', 'shadow-sm');
+          btn.classList.add('text-gray-600');
+        }
+      });
+    }
+
+    // 🔧 FUNCIÓN: Convertir precio entre monedas (aproximado)
+    function convertPriceRange(currentRange, fromCurrency, toCurrency, accion) {
+      if (!currentRange || fromCurrency === toCurrency) return currentRange;
+      
+      // Tasas de conversión aproximadas (USD = 1, DOP ≈ 50)
+      const exchangeRate = 50;
+      
+      const currentRangos = rangosPrecios[accion][fromCurrency];
+      const targetRangos = rangosPrecios[accion][toCurrency];
+      
+      const currentRangeObj = currentRangos.find(r => r.value === currentRange);
+      if (!currentRangeObj) return '';
+      
+      let targetMin, targetMax;
+      
+      if (fromCurrency === 'USD' && toCurrency === 'DOP') {
+        // USD a DOP
+        targetMin = currentRangeObj.min * exchangeRate;
+        targetMax = currentRangeObj.max ? currentRangeObj.max * exchangeRate : null;
+      } else if (fromCurrency === 'DOP' && toCurrency === 'USD') {
+        // DOP a USD
+        targetMin = Math.round(currentRangeObj.min / exchangeRate);
+        targetMax = currentRangeObj.max ? Math.round(currentRangeObj.max / exchangeRate) : null;
+      }
+      
+      // Buscar el rango más cercano en la moneda de destino
+      let bestMatch = '';
+      let bestScore = Infinity;
+      
+      targetRangos.forEach(rango => {
+        if (!rango.value) return; // Skip "Precio" option
+        
+        let score = 0;
+        if (rango.min !== undefined) {
+          score += Math.abs(rango.min - targetMin);
+        }
+        if (targetMax && rango.max !== undefined) {
+          score += Math.abs(rango.max - targetMax);
+        }
+        
+        if (score < bestScore) {
+          bestScore = score;
+          bestMatch = rango.value;
+        }
+      });
+      
+      return bestMatch;
+    }
+
+    function updatePriceRanges() {
+      if (!precioSelect) return;
+      
+      const oldCurrency = precioSelect.dataset.currentCurrency || 'USD';
+      const newCurrency = currentState.moneda;
+      const currentValue = currentState.precio;
+      
+      console.log('💰 Actualizando rangos:', { oldCurrency, newCurrency, currentValue });
+      
+      const rangos = rangosPrecios[currentState.accion][currentState.moneda];
+      
+      // 🔧 ANTI-CHUNKY: Evitar trigger de eventos durante rebuild
+      isUpdatingFromCode = true;
+      
+      // Rebuild options
+      precioSelect.innerHTML = '';
+      rangos.forEach(rango => {
+        const option = document.createElement('option');
+        option.value = rango.value;
+        option.textContent = rango.label;
+        precioSelect.appendChild(option);
+      });
+      
+      // 🔧 FIX: Solo convertir si estamos CAMBIANDO moneda, no en inicialización
+      if (currentValue && oldCurrency !== newCurrency && !isInitializing) {
+        // Solo convertir cuando el usuario cambia moneda manualmente
+        const equivalentRange = convertPriceRange(currentValue, oldCurrency, newCurrency, currentState.accion);
+        
+        if (equivalentRange && rangos.some(r => r.value === equivalentRange)) {
+          currentState.precio = equivalentRange;
+          precioSelect.value = equivalentRange;
+          console.log(`✅ Precio convertido: ${currentValue} (${oldCurrency}) → ${equivalentRange} (${newCurrency})`);
+        } else {
+          console.log('❌ No se pudo convertir, limpiando precio');
+          currentState.precio = '';
+          precioSelect.value = '';
+        }
+      } else if (currentValue) {
+        // 🔧 FIX: Durante inicialización o misma moneda, simplemente verificar que existe
+        const hasCurrentValue = rangos.some(r => r.value === currentValue);
+        if (hasCurrentValue) {
+          precioSelect.value = currentValue;
+          console.log(`✅ Precio asignado directamente: ${currentValue} en ${newCurrency}`);
+        } else {
+          console.log(`❌ Precio ${currentValue} no existe en rangos ${newCurrency}:`, rangos.map(r => r.value).filter(v => v !== ''));
+          currentState.precio = '';
+          precioSelect.value = '';
+        }
+      }
+      
+      // Guardar moneda actual para futuras conversiones
+      precioSelect.dataset.currentCurrency = newCurrency;
+      
+      // 🔧 ANTI-CHUNKY: Restaurar eventos después de un tick
+      setTimeout(() => {
+        isUpdatingFromCode = false;
+      }, 0);
+    }
+
+    function updateSectorOptions() {
+      const ubicacion = currentState.ubicacion;
+      
+      // 🔧 ANTI-CHUNKY: Evitar trigger de eventos durante rebuild
+      isUpdatingFromCode = true;
+      
+      if (ubicacion && sectoresPorUbicacion[ubicacion]) {
+        sectorSelect.disabled = false;
+        const sectores = sectoresPorUbicacion[ubicacion];
+        
+        sectorSelect.innerHTML = '';
+        sectores.forEach(sector => {
+          const option = document.createElement('option');
+          option.value = sector.value;
+          option.textContent = sector.label;
+          sectorSelect.appendChild(option);
+        });
+        
+        // Set current sector if exists
+        if (currentState.sector) {
+          sectorSelect.value = currentState.sector;
+        }
+      } else {
+        sectorSelect.disabled = true;
+        sectorSelect.innerHTML = '<option value="">Sector</option>';
+        currentState.sector = '';
+      }
+      
+      // 🔧 ANTI-CHUNKY: Restaurar eventos después de un tick
+      setTimeout(() => {
+        isUpdatingFromCode = false;
+      }, 0);
+    }
+
+    // 🔄 INICIALIZACIÓN desde URL - CON TIMING CORRECTO
+    function initializeFromURL() {
+      console.log('🔄 Inicializando desde URL...');
+      console.log('Estado inicial completo:', currentState);
+      
+      isInitializing = true; // Evitar búsquedas durante init
+      
+      // Principales
+      updateActionToggle(currentState.accion);
+      updateCurrencyToggle(currentState.moneda);
+      
+      // 🔧 FIX: Asegurar que la moneda del estado se use ANTES de actualizar rangos
+      console.log('💰 Moneda para rangos:', currentState.moneda);
+      
+      // PRIMERO: Actualizar rangos de precio CON la moneda correcta
+      updatePriceRanges();
+      
+      // SEGUNDO: Asignar valores a selects
+      if (tipoSelect) tipoSelect.value = currentState.tipo || '';
+      if (ubicacionSelect) ubicacionSelect.value = currentState.ubicacion || '';
+      
+      // TERCERO: Actualizar sectores después de ubicación
+      updateSectorOptions();
+      
+      // CUARTO: Asegurar que precio se carga DESPUÉS de rangos CON LA MONEDA CORRECTA
+      setTimeout(() => {
+        if (currentState.precio && precioSelect) {
+          console.log('🎯 Intentando asignar precio:', {
+            precio: currentState.precio,
+            moneda: currentState.moneda,
+            accion: currentState.accion
+          });
+          
+          const rangos = rangosPrecios[currentState.accion][currentState.moneda];
+          console.log('💰 Rangos disponibles:', rangos.map(r => ({ value: r.value, label: r.label })));
+          
+          const precioExiste = rangos.some(r => r.value === currentState.precio);
+          
+          if (precioExiste) {
+            precioSelect.value = currentState.precio;
+            console.log('✅ Precio asignado correctamente:', currentState.precio);
+          } else {
+            console.log('❌ Precio no encontrado en rangos:', {
+              buscando: currentState.precio,
+              disponibles: rangos.map(r => r.value).filter(v => v !== '')
+            });
+            
+            // 🔧 FIX: No limpiar el precio, mantenerlo en el estado para debug
+            // currentState.precio = '';
+            // precioSelect.value = '';
+          }
+        }
+        
+        // Terminar inicialización
+        isInitializing = false;
+        console.log('✅ Inicialización completa - Búsquedas habilitadas');
+      }, 50); // Dar tiempo a que se procesen los rangos
+      
+      // Secundarios (para el modal)
+      if (modalHabitaciones) modalHabitaciones.value = currentState.habitaciones || '';
+      if (modalBanos) modalBanos.value = currentState.banos || '';
+      if (modalParqueos) modalParqueos.value = currentState.parqueos || '';
+      
+      // Características (checkboxes en modal)
+      if (currentState.caracteristicas && Array.isArray(currentState.caracteristicas)) {
+        currentState.caracteristicas.forEach(caracValue => {
+          const checkbox = document.querySelector(`.modal-checkbox[value="${caracValue}"]`);
+          if (checkbox) {
+            checkbox.checked = true;
+            console.log('✅ Característica desde URL:', caracValue);
+          }
+        });
+      }
+    }
+
+    // 🎯 EVENT LISTENERS - FILTROS PRINCIPALES (búsqueda inmediata)
+    
+    // 1. Acción
+    actionBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = btn.dataset.action;
+        if (action !== currentState.accion) {
+          currentState.accion = action;
+          updateActionToggle(action);
+          updatePriceRanges(); // Cambiar rangos según acción
+          executeSearch(); // ⚡ INMEDIATO
+        }
+      });
+    });
+
+    // 2. Tipo
+    tipoSelect?.addEventListener('change', function() {
+      if (this.value !== currentState.tipo) {
+        currentState.tipo = this.value;
+        executeSearch(); // ⚡ INMEDIATO
+      }
+    });
+
+    // 3. Ubicación
+    ubicacionSelect?.addEventListener('change', function() {
+      if (this.value !== currentState.ubicacion && !isUpdatingFromCode) {
+        currentState.ubicacion = this.value;
+        currentState.sector = ''; // Limpiar sector al cambiar ubicación
+        updateSectorOptions();
+        executeSearch(); // ⚡ INMEDIATO
+      }
+    });
+
+    // 4. Sector
+    sectorSelect?.addEventListener('change', function() {
+      if (this.value !== currentState.sector && !isUpdatingFromCode) {
+        currentState.sector = this.value;
+        executeSearch(); // ⚡ INMEDIATO
+      }
+    });
+
+    // 5. Moneda - NO ejecuta búsqueda, solo cambia rangos
+    currencyBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const currency = btn.id === 'currency-usd' ? 'USD' : 'DOP';
+        if (currency !== currentState.moneda) {
+          currentState.moneda = currency;
+          updateCurrencyToggle(currency);
+          updatePriceRanges(); // Solo actualiza rangos, NO ejecuta búsqueda
+          localStorage.setItem('mini-search-currency', currency);
+        }
+      });
+    });
+
+    // 6. Precio - SÍ ejecuta búsqueda inmediata
+    precioSelect?.addEventListener('change', function() {
+      if (this.value !== currentState.precio && !isUpdatingFromCode) {
+        currentState.precio = this.value;
+        executeSearch(); // ⚡ INMEDIATO
+      }
+    });
+
+    // 🔧 MODAL - FILTROS SECUNDARIOS
+    
+    moreFiltersToggle?.addEventListener('click', (e) => {
+      e.preventDefault();
+      advancedPanel?.classList.toggle('hidden');
+    });
+
+    closeAdvanced?.addEventListener('click', () => {
+      advancedPanel?.classList.add('hidden');
+    });
+
+    // Aplicar filtros secundarios
+    applySecondaryFilters?.addEventListener('click', () => {
+      // Leer valores del modal
+      currentState.habitaciones = modalHabitaciones?.value || '';
+      currentState.banos = modalBanos?.value || '';
+      currentState.parqueos = modalParqueos?.value || '';
+      
+      // Leer características
+      currentState.caracteristicas = [];
+      document.querySelectorAll('.modal-checkbox:checked').forEach(checkbox => {
+        currentState.caracteristicas.push(checkbox.value);
+      });
+      
+      // Cerrar modal y ejecutar búsqueda
+      advancedPanel?.classList.add('hidden');
+      executeSearch(); // ⚡ APLICAR TODOS
+    });
+
+    // Limpiar solo filtros secundarios
+    clearSecondaryFilters?.addEventListener('click', () => {
+      currentState.habitaciones = '';
+      currentState.banos = '';
+      currentState.parqueos = '';
+      currentState.caracteristicas = [];
+      
+      // Limpiar UI del modal
+      if (modalHabitaciones) modalHabitaciones.value = '';
+      if (modalBanos) modalBanos.value = '';
+      if (modalParqueos) modalParqueos.value = '';
+      
+      document.querySelectorAll('.modal-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+    });
+
+    // Botones de búsqueda
+    [searchBtn, searchBtnMobile].forEach(btn => {
+      btn?.addEventListener('click', executeSearch);
+    });
+
+    // 🚀 INICIALIZAR TODO
+    initializeFromURL();
+  });
+</script>
+
+<style>
+  .mini-select-with-icon {
+    @apply appearance-none bg-white border border-gray-200 rounded-xl py-2 text-sm focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all;
+  }
+  
+  .mini-select-with-icon:focus {
+    outline: none;
+  }
+  
+  .modal-checkbox:checked {
+    background-color: #f04e00;
+    border-color: #f04e00;
+  }
+  
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  .relative svg {
+    z-index: 1;
+  }
+  
+  @media (max-width: 1024px) {
+    .flex.flex-wrap.lg\\:flex-nowrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .flex.flex-wrap.lg\\:flex-nowrap::-webkit-scrollbar {
+      display: none;
+    }
+  }
+</style>

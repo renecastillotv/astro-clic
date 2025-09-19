@@ -1,0 +1,636 @@
+---
+// src/layouts/AdvisorsLayout.astro - Layout para página de asesores
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// LLAMADA DIRECTA A LA EDGE FUNCTION SI NO HAY DATOS
+// ===================================================================
+
+const BASE_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+let advisorsData = data;
+
+// Si no hay datos desde el router, hacer llamada directa
+if (!advisorsData || !advisorsData.advisors) {
+  console.log('📞 AdvisorsLayout: Haciendo llamada directa a edge function');
+  
+  const routeMap = {
+    'es': 'asesores',
+    'en': 'en/advisors',
+    'fr': 'fr/conseillers'
+  };
+  
+  const route = routeMap[language] || 'asesores';
+  const edgeFunctionURL = `${BASE_URL}/${route}`;
+  
+  try {
+    const response = await fetch(edgeFunctionURL, {
+      method: 'GET',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json',
+        'User-Agent': `Mozilla/5.0 CLIC-AdvisorsLayout/${Astro.url.host}`,
+      },
+    });
+
+    if (response.ok) {
+      advisorsData = await response.json();
+      advisorsData.language = language;
+    }
+  } catch (error) {
+    console.warn('⚠️ AdvisorsLayout: Error calling edge function:', error);
+  }
+}
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+// Si aún no hay datos, usar fallback estático
+if (!advisorsData || !advisorsData.advisors) {
+  console.log('📋 AdvisorsLayout: Usando datos estáticos de fallback');
+  
+  advisorsData = {
+    language: language,
+    advisors: [
+      {
+        slug: 'maria-rodriguez',
+        name: 'María Rodríguez',
+        title: 'Directora de Ventas Premium',
+        avatar: 'https://i.pravatar.cc/300?img=5',
+        specialties: ['Propiedades de Lujo', 'Casa de Campo', 'Cap Cana'],
+        areas: ['Santo Domingo', 'La Romana', 'Punta Cana'],
+        languages: ['Español', 'Inglés', 'Francés'],
+        experience: '12 años',
+        totalSales: '$45M',
+        propertiesSold: 180,
+        avgDays: 28,
+        rating: 4.9,
+        reviewCount: 127,
+        phone: '+1 809 555 0101',
+        whatsapp: '18095550101',
+        email: 'maria.rodriguez@clic.do',
+        featured: true,
+        bio: 'Especialista en propiedades de lujo con más de una década de experiencia.',
+        recentTestimonial: {
+          text: 'María me ayudó a encontrar la casa perfecta. Su profesionalismo es incomparable.',
+          author: 'Juan Luis Guerra',
+          rating: 5
+        },
+        achievements: ['Top Seller 2023', 'Asesor del Año 2022']
+      },
+      {
+        slug: 'carlos-santana',
+        name: 'Carlos Santana',
+        title: 'Especialista en Inversiones',
+        avatar: 'https://i.pravatar.cc/300?img=8',
+        specialties: ['Airbnb', 'Inversión Inmobiliaria', 'Análisis ROI'],
+        areas: ['Bávaro', 'Uvero Alto', 'Samaná'],
+        languages: ['Español', 'Inglés'],
+        experience: '8 años',
+        totalSales: '$28M',
+        propertiesSold: 145,
+        avgDays: 32,
+        rating: 4.8,
+        reviewCount: 98,
+        phone: '+1 809 555 0108',
+        whatsapp: '18095550108',
+        email: 'carlos.santana@clic.do',
+        featured: true,
+        bio: 'Experto en inversiones inmobiliarias con enfoque en propiedades para alquiler vacacional.',
+        recentTestimonial: {
+          text: 'Carlos me ayudó a crear un portafolio rentable de propiedades Airbnb.',
+          author: 'Robert Smith',
+          rating: 5
+        },
+        achievements: ['Especialista en Airbnb Certificado', 'Mejor ROI del equipo 2023']
+      }
+    ],
+    featured: [],
+    stats: {
+      totalSales: 73,
+      totalProperties: 325,
+      avgRating: 4.85,
+      totalAdvisors: 6
+    },
+    teamProperties: [],
+    seo: {
+      title: language === 'es' ? 'Asesores Inmobiliarios Expertos - CLIC' :
+             language === 'en' ? 'Expert Real Estate Advisors - CLIC' :
+             'Conseillers Immobiliers Experts - CLIC',
+      description: language === 'es' ? 'Conoce a nuestro equipo de asesores inmobiliarios especializados' :
+                   language === 'en' ? 'Meet our team of specialized real estate advisors' :
+                   'Rencontrez notre équipe de conseillers immobiliers spécialisés'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const advisors = advisorsData.advisors || [];
+const featured = advisorsData.featured || advisors.filter(a => a.featured);
+const regular = advisors.filter(a => !a.featured);
+const stats = advisorsData.stats || {};
+const teamProperties = advisorsData.teamProperties || [];
+const seo = advisorsData.seo || {};
+
+// Calcular stats si no vienen de la edge function
+const calculatedStats = {
+  totalSales: stats.totalSales || advisors.reduce((sum, a) => sum + parseInt(a.totalSales?.replace(/[$M]/g, '') || '0'), 0),
+  totalProperties: stats.totalProperties || advisors.reduce((sum, a) => sum + (a.propertiesSold || 0), 0),
+  avgRating: stats.avgRating || (advisors.reduce((sum, a) => sum + (a.rating || 0), 0) / advisors.length),
+  totalAdvisors: stats.totalAdvisors || advisors.length
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Nuestro Equipo de Expertos',
+    subtitle: 'Asesores especializados con más de 100 años de experiencia combinada ayudando a familias e inversionistas a encontrar la propiedad perfecta',
+    featuredTitle: 'Asesores Destacados',
+    allAdvisorsTitle: 'Todos Nuestros Asesores',
+    teamPropertiesTitle: 'Propiedades destacadas de nuestro equipo',
+    teamPropertiesSubtitle: 'Casos de éxito recientes de nuestros asesores especializados',
+    whyChooseTitle: '¿Por qué elegir nuestro equipo?',
+    whyChooseSubtitle: 'Cada asesor está especializado en diferentes áreas y tipos de propiedades',
+    ctaTitle: '¿Listo para encontrar tu propiedad ideal?',
+    ctaSubtitle: 'Nuestro equipo de expertos está esperando para ayudarte',
+    ctaButton1: 'Hablar con un asesor',
+    ctaButton2: 'Ver propiedades disponibles',
+    statsLabels: {
+      sales: 'En ventas totales',
+      properties: 'Propiedades vendidas',
+      rating: 'Calificación promedio',
+      advisors: 'Asesores expertos'
+    },
+    specialties: 'Especialidades:',
+    areas: 'Zonas:',
+    contact: 'Ver perfil',
+    featured: 'Destacado'
+  },
+  en: {
+    title: 'Our Expert Team',
+    subtitle: 'Specialized advisors with over 100 years of combined experience helping families and investors find the perfect property',
+    featuredTitle: 'Featured Advisors',
+    allAdvisorsTitle: 'All Our Advisors',
+    teamPropertiesTitle: 'Featured properties from our team',
+    teamPropertiesSubtitle: 'Recent success cases from our specialized advisors',
+    whyChooseTitle: 'Why choose our team?',
+    whyChooseSubtitle: 'Each advisor specializes in different areas and property types',
+    ctaTitle: 'Ready to find your ideal property?',
+    ctaSubtitle: 'Our expert team is waiting to help you',
+    ctaButton1: 'Talk to an advisor',
+    ctaButton2: 'View available properties',
+    statsLabels: {
+      sales: 'Total sales',
+      properties: 'Properties sold',
+      rating: 'Average rating',
+      advisors: 'Expert advisors'
+    },
+    specialties: 'Specialties:',
+    areas: 'Areas:',
+    contact: 'View profile',
+    featured: 'Featured'
+  },
+  fr: {
+    title: 'Notre Équipe d\'Experts',
+    subtitle: 'Conseillers spécialisés avec plus de 100 ans d\'expérience combinée aidant les familles et investisseurs à trouver la propriété parfaite',
+    featuredTitle: 'Conseillers en Vedette',
+    allAdvisorsTitle: 'Tous Nos Conseillers',
+    teamPropertiesTitle: 'Propriétés vedettes de notre équipe',
+    teamPropertiesSubtitle: 'Cas de succès récents de nos conseillers spécialisés',
+    whyChooseTitle: 'Pourquoi choisir notre équipe?',
+    whyChooseSubtitle: 'Chaque conseiller se spécialise dans différents secteurs et types de propriétés',
+    ctaTitle: 'Prêt à trouver votre propriété idéale?',
+    ctaSubtitle: 'Notre équipe d\'experts attend pour vous aider',
+    ctaButton1: 'Parler à un conseiller',
+    ctaButton2: 'Voir les propriétés disponibles',
+    statsLabels: {
+      sales: 'Ventes totales',
+      properties: 'Propriétés vendues',
+      rating: 'Note moyenne',
+      advisors: 'Conseillers experts'
+    },
+    specialties: 'Spécialités:',
+    areas: 'Zones:',
+    contact: 'Voir le profil',
+    featured: 'En vedette'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    properties: '/comprar',
+    advisorBase: '/asesores'
+  },
+  en: {
+    contact: '/en/contact',
+    properties: '/en/buy',
+    advisorBase: '/en/advisors'
+  },
+  fr: {
+    contact: '/fr/contact',
+    properties: '/fr/acheter',
+    advisorBase: '/fr/conseillers'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ AdvisorsLayout preparado:', {
+  language,
+  advisorsCount: advisors.length,
+  featuredCount: featured.length,
+  hasTeamProperties: teamProperties.length > 0,
+  calculatedStats
+});
+---
+
+<Layout 
+  title={seo.title || text.title}
+  description={seo.description || text.subtitle}
+  language={language}
+>
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
+      <div class="container mx-auto px-4">
+        <div class="text-center text-white">
+          <h1 class="text-4xl md:text-5xl font-bold mb-6">
+            {text.title}
+          </h1>
+          <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+            {text.subtitle}
+          </p>
+          
+          <!-- Stats del equipo -->
+          <div class="flex flex-wrap justify-center gap-8 mt-10">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">${calculatedStats.totalSales}M+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.sales}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{calculatedStats.totalProperties}+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.properties}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{calculatedStats.avgRating.toFixed(1)}/5</div>
+              <div class="text-sm text-white/80">{text.statsLabels.rating}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{calculatedStats.totalAdvisors}</div>
+              <div class="text-sm text-white/80">{text.statsLabels.advisors}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Advisors -->
+    {featured.length > 0 && (
+      <section class="py-12">
+        <div class="container mx-auto px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.featuredTitle}</h2>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {featured.map((advisor) => (
+              <a 
+                href={`${currentRoutes.advisorBase}/${advisor.slug}`}
+                class="group block"
+              >
+                <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                  <div class="relative">
+                    <!-- Background gradient -->
+                    <div class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] p-8">
+                      <div class="flex items-center gap-6">
+                        <img 
+                          src={advisor.avatar} 
+                          alt={advisor.name}
+                          class="w-24 h-24 rounded-full border-4 border-white object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div class="text-white">
+                          <h3 class="text-2xl font-bold mb-2">{advisor.name}</h3>
+                          <p class="text-lg text-white/90 mb-3">{advisor.title}</p>
+                          <div class="flex items-center gap-2">
+                            <div class="flex">
+                              {Array.from({length: 5}, (_, i) => (
+                                <svg class={`w-5 h-5 ${i < Math.floor(advisor.rating) ? 'text-yellow-300' : 'text-white/30'}`} fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                              ))}
+                            </div>
+                            <span class="text-white/90 text-sm">({advisor.reviewCount} reseñas)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Featured badge -->
+                    <span class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-medium">
+                      ⭐ {text.featured}
+                    </span>
+                  </div>
+                  
+                  <div class="p-6">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                      <div class="text-center">
+                        <div class="text-xl font-bold text-[#f04e00]">{advisor.totalSales}</div>
+                        <div class="text-xs text-gray-600">En ventas</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-xl font-bold text-[#f04e00]">{advisor.propertiesSold}</div>
+                        <div class="text-xs text-gray-600">Propiedades</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-xl font-bold text-[#f04e00]">{advisor.avgDays}</div>
+                        <div class="text-xs text-gray-600">Días promedio</div>
+                      </div>
+                    </div>
+                    
+                    <!-- Bio -->
+                    <p class="text-gray-600 mb-4">{advisor.bio}</p>
+                    
+                    <!-- Specialties -->
+                    <div class="mb-4">
+                      <h4 class="text-sm font-semibold text-gray-900 mb-2">{text.specialties}</h4>
+                      <div class="flex flex-wrap gap-2">
+                        {advisor.specialties.slice(0, 3).map(specialty => (
+                          <span class="bg-[#f04e00]/10 text-[#f04e00] px-2 py-1 rounded text-xs">
+                            {specialty}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <!-- Recent testimonial -->
+                    {advisor.recentTestimonial && (
+                      <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <blockquote class="text-sm text-gray-700 italic mb-2">
+                          "{advisor.recentTestimonial.text}"
+                        </blockquote>
+                        <cite class="text-xs text-gray-600">- {advisor.recentTestimonial.author}</cite>
+                      </div>
+                    )}
+                    
+                    <!-- Contact buttons -->
+                    <div class="flex gap-2">
+                      <span class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#f04e00] text-white rounded-lg text-sm font-medium group-hover:bg-[#d94400] transition-colors">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                        {text.contact}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- All Advisors Grid -->
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allAdvisorsTitle}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {regular.map((advisor) => (
+            <a 
+              href={`${currentRoutes.advisorBase}/${advisor.slug}`}
+              class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+            >
+              <div class="p-6">
+                <!-- Header -->
+                <div class="flex items-center gap-4 mb-4">
+                  <img 
+                    src={advisor.avatar} 
+                    alt={advisor.name}
+                    class="w-16 h-16 rounded-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors">
+                      {advisor.name}
+                    </h3>
+                    <p class="text-sm text-gray-600">{advisor.title}</p>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="flex">
+                        {Array.from({length: 5}, (_, i) => (
+                          <svg class={`w-3 h-3 ${i < Math.floor(advisor.rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                        ))}
+                      </div>
+                      <span class="text-xs text-gray-500">({advisor.reviewCount})</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                  <div class="text-center bg-gray-50 rounded-lg p-2">
+                    <div class="text-sm font-bold text-[#f04e00]">{advisor.totalSales}</div>
+                    <div class="text-xs text-gray-600">Ventas</div>
+                  </div>
+                  <div class="text-center bg-gray-50 rounded-lg p-2">
+                    <div class="text-sm font-bold text-[#f04e00]">{advisor.propertiesSold}</div>
+                    <div class="text-xs text-gray-600">Propiedades</div>
+                  </div>
+                  <div class="text-center bg-gray-50 rounded-lg p-2">
+                    <div class="text-sm font-bold text-[#f04e00]">{advisor.experience}</div>
+                    <div class="text-xs text-gray-600">Experiencia</div>
+                  </div>
+                </div>
+                
+                <!-- Specialties -->
+                <div class="mb-4">
+                  <div class="flex flex-wrap gap-1">
+                    {advisor.specialties.slice(0, 2).map(specialty => (
+                      <span class="bg-[#f04e00]/10 text-[#f04e00] px-2 py-1 rounded text-xs">
+                        {specialty}
+                      </span>
+                    ))}
+                    {advisor.specialties.length > 2 && (
+                      <span class="text-xs text-gray-500">+{advisor.specialties.length - 2} más</span>
+                    )}
+                  </div>
+                </div>
+                
+                <!-- Areas -->
+                <div class="mb-4">
+                  <p class="text-xs text-gray-600">
+                    <span class="font-medium">{text.areas}</span> {advisor.areas.slice(0, 2).join(', ')}
+                    {advisor.areas.length > 2 && ` +${advisor.areas.length - 2} más`}
+                  </p>
+                </div>
+                
+                <!-- Contact -->
+                <div class="flex gap-2">
+                  <span class="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-[#f04e00] text-white rounded text-xs font-medium group-hover:bg-[#d94400] transition-colors">
+                    {text.contact}
+                    <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                  <a 
+                    href={`https://wa.me/${advisor.whatsapp}`}
+                    target="_blank"
+                    onclick="event.stopPropagation()"
+                    class="inline-flex items-center justify-center w-10 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Team Properties -->
+    {teamProperties.length > 0 && (
+      <PropertyCarousel 
+        title={text.teamPropertiesTitle}
+        subtitle={text.teamPropertiesSubtitle}
+        properties={teamProperties}
+        viewAllLink={`${currentRoutes.properties}?equipo=destacados`}
+        language={language}
+      />
+    )}
+
+    <!-- Why Choose Our Team -->
+    <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.whyChooseTitle}
+        </h2>
+        <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
+          {text.whyChooseSubtitle}
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Especialización</h3>
+            <p class="text-sm text-white/70">Cada asesor domina mercados específicos</p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Resultados Rápidos</h3>
+            <p class="text-sm text-white/70">Promedio de 30 días para cerrar ventas</p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Experiencia Comprobada</h3>
+            <p class="text-sm text-white/70">Más de 100 años de experiencia combinada</p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">Atención Personalizada</h3>
+            <p class="text-sm text-white/70">Seguimiento personalizado en todo el proceso</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-[#f04e00]">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.ctaTitle}
+        </h2>
+        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          {text.ctaSubtitle}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact}
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            {text.ctaButton1}
+          </a>
+          <a 
+            href={currentRoutes.properties}
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            {text.ctaButton2}
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
+
+<style>
+  .transform {
+    transition: transform 0.3s ease;
+  }
+  
+  .bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+  }
+  
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+  
+  .group:hover .group-hover\:bg-[#d94400] {
+    background-color: #d94400;
+  }
+  
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(0.25rem);
+  }
+</style>

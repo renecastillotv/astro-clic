@@ -1,0 +1,308 @@
+---
+export interface Props {
+  articles: Array<{
+    slug: string;
+    title: string;
+    excerpt: string;
+    featuredImage: string;
+    author: {
+      name: string;
+      avatar?: string;
+    };
+    publishedAt: string;
+    readTime: string;
+    category: string;
+    views?: string;
+    featured?: boolean;
+  }>;
+  title?: string;
+  subtitle?: string;
+  layout?: 'grid' | 'featured';
+}
+
+const { 
+  articles, 
+  title = "Artículos que te pueden interesar", 
+  subtitle = "Guías, análisis y consejos expertos sobre bienes raíces",
+  layout = 'grid'
+} = Astro.props;
+
+if (!articles || articles.length === 0) return null;
+
+// Formatear fecha
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-DO', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+}
+
+// Categorías con colores
+const categoryColors = {
+  'Consejos': 'bg-blue-500',
+  'Servicios': 'bg-green-500',
+  'Análisis de Mercado': 'bg-purple-500',
+  'Guías de Compra': 'bg-orange-500',
+  'Inversión Inmobiliaria': 'bg-red-500',
+  'Legal': 'bg-yellow-500',
+  'Estilo de Vida': 'bg-pink-500'
+};
+
+function getCategoryColor(category: string) {
+  return categoryColors[category] || 'bg-gray-500';
+}
+
+// Separar artículo destacado si existe
+const featuredArticle = articles.find(a => a.featured);
+const regularArticles = articles.filter(a => !a.featured);
+---
+
+<section class="py-16 bg-gradient-to-b from-white to-gray-50">
+  <div class="container mx-auto px-4">
+    {/* Header mejorado */}
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{title}</h2>
+        {subtitle && (
+          <p class="text-lg text-gray-600">{subtitle}</p>
+        )}
+        <div class="flex items-center gap-2 mt-3">
+          <div class="flex items-center gap-1">
+            <svg class="w-5 h-5 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">+200 artículos</span>
+          </div>
+          <span class="text-gray-400">•</span>
+          <span class="text-sm text-gray-600">Contenido actualizado semanalmente</span>
+        </div>
+      </div>
+      <a 
+        href="/articulos" 
+        class="hidden md:flex items-center gap-2 px-4 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Ver todos los artículos
+      </a>
+    </div>
+
+    {/* Layout Featured + Grid */}
+    {featuredArticle && layout === 'featured' ? (
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Artículo destacado grande */}
+        <div class="lg:col-span-1">
+          <article class="group">
+            <a href={`/articulos/${featuredArticle.category.toLowerCase().replace(/\s+/g, '-')}/${featuredArticle.slug}`}>
+              <div class="relative aspect-[4/3] overflow-hidden rounded-xl shadow-lg mb-6">
+                <img 
+                  src={featuredArticle.featuredImage} 
+                  alt={featuredArticle.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                
+                {/* Badge destacado */}
+                <span class="absolute top-4 left-4 bg-[#f04e00] text-white px-3 py-1 rounded-full text-xs font-medium">
+                  Destacado
+                </span>
+                
+                {/* Categoría */}
+                <span class={`absolute top-4 right-4 px-3 py-1 ${getCategoryColor(featuredArticle.category)} text-white text-xs font-medium rounded-full`}>
+                  {featuredArticle.category}
+                </span>
+                
+                {/* Tiempo de lectura */}
+                <span class="absolute bottom-4 right-4 bg-black/80 text-white text-sm px-2 py-1 rounded">
+                  {featuredArticle.readTime} min
+                </span>
+              </div>
+              
+              <div>
+                <h3 class="text-2xl font-bold text-gray-900 group-hover:text-[#f04e00] transition-colors mb-3">
+                  {featuredArticle.title}
+                </h3>
+                <p class="text-gray-600 mb-4 line-clamp-3">{featuredArticle.excerpt}</p>
+                
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    {featuredArticle.author.avatar && (
+                      <img 
+                        src={featuredArticle.author.avatar} 
+                        alt={featuredArticle.author.name}
+                        class="w-10 h-10 rounded-full"
+                      />
+                    )}
+                    <div>
+                      <p class="font-medium text-gray-900">{featuredArticle.author.name}</p>
+                      <p class="text-sm text-gray-500">{formatDate(featuredArticle.publishedAt)}</p>
+                    </div>
+                  </div>
+                  {featuredArticle.views && (
+                    <span class="text-sm text-gray-500">{featuredArticle.views} lecturas</span>
+                  )}
+                </div>
+              </div>
+            </a>
+          </article>
+        </div>
+        
+        {/* Artículos regulares en grid */}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {regularArticles.slice(0, 4).map((article) => (
+            <article class="group">
+              <a href={`/articulos/${article.category.toLowerCase().replace(/\s+/g, '-')}/${article.slug}`}>
+                <div class="relative aspect-[4/3] overflow-hidden rounded-lg mb-3">
+                  <img 
+                    src={article.featuredImage} 
+                    alt={article.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+                  
+                  {/* Categoría */}
+                  <span class={`absolute top-2 left-2 px-2 py-1 ${getCategoryColor(article.category)} text-white text-xs font-medium rounded`}>
+                    {article.category}
+                  </span>
+                  
+                  <span class="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                    {article.readTime} min
+                  </span>
+                </div>
+                
+                <h4 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 mb-2">
+                  {article.title}
+                </h4>
+                <p class="text-sm text-gray-600 line-clamp-2">{article.excerpt}</p>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    ) : (
+      /* Grid normal mejorado */
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {articles.map((article) => (
+          <article class="group bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
+            <a href={`/articulos/${article.category.toLowerCase().replace(/\s+/g, '-')}/${article.slug}`}>
+              <div class="relative aspect-[16/9] overflow-hidden">
+                <img 
+                  src={article.featuredImage} 
+                  alt={article.title}
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                
+                {/* Overlay de lectura */}
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="bg-white/90 px-4 py-2 rounded-full">
+                    <span class="text-sm font-medium text-gray-900">Leer artículo</span>
+                  </div>
+                </div>
+                
+                {/* Categoría */}
+                <span class={`absolute top-4 left-4 px-3 py-1 ${getCategoryColor(article.category)} text-white text-xs font-medium rounded-full`}>
+                  {article.category}
+                </span>
+                
+                {/* Badge featured si aplica */}
+                {article.featured && (
+                  <span class="absolute top-4 right-4 bg-[#f04e00] text-white px-3 py-1 rounded-full text-xs font-medium">
+                    Destacado
+                  </span>
+                )}
+              </div>
+              
+              <div class="p-6">
+                <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>{article.readTime} min de lectura</span>
+                  {article.views && (
+                    <>
+                      <span>•</span>
+                      <span>{article.views} lecturas</span>
+                    </>
+                  )}
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                  {article.title}
+                </h3>
+                
+                <p class="text-gray-600 mb-4 line-clamp-3">{article.excerpt}</p>
+                
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    {article.author.avatar && (
+                      <img 
+                        src={article.author.avatar} 
+                        alt={article.author.name}
+                        class="w-8 h-8 rounded-full"
+                      />
+                    )}
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
+                      <p class="text-xs text-gray-500">{formatDate(article.publishedAt)}</p>
+                    </div>
+                  </div>
+                  
+                  <svg class="w-5 h-5 text-gray-400 group-hover:text-[#f04e00] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </div>
+            </a>
+          </article>
+        ))}
+      </div>
+    )}
+
+    {/* Call to action mejorado */}
+    <div class="text-center mt-12">
+      <a 
+        href="/articulos" 
+        class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium transition-colors text-lg"
+      >
+        Explorar todas las categorías y artículos
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </a>
+    </div>
+
+    {/* CTA móvil */}
+    <div class="mt-8 text-center md:hidden">
+      <a 
+        href="/articulos" 
+        class="inline-flex items-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Ver todos los artículos
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

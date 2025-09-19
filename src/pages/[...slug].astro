@@ -1,862 +1,665 @@
 ---
+// src/pages/[...slug].astro - ROUTER UNIVERSAL CON DEBUGGING ROBUSTO
+import PropertyListLayout from '../layouts/PropertyListLayout.astro';
+import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
+import Error404Layout from '../layouts/Error404Layout.astro';
 import Layout from '../layouts/Layout.astro';
-import PropertyList from '../components/PropertyList.astro';
-import PropertyCarousel from '../components/PropertyCarousel.astro';
-import VideoGallery from '../components/VideoGallery.astro';
-import RelatedArticles from '../components/RelatedArticles.astro';
-import DynamicFAQs from '../components/DynamicFAQs.astro';
-import Testimonials from '../components/Testimonials.astro';
-import AreaAdvisors from '../components/AreaAdvisors.astro';
-import MiniSearchBar from '../components/MiniSearchBar.astro';
-import { Fragment } from 'astro/jsx-runtime';
-// import { getPageDataFromURL } from '../lib/supabase';
-// import { parseURL } from '../lib/url-parser';
 
-// Variable para controlar si usamos mock o Supabase real
-const USE_MOCK_DATA = true; // Cambiar a false cuando Supabase esté configurado
+// Importar layouts para páginas especiales
+import AdvisorsLayout from '../layouts/AdvisorsLayout.astro';
+import SingleAdvisorLayout from '../layouts/SingleAdvisorLayout.astro';
+import FavoritesLayout from '../layouts/FavoritesLayout.astro';
+import SharedFavoritesLayout from '../layouts/SharedFavoritesLayout.astro';
 
-// Función mock mejorada para desarrollo
-async function getMockPageData(segments: string[]): Promise<any> {
-  const path = '/' + segments.join('/');
-  
-  // Mock de propiedades individuales
-  const mockProperties = {
-    'villa-cortecito-3h-piscina': {
-      slug: 'villa-cortecito-3h-piscina',
-      titulo: 'Villa 3H en Cortecito con piscina',
-      precio: '$275,000',
-      descripcion: 'Hermosa villa de 3 habitaciones ubicada en el corazón de Cortecito, Bávaro. Esta propiedad cuenta con piscina privada, jardín tropical y está a solo 5 minutos de la playa. Ideal para inversión o vivienda familiar.',
-      imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop',
-      imagenes: [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop'
-      ],
-      sector: 'Cortecito, Bávaro',
-      habitaciones: 3,
-      banos: 2,
-      metros: 180,
-      terreno: 400,
-      tipo: 'Villa',
-      amenidades: ['Piscina', 'Jardín', 'Parqueo techado', 'Cocina equipada', 'Cerca de la playa'],
-      caracteristicas: {
-        'Año de construcción': '2021',
-        'Niveles': '1',
-        'Parqueos': '2',
-        'Estado': 'Nueva'
-      }
-    },
-    'villa-familiar-cortecito': {
-      slug: 'villa-familiar-cortecito',
-      titulo: 'Villa familiar cerca de la playa',
-      precio: '$325,000',
-      descripcion: 'Espaciosa villa familiar de 4 habitaciones con diseño moderno y acabados de primera. Ubicada en una zona tranquila de Cortecito con fácil acceso a comercios y playas.',
-      imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
-      imagenes: [
-        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop'
-      ],
-      sector: 'Cortecito, Bávaro',
-      habitaciones: 4,
-      banos: 3,
-      metros: 220,
-      tipo: 'Villa',
-      amenidades: ['Piscina', 'Jardín', 'Gazebo', 'Cocina moderna', 'Seguridad 24/7'],
-      caracteristicas: {
-        'Año de construcción': '2020',
-        'Niveles': '2',
-        'Parqueos': '3',
-        'Estado': 'Excelente'
-      }
-    },
-    'villa-punta-cana-golf': {
-      slug: 'villa-punta-cana-golf',
-      titulo: 'Villa en Punta Cana con vista al golf',
-      precio: '$650,000',
-      descripcion: 'Espectacular villa de lujo con vistas panorámicas al campo de golf. Esta propiedad premium cuenta con acabados de alta gama, piscina infinita y acceso directo al club de golf más exclusivo de Punta Cana.',
-      imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&h=800&fit=crop',
-      imagenes: [
-        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop'
-      ],
-      sector: 'Punta Cana',
-      habitaciones: 4,
-      banos: 4,
-      metros: 400,
-      terreno: 1200,
-      tipo: 'Villa de Lujo',
-      amenidades: ['Piscina infinita', 'Vista al golf', 'Jacuzzi', 'Gimnasio', 'Sala de cine', 'Bodega de vinos', 'Cocina gourmet', 'Seguridad 24/7'],
-      caracteristicas: {
-        'Año de construcción': '2022',
-        'Niveles': '2',
-        'Parqueos': '4',
-        'Estado': 'Nueva',
-        'Vista': 'Campo de golf'
-      }
-    },
-    'apartamento-blue-mall': {
-      slug: 'apartamento-blue-mall',
-      titulo: 'Apartamento moderno cerca de Blue Mall',
-      precio: '$225,000',
-      descripcion: 'Moderno apartamento en torre de primera, ubicado en la exclusiva zona de Piantini. A solo minutos de Blue Mall, restaurantes y centros de entretenimiento.',
-      imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop',
-      imagenes: [
-        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1560448205-17d3a46c84de?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1560448075-cbc16bb4af8e?w=1200&h=800&fit=crop'
-      ],
-      sector: 'Piantini, D.N.',
-      habitaciones: 2,
-      banos: 2,
-      metros: 120,
-      tipo: 'Apartamento',
-      amenidades: ['Gimnasio', 'Piscina', 'Área social', 'Lobby', 'Seguridad 24/7', 'Generador full'],
-      caracteristicas: {
-        'Año de construcción': '2021',
-        'Piso': '8vo',
-        'Parqueos': '2',
-        'Estado': 'Nuevo'
-      }
-    },
-    'penthouse-anacaona': {
-      slug: 'penthouse-anacaona',
-      titulo: 'Penthouse exclusivo en Anacaona',
-      precio: '$550,000',
-      descripcion: 'Lujoso penthouse con vistas espectaculares de la ciudad. Diseño contemporáneo con amplios espacios, terraza privada y acabados importados.',
-      imagen: 'https://images.unsplash.com/photo-1567684014761-b65e2e59b9eb?w=1200&h=800&fit=crop',
-      imagenes: [
-        'https://images.unsplash.com/photo-1567684014761-b65e2e59b9eb?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=1200&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1560185008-b033106af5c3?w=1200&h=800&fit=crop'
-      ],
-      sector: 'Bella Vista, D.N.',
-      habitaciones: 4,
-      banos: 3,
-      metros: 300,
-      tipo: 'Penthouse',
-      amenidades: ['Terraza privada', 'Jacuzzi', 'BBQ', 'Vista panorámica', 'Ascensor privado', 'Gimnasio en el edificio'],
-      caracteristicas: {
-        'Año de construcción': '2023',
-        'Niveles': '2 (dúplex)',
-        'Parqueos': '3',
-        'Estado': 'Nuevo',
-        'Vista': 'Ciudad y mar'
-      }
-    }
-  };
+// Importar layouts para testimonios
+import TestimonialsMainLayout from '../layouts/TestimonialsMainLayout.astro';
+import TestimonialsCategoryLayout from '../layouts/TestimonialsCategoryLayout.astro';
+import TestimonialsSingleLayout from '../layouts/TestimonialsSingleLayout.astro';
 
-  // Verificar si es una ruta de propiedad individual
-  // Formato: /comprar/villa/punta-cana/villa-slug
-  if (segments.length >= 3 && (segments[0] === 'comprar' || segments[0] === 'alquilar')) {
-    const lastSegment = segments[segments.length - 1];
-    
-    // Si el último segmento coincide con un slug de propiedad
-    if (mockProperties[lastSegment]) {
-      const property = mockProperties[lastSegment];
-      return {
-        type: 'property',
-        property: property,
-        meta: {
-          title: property.titulo,
-          description: property.descripcion
-        }
-      };
-    }
-  }
-  
-  // Para compatibilidad temporal con URLs antiguas /propiedad/slug
-  if (path.startsWith('/propiedad/') && segments.length === 2) {
-    const propertySlug = segments[1];
-    const property = mockProperties[propertySlug];
-    
-    if (property) {
-      return {
-        type: 'property',
-        property: property,
-        meta: {
-          title: property.titulo,
-          description: property.descripcion
-        }
-      };
-    }
-  }
-  
-  // Mock data para listados (código anterior)
-  const mockData: Record<string, any> = {
-    '/comprar/villa/cortecito': {
-      type: 'property-list',
-      meta: {
-        title: 'Villas en venta en Cortecito',
-        description: 'Explora las mejores villas en Cortecito, Bávaro. Propiedades desde $250,000 con piscina privada y cerca de la playa.'
-      },
-      listings: [
-        {
-          slug: 'villa-cortecito-3h-piscina',
-          titulo: 'Villa 3H en Cortecito con piscina',
-          precio: '$275,000',
-          imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
-          sector: 'Cortecito, Bávaro',
-          habitaciones: 3,
-          banos: 2,
-          metros: 180,
-          tipo: 'Villa'
-        },
-        {
-          slug: 'villa-familiar-cortecito',
-          titulo: 'Villa familiar cerca de la playa',
-          precio: '$325,000',
-          imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-          sector: 'Cortecito, Bávaro',
-          habitaciones: 4,
-          banos: 3,
-          metros: 220,
-          tipo: 'Villa'
-        },
-        {
-          slug: 'villa-moderna-cortecito-beach',
-          titulo: 'Villa moderna Cortecito Beach',
-          precio: '$450,000',
-          imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-          sector: 'Cortecito Beach',
-          habitaciones: 5,
-          banos: 4,
-          metros: 350,
-          tipo: 'Villa Premium'
-        },
-        {
-          slug: 'villa-economica-cortecito',
-          titulo: 'Villa económica ideal inversión',
-          precio: '$195,000',
-          imagen: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
-          sector: 'Cortecito, Bávaro',
-          habitaciones: 2,
-          banos: 2,
-          metros: 120,
-          tipo: 'Villa'
-        }
-      ]
-    },
-    '/comprar/apartamento/distrito-nacional/naco/3-habitaciones/2-parqueos/con-terraza': {
-      type: 'property-list',
-      meta: {
-        title: 'Apartamentos 3 habitaciones en Naco con terraza',
-        description: 'Apartamentos de 3 habitaciones con 2 parqueos y terraza en Naco, Distrito Nacional.'
-      },
-      listings: [
-        {
-          slug: 'apartamento-torre-naco-3h',
-          titulo: 'Apartamento en Torre Naco XXI',
-          precio: '$185,000',
-          imagen: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
-          sector: 'Naco, D.N.',
-          habitaciones: 3,
-          banos: 2,
-          metros: 145,
-          tipo: 'Apartamento'
-        },
-        {
-          slug: 'penthouse-naco-terraza',
-          titulo: 'Penthouse con amplia terraza en Naco',
-          precio: '$295,000',
-          imagen: 'https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=800&h=600&fit=crop',
-          sector: 'Naco, D.N.',
-          habitaciones: 3,
-          banos: 3,
-          metros: 200,
-          tipo: 'Penthouse'
-        }
-      ]
-    },
-    '/comprar': {
-      type: 'property-list',
-      meta: {
-        title: 'Propiedades en venta en República Dominicana',
-        description: 'Encuentra tu próxima propiedad entre más de 500 opciones disponibles en todo el país.'
-      },
-      listings: [
-        {
-          slug: 'villa-punta-cana-golf',
-          titulo: 'Villa en Punta Cana con vista al golf',
-          precio: '$650,000',
-          imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
-          sector: 'Punta Cana',
-          habitaciones: 4,
-          banos: 4,
-          metros: 400,
-          tipo: 'Villa de Lujo'
-        },
-        {
-          slug: 'apartamento-blue-mall',
-          titulo: 'Apartamento moderno cerca de Blue Mall',
-          precio: '$225,000',
-          imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-          sector: 'Piantini, D.N.',
-          habitaciones: 2,
-          banos: 2,
-          metros: 120,
-          tipo: 'Apartamento'
-        },
-        {
-          slug: 'casa-santiago-gurabo',
-          titulo: 'Casa familiar en Gurabo, Santiago',
-          precio: '$180,000',
-          imagen: 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&h=600&fit=crop',
-          sector: 'Gurabo, Santiago',
-          habitaciones: 3,
-          banos: 2,
-          metros: 200,
-          tipo: 'Casa'
-        },
-        {
-          slug: 'penthouse-anacaona',
-          titulo: 'Penthouse exclusivo en Anacaona',
-          precio: '$550,000',
-          imagen: 'https://images.unsplash.com/photo-1567684014761-b65e2e59b9eb?w=800&h=600&fit=crop',
-          sector: 'Bella Vista, D.N.',
-          habitaciones: 4,
-          banos: 3,
-          metros: 300,
-          tipo: 'Penthouse'
-        }
-      ],
-      // Contenido adicional para la página principal
-      videos: [
-        {
-          id: '1',
-          title: 'Descubre las mejores zonas para invertir en RD',
-          description: 'Análisis completo de las zonas con mayor potencial de inversión inmobiliaria',
-          thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
-          duration: '15:30',
-          platform: 'youtube',
-          videoId: 'dQw4w9WgXcQ',
-          category: 'Guías de Inversión'
-        }
-      ],
-      articles: [
-        {
-          slug: 'tendencias-mercado-inmobiliario-2024',
-          title: 'Tendencias del Mercado Inmobiliario en RD 2024',
-          excerpt: 'Análisis de las tendencias más importantes que están definiendo el mercado inmobiliario dominicano este año.',
-          featuredImage: 'https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?w=800&h=450&fit=crop',
-          author: { name: 'Ana Martínez', avatar: 'https://i.pravatar.cc/150?img=7' },
-          publishedAt: '2024-03-20',
-          readTime: '8',
-          category: 'Análisis de Mercado'
-        }
-      ],
-      thematicLists: [
-        {
-          id: '1',
-          title: 'Propiedades con Mayor ROI 2024',
-          subtitle: 'Las mejores oportunidades de inversión del momento',
-          slug: 'propiedades-mayor-roi-2024',
-          icon: '📈',
-          propertyCount: 45,
-          averagePrice: '$350,000',
-          roi: '14-20%',
-          featured: true
-        }
-      ]
-    },
-    '/alquilar': {
-      type: 'property-list',
-      meta: {
-        title: 'Propiedades en alquiler en República Dominicana',
-        description: 'Encuentra propiedades en alquiler para todos los presupuestos y necesidades.'
-      },
-      listings: [
-        {
-          slug: 'apartamento-alquiler-evaristo',
-          titulo: 'Apartamento amueblado en Evaristo Morales',
-          precio: '$1,200/mes',
-          imagen: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
-          sector: 'Evaristo Morales, D.N.',
-          habitaciones: 2,
-          banos: 2,
-          metros: 110,
-          tipo: 'Alquiler'
-        },
-        {
-          slug: 'villa-alquiler-metro-country',
-          titulo: 'Villa en alquiler Metro Country Club',
-          precio: '$2,500/mes',
-          imagen: 'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=800&h=600&fit=crop',
-          sector: 'Juan Dolio',
-          habitaciones: 3,
-          banos: 3,
-          metros: 250,
-          tipo: 'Alquiler Vacacional'
-        }
-      ]
-    }
-  };
+// Importar layouts para artículos
+import ArticlesMainLayout from '../layouts/ArticlesMainLayout.astro';
+import ArticlesCategoryLayout from '../layouts/ArticlesCategoryLayout.astro';
+import ArticlesSingleLayout from '../layouts/ArticlesSingleLayout.astro';
 
-  // Buscar coincidencia exacta o parcial
-  let data = mockData[path];
-  
-  if (!data) {
-    // Buscar coincidencias parciales
-    for (const [key, value] of Object.entries(mockData)) {
-      if (path.startsWith(key) || key.startsWith(path)) {
-        data = value;
-        break;
-      }
-    }
-  }
+// Importar layouts para videos
+import VideosMainLayout from '../layouts/VideosMainLayout.astro';
+import VideosCategoryLayout from '../layouts/VideosCategoryLayout.astro';
+import VideosSingleLayout from '../layouts/VideosSingleLayout.astro';
 
-  // Si aún no hay datos, devolver un 404 personalizado
-  if (!data) {
-    return {
-      type: '404',
-      meta: {
-        title: 'Página no encontrada',
-        description: 'La página que buscas no existe o ha sido movida.'
-      }
-    };
-  }
+// Importar layouts para contacto, vender, rentas vacacionales y propiedades
+import ContactLayout from '../layouts/ContactLayout.astro';
+import SellLayout from '../layouts/SellLayout.astro';
+import VacationRentalsLayout from '../layouts/VacationRentalsLayout.astro';
+import VacationRentalsMainLayout from '../layouts/VacationRentalsMainLayout.astro';
+import VacationRentalsDynamicLayout from '../layouts/VacationRentalsDynamicLayout.astro';
+import PropertiesLayout from '../layouts/PropertiesLayout.astro';
 
-  return data;
+// Habilitar SSR para esta página
+export const prerender = false;
+
+export async function getStaticPaths() {
+  return [];
 }
 
-// Función para parsear filtros de la URL actual
-function parseCurrentFilters(segments: string[]): any {
-  const filters: any = {
-    caracteristicas: []
-  };
+console.log('🔥 ROUTER START - All layouts imported successfully');
+
+// =====================================================
+// CONFIGURACIÓN DE IDIOMAS Y RUTAS ESPECIALES
+// =====================================================
+
+const LANGUAGES = {
+  'es': { code: 'es', prefix: '', default: true },
+  'en': { code: 'en', prefix: 'en' },
+  'fr': { code: 'fr', prefix: 'fr' }
+};
+
+const SPECIAL_ROUTES = {
+  // Español
+  'asesores': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favoritos': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'testimonios': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articulos': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'ubicaciones': { type: 'locations', layout: 'LocationsLayout' },
+  'contacto': { type: 'contact', layout: 'ContactLayout' },
+  'rentas-vacacionales': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'planes-rentas-vacacionales': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'vender': { type: 'sell', layout: 'SellLayout' },
+  'propiedades': { type: 'properties', layout: 'PropertiesLayout' },
   
-  if (segments.length === 0) return filters;
+  // Inglés
+  'advisors': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favorites': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'testimonials': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'locations': { type: 'locations', layout: 'LocationsLayout' },
+  'contact': { type: 'contact', layout: 'ContactLayout' },
+  'vacation-rentals': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'vacation-rental-plans': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'sell': { type: 'sell', layout: 'SellLayout' },
+  'properties': { type: 'properties', layout: 'PropertiesLayout' },
   
-  // Acción (comprar/alquilar)
-  if (segments[0]) {
-    filters.accion = segments[0];
-  }
-  
-  // Tipo de propiedad
-  if (segments[1] && !segments[1].includes('-')) {
-    filters.tipo = segments[1];
-  }
-  
-  // Ubicación
-  if (segments[2] && !segments[2].includes('-')) {
-    filters.ubicacion = segments[2];
-  }
-  
-  // Sector
-  if (segments[3] && !segments[3].includes('-')) {
-    filters.sector = segments[3];
-  }
-  
-  // Parsear filtros adicionales
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    
-    // Precio
-    if (segment.startsWith('precio-desde-')) {
-      const priceInfo = segment.replace('precio-desde-', '');
-      const parts = priceInfo.split('-');
-      
-      if (parts.length >= 3) {
-        const min = parts[0];
-        const max = parts[1];
-        const currency = parts[2].toUpperCase();
-        
-        filters.precioMin = min;
-        filters.precioMax = max;
-        filters.moneda = currency;
-        filters.precio = `${min}-${max}`;
-      } else if (parts.length === 2) {
-        // Precio abierto (ej: precio-desde-2000000-usd)
-        const min = parts[0];
-        const currency = parts[1].toUpperCase();
-        
-        filters.precioMin = min;
-        filters.moneda = currency;
-        filters.precio = `${min}+`;
-      }
+  // Francés
+  'conseillers': { type: 'advisors', layout: 'AdvisorsLayout' },
+  'favoris': { type: 'favorites', layout: 'FavoritesLayout', subRoutes: true },
+  'temoignages': { type: 'testimonials', layout: 'TestimonialsLayout', subRoutes: true },
+  'videos': { type: 'videos', layout: 'VideosLayout', subRoutes: true },
+  'articles': { type: 'articles', layout: 'ArticlesLayout', subRoutes: true },
+  'emplacements': { type: 'locations', layout: 'LocationsLayout' },
+  'contact': { type: 'contact', layout: 'ContactLayout' },
+  'locations-vacances': { type: 'vacation-rentals', layout: 'VacationRentalsLayout' },
+  'plans-locations-vacances': { type: 'vacation-rentals-plans', layout: 'VacationRentalsLayout' },
+  'vendre': { type: 'sell', layout: 'SellLayout' },
+  'proprietes': { type: 'properties', layout: 'PropertiesLayout' }
+};
+
+// =====================================================
+// FUNCIÓN PARA FILTRAR RUTAS VÁLIDAS
+// =====================================================
+function shouldProcessRoute(urlSegments, pathname) {
+  try {
+    // EXCLUIR SITEMAP ESPECÍFICAMENTE
+    if (pathname === '/sitemap.xml' || pathname.endsWith('/sitemap.xml')) {
+      console.log('Excluding sitemap.xml from router processing');
+      return false;
     }
     
-    // Habitaciones
-    if (segment.endsWith('-habitaciones')) {
-      filters.habitaciones = segment.replace('-habitaciones', '');
-    }
-    
-    // Baños
-    if (segment.endsWith('-banos')) {
-      filters.banos = segment.replace('-banos', '');
-    }
-    
-    // Parqueos
-    if (segment.endsWith('-parqueos')) {
-      filters.parqueos = segment.replace('-parqueos', '');
-    }
-    
-    // Características extras
-    const caracteristicasExtras = [
-      'amueblado', 'piscina', 'terraza', 'vista-al-mar', 'gimnasio', 
-      'seguridad-24-7', 'ascensor', 'jacuzzi', 'aire-acondicionado', 'internet'
+    const excludedPaths = [
+      'images', 'img', 'assets', 'static', 'public',
+      'css', 'js', 'fonts', 'favicon.ico', 'robots.txt', 
+      '_astro', 'api', 'admin', 'wp-admin', 'wp-content',
+      '.well-known', 'manifest.json', 'sw.js',
+      'debug' // También excluir debug
     ];
     
-    if (caracteristicasExtras.includes(segment)) {
-      filters.caracteristicas.push(segment);
+    const excludedExtensions = [
+      '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico',
+      '.css', '.js', '.json', '.txt', '.pdf', '.zip',
+      '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mp3'
+    ];
+    // Agregar excepciones específicas antes del filtro de extensiones
+const allowedXmlPaths = ['/sitemap.xml', '/robots.txt'];
+if (allowedXmlPaths.includes(pathname)) {
+  return false; // No procesar en el router, dejar que Astro maneje el archivo
+}
+    if (urlSegments.length > 0 && excludedPaths.includes(urlSegments[0].toLowerCase())) {
+      return false;
+    }
+    
+    const lastSegment = urlSegments[urlSegments.length - 1] || '';
+    if (excludedExtensions.some(ext => lastSegment.toLowerCase().endsWith(ext))) {
+      return false;
+    }
+    
+    if (excludedExtensions.some(ext => pathname.toLowerCase().endsWith(ext))) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error in shouldProcessRoute:', error);
+    return true; // En caso de error, procesar la ruta
+  }
+}
+
+// =====================================================
+// FUNCIÓN PARA DETECTAR IDIOMA Y RUTAS
+// =====================================================
+function parseUrlSegments(urlSegments) {
+  try {
+    if (urlSegments.length === 0) {
+      return {
+        language: 'es',
+        remainingSegments: [],
+        routeType: 'home'
+      };
+    }
+
+    const firstSegment = urlSegments[0].toLowerCase();
+    
+    if (LANGUAGES[firstSegment]) {
+      const language = firstSegment;
+      const remainingSegments = urlSegments.slice(1);
+      
+      if (remainingSegments.length === 0) {
+        return {
+          language,
+          remainingSegments: [],
+          routeType: 'home'
+        };
+      }
+      
+      const nextSegment = remainingSegments[0];
+      if (SPECIAL_ROUTES[nextSegment]) {
+        return {
+          language,
+          remainingSegments,
+          routeType: 'special',
+          specialRoute: SPECIAL_ROUTES[nextSegment]
+        };
+      }
+      
+      return {
+        language,
+        remainingSegments,
+        routeType: 'property'
+      };
+    }
+    
+    const language = 'es';
+    
+    if (SPECIAL_ROUTES[firstSegment]) {
+      return {
+        language,
+        remainingSegments: urlSegments,
+        routeType: 'special',
+        specialRoute: SPECIAL_ROUTES[firstSegment]
+      };
+    }
+    
+    return {
+      language,
+      remainingSegments: urlSegments,
+      routeType: 'property'
+    };
+  } catch (error) {
+    console.error('❌ Error in parseUrlSegments:', error);
+    return {
+      language: 'es',
+      remainingSegments: urlSegments,
+      routeType: 'property'
+    };
+  }
+}
+
+// =====================================================
+// FUNCIÓN ÚNICA PARA LLAMAR BACKEND - VERSIÓN CORREGIDA
+// =====================================================
+
+const BASE_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
+const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+async function callBackendOnce(language, segments, searchParams) {
+  try {
+    // Construir la ruta completa para la edge function
+    let routePath = '';
+    
+    if (language !== 'es') {
+      routePath = language + '/';
+    }
+    
+    if (segments.length > 0) {
+      routePath += segments.join('/');
+    }
+    
+    const edgeFunctionURL = `${BASE_URL}/${routePath}${searchParams ? `?${searchParams}` : ''}`;
+    
+    console.log('🚀 Single call to backend:', edgeFunctionURL);
+    
+    const response = await fetch(edgeFunctionURL, {
+      method: 'GET',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json',
+        'User-Agent': `Mozilla/5.0 CLIC-Router/${Astro.url.host}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Backend returned error: ${response.status} ${response.statusText} - ${errorText}`);
+      
+      return {
+        pageType: '404',
+        type: '404',
+        language: language,
+        error: `Backend error: ${response.status}`,
+        message: errorText || 'Page not found',
+        statusCode: response.status
+      };
+    }
+
+    const data = await response.json();
+    console.log('📦 Raw backend response:', data);
+    
+    // ✅ NUEVA VALIDACIÓN: Detectar errores en la respuesta JSON
+    if (data.error) {
+      console.error('❌ Backend returned error in JSON:', data.error);
+      return {
+        pageType: '404',
+        type: '404',
+        language: language,
+        error: data.error,
+        message: data.message || 'Backend error occurred',
+        statusCode: 500
+      };
+    }
+    
+    // ✅ VALIDACIÓN ADICIONAL: Verificar que la respuesta tenga contenido válido
+    const hasValidContent = (
+      data.property || 
+      (data.properties && Array.isArray(data.properties)) ||
+      data.type ||
+      data.pageType
+    );
+    
+    if (!hasValidContent) {
+      console.error('❌ Backend returned empty or invalid response:', data);
+      return {
+        pageType: '404',
+        type: '404',
+        language: language,
+        error: 'Invalid response structure',
+        message: 'No valid content received from backend',
+        statusCode: 500
+      };
+    }
+    
+    // Asegurar que tenga el idioma correcto
+    data.language = language;
+    
+    // NORMALIZAR: Asegurar que siempre use pageType
+    if (data.type && !data.pageType) {
+      data.pageType = data.type;
+    }
+    
+    // Si no tiene pageType definido, determinar basado en el contenido
+    if (!data.pageType) {
+      if (data.property && data.property.id) {
+        data.pageType = 'single-property';
+      } else if (data.properties && Array.isArray(data.properties)) {
+        data.pageType = 'property-list';
+      } else {
+        data.pageType = '404';
+      }
+    }
+    
+    console.log('✅ Backend response processed:', {
+      type: data.pageType,
+      language: data.language,
+      hasProperties: data.properties?.length > 0,
+      hasProperty: !!data.property,
+      totalProperties: data.totalProperties || 0
+    });
+    
+    return data;
+    
+  } catch (error) {
+    console.error('❌ Error calling backend:', error);
+    
+    return {
+      pageType: '404',
+      type: '404',
+      language: language,
+      error: error.message,
+      message: 'Error connecting to backend',
+      statusCode: 500
+    };
+  }
+}
+
+// =====================================================
+// FUNCIONES PARA PÁGINAS ESPECIALES (SIN LLAMADAS API)
+// =====================================================
+
+function getSpecialPageData(specialRoute, language, segments, pathname) {
+  try {
+    const baseData = {
+      language: language,
+      originalUrl: pathname,
+      type: specialRoute.type
+    };
+
+    switch (specialRoute.type) {
+      case 'favorites':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'favorites-main' };
+        } else if (segments.length === 2 && segments[1] === 'compartir') {
+          return { ...baseData, type: 'favorites-shared' };
+        }
+        return { ...baseData, type: '404', pageType: '404' };
+
+      case 'testimonials':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'testimonials-main' };
+        } else if (segments.length === 2) {
+          return { ...baseData, type: 'testimonials-category', category: segments[1] };
+        } else if (segments.length === 3) {
+          return { ...baseData, type: 'testimonials-single', category: segments[1], testimonioSlug: segments[2] };
+        }
+        return { ...baseData, type: '404', pageType: '404' };
+
+      case 'advisors':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'advisors-list' };
+        } else if (segments.length === 2) {
+          return { ...baseData, type: 'advisor-single', advisorSlug: segments[1] };
+        }
+        return { ...baseData, type: '404', pageType: '404' };
+
+      case 'articles':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'articles-main' };
+        } else if (segments.length === 2) {
+          return { ...baseData, type: 'articles-category', categorySlug: segments[1] };
+        } else if (segments.length === 3) {
+          return { ...baseData, type: 'articles-single', categorySlug: segments[1], articleSlug: segments[2] };
+        }
+        return { ...baseData, type: '404', pageType: '404' };
+
+      case 'videos':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'videos-main' };
+        } else if (segments.length === 2) {
+          return { ...baseData, type: 'videos-category', categorySlug: segments[1] };
+        } else if (segments.length === 3) {
+          return { ...baseData, type: 'videos-single', categorySlug: segments[1], videoSlug: segments[2] };
+        }
+        return { ...baseData, type: '404', pageType: '404' };
+
+      case 'contact':
+        return { ...baseData, type: 'contact' };
+
+      case 'sell':
+        return { ...baseData, type: 'sell' };
+
+      case 'vacation-rentals':
+        if (segments.length === 1) {
+          return { ...baseData, type: 'vacation-rentals-main' };
+        } else if (segments[1] === 'planes') {
+          return { ...baseData, type: 'vacation-rentals-plans' };
+        } else {
+          return { ...baseData, type: 'vacation-rentals-dynamic', segments: segments.slice(1) };
+        }
+
+      case 'vacation-rentals-plans':
+        return { ...baseData, type: 'vacation-rentals-plans' };
+
+      case 'properties':
+        return { ...baseData, type: 'properties-main' };
+
+      default:
+        return { 
+          ...baseData, 
+          type: '404', 
+          pageType: '404',
+          message: `Página especial "${specialRoute.type}" en desarrollo` 
+        };
+    }
+  } catch (error) {
+    console.error('❌ Error in getSpecialPageData:', error);
+    return {
+      language: language,
+      originalUrl: pathname,
+      type: '404',
+      pageType: '404',
+      error: error.message,
+      message: 'Error processing special page'
+    };
+  }
+}
+
+// =====================================================
+// PROCESAMIENTO PRINCIPAL - VERSIÓN CON DEBUGGING
+// =====================================================
+
+let pageData = null;
+let pageType = 'unknown';
+
+try {
+  console.log('🔥 ROUTER START - Processing request...');
+
+  const { slug } = Astro.params;
+  let urlSegments = slug ? slug.split('/').filter(Boolean) : [];
+  const pathname = Astro.url.pathname;
+
+  console.log('🎯 Router processing:', {
+    slug,
+    pathname,
+    segments: urlSegments,
+    astroParams: Astro.params,
+    astroUrl: Astro.url.href
+  });
+
+  if (!shouldProcessRoute(urlSegments, pathname)) {
+    console.log('❌ Excluded route:', pathname);
+    throw new Error('Route excluded');
+  }
+
+  if (!slug || urlSegments.length === 0) {
+    const pathSegments = pathname.split('/').filter(Boolean);
+    urlSegments = [...pathSegments];
+    
+    if (!shouldProcessRoute(urlSegments, pathname)) {
+      console.log('❌ Excluded pathname route:', pathname);
+      throw new Error('Pathname route excluded');
     }
   }
+
+  const parsedRoute = parseUrlSegments(urlSegments);
+  const searchParams = Astro.url.searchParams.toString();
+
+  console.log('🔍 Parsed route:', parsedRoute);
+
+  switch (parsedRoute.routeType) {
+    case 'home':
+      console.log('🏠 Processing home page');
+      const homeData = await callBackendOnce(parsedRoute.language, [], searchParams);
+      pageData = homeData;
+      pageType = homeData.pageType || '404';
+      break;
+    
+    case 'special':
+      console.log('⭐ Processing special route:', parsedRoute.specialRoute.type);
+      pageData = getSpecialPageData(parsedRoute.specialRoute, parsedRoute.language, parsedRoute.remainingSegments, pathname);
+      pageType = pageData.type;
+      break;
+    
+    case 'property':
+      console.log('🏠 Processing property route');
+      const backendData = await callBackendOnce(parsedRoute.language, parsedRoute.remainingSegments, searchParams);
+      pageData = backendData;
+      
+      // USAR pageType CONSISTENTEMENTE
+      pageType = backendData.pageType || '404';
+      
+      // Validación adicional de seguridad
+      const validPageTypes = ['single-property', 'property-list', '404'];
+      if (!validPageTypes.includes(pageType)) {
+        console.warn(`⚠️ Invalid pageType received: ${pageType}, defaulting to 404`);
+        pageType = '404';
+        pageData.pageType = '404';
+      }
+      break;
+    
+    default:
+      console.log('❓ Unknown route type');
+      pageData = {
+        pageType: '404',
+        type: '404',
+        language: parsedRoute.language,
+        originalUrl: pathname,
+        message: 'Route not found'
+      };
+      pageType = '404';
+      break;
+  }
   
-  return filters;
+} catch (error) {
+  console.error('❌ Error processing page:', error);
+  
+  // ESTRUCTURA CONSISTENTE PARA ERRORES
+  pageData = {
+    pageType: '404',
+    type: '404',
+    language: 'es',
+    originalUrl: Astro.url.pathname,
+    error: error.message,
+    message: 'An error occurred while processing the page'
+  };
+  pageType = '404';
 }
 
-// Obtener los segmentos de la URL
-const { slug } = Astro.params;
-const segments = slug ? (Array.isArray(slug) ? slug : slug.split('/')) : [];
-
-// Obtener los datos de la página
-const pageData = USE_MOCK_DATA 
-  ? await getMockPageData(segments)
-  : await getPageDataFromURL(segments);
-
-// Renderizar según el tipo de página
-let ComponentToRender;
-let componentProps = {};
-
-switch (pageData.type) {
-  case 'property-list':
-    ComponentToRender = PropertyList;
-    componentProps = { 
-      listings: pageData.listings || [], 
-      meta: pageData.meta || {} 
+// VALIDACIÓN FINAL: Asegurar que siempre haya datos mínimos para 404
+if (pageType === '404') {
+  if (!pageData) {
+    pageData = {
+      pageType: '404',
+      type: '404',
+      language: 'es',
+      originalUrl: Astro.url.pathname,
+      message: 'Page not found'
     };
-    break;
+  } else {
+    // Asegurar que tenga los campos necesarios
+    pageData.pageType = '404';
+    pageData.type = '404';
+    pageData.language = pageData.language || 'es';
+    pageData.message = pageData.message || 'Page not found';
+  }
   
-  case 'property':
-    ComponentToRender = null;
-    break;
-  
-  case 'article':
-    ComponentToRender = null;
-    break;
-  
-  case 'advisor':
-    ComponentToRender = null;
-    break;
-  
-  case '404':
-  default:
-    ComponentToRender = null;
+  // 🎯 SOLUCIÓN: Usar status 200 para 404 personalizados para asegurar que se renderice el layout
+  // Astro.response.status = 404;  // Esto causaba que algunos navegadores mostraran su 404 genérico
+  console.log('🎯 Setting status 200 for custom 404 layout to ensure proper rendering');
 }
 
-// Configuración SEO dinámica
-const seoTitle = pageData.meta?.title || 'CLIC Inmobiliaria';
-const seoDescription = pageData.meta?.description || 'Encuentra tu próxima propiedad en República Dominicana';
+console.log('✅ Page ready for render:', {
+  pageType: pageType,
+  hasContent: !!pageData,
+  dataStructure: pageData ? Object.keys(pageData) : [],
+  finalPageData: pageData
+});
 
-// Parsear filtros actuales de la URL para prellenar el MiniSearchBar
-const currentFilters = parseCurrentFilters(segments);
+// =====================================================
+// MAPEO SIMPLIFICADO DE TIPOS A COMPONENTES
+// =====================================================
 
-// Función para capitalizar y formatear strings
-function capitalize(str: string): string {
-  return str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
+const showPropertyList = pageType === 'property-list';
+const showSingleProperty = pageType === 'single-property';
+const showAdvisorsList = pageType === 'advisors-list';
+const showAdvisorSingle = pageType === 'advisor-single';
+const showFavoritesMain = pageType === 'favorites-main';
+const showFavoritesShared = pageType === 'favorites-shared';
+const showTestimonialsMain = pageType === 'testimonials-main';
+const showTestimonialsCategory = pageType === 'testimonials-category';
+const showTestimonialsSingle = pageType === 'testimonials-single';
+const showArticlesMain = pageType === 'articles-main';
+const showArticlesCategory = pageType === 'articles-category';
+const showArticlesSingle = pageType === 'articles-single';
+const showVideosMain = pageType === 'videos-main';
+const showVideosCategory = pageType === 'videos-category';
+const showVideosSingle = pageType === 'videos-single';
+const showContact = pageType === 'contact';
+const showSell = pageType === 'sell';
+const showVacationRentalsMain = pageType === 'vacation-rentals-main';
+const showVacationRentalsPlans = pageType === 'vacation-rentals-plans';
+const showVacationRentalsDynamic = pageType === 'vacation-rentals-dynamic';
+const showPropertiesMain = pageType === 'properties-main';
+const show404 = pageType === '404';
 
-// Crear breadcrumb de navegación (solo primeros 4 niveles)
-const breadcrumbNavegacion = [];
-
-if (segments[0]) {
-  breadcrumbNavegacion.push({ 
-    path: `/${segments[0]}`, 
-    label: capitalize(segments[0]) 
-  });
-}
-
-if (segments[1]) {
-  breadcrumbNavegacion.push({ 
-    path: `/${segments.slice(0, 2).join('/')}`, 
-    label: capitalize(segments[1]) 
-  });
-}
-
-if (segments[2]) {
-  breadcrumbNavegacion.push({ 
-    path: `/${segments.slice(0, 3).join('/')}`, 
-    label: capitalize(segments[2]) 
-  });
-}
-
-if (segments[3]) {
-  breadcrumbNavegacion.push({ 
-    path: `/${segments.slice(0, 4).join('/')}`, 
-    label: capitalize(segments[3]) 
-  });
-}
+console.log('🎨 Final render decision:', {
+  pageType,
+  show404,
+  showPropertyList,
+  showSingleProperty,
+  hasError404Layout: !!Error404Layout,
+  hasPageData: !!pageData
+});
 ---
 
-<Layout title={seoTitle} description={seoDescription}>
-  <!-- Breadcrumbs para mejor navegación y SEO -->
-  {breadcrumbNavegacion.length > 0 && (
-    <nav class="container mx-auto px-4 py-3" aria-label="Breadcrumb">
-      <ol class="flex items-center space-x-2 text-sm">
-        <li>
-          <a href="/" class="text-gray-500 hover:text-[#f04e00] transition-colors">
-            Inicio
-          </a>
-        </li>
-        {breadcrumbNavegacion.map((crumb, index) => (
-          <Fragment key={index}>
-            <li class="text-gray-400">/</li>
-            <li>
-              {index === breadcrumbNavegacion.length - 1 ? (
-                <span class="text-gray-700">{crumb.label}</span>
-              ) : (
-                <a href={crumb.path} class="text-gray-500 hover:text-[#f04e00] transition-colors">
-                  {crumb.label}
-                </a>
-              )}
-            </li>
-          </Fragment>
-        ))}
-      </ol>
-    </nav>
-  )}
-  
-  {pageData.type === 'property-list' && ComponentToRender && (
-    <>
-      <!-- MiniSearchBar sticky para páginas de listado -->
-      <MiniSearchBar currentFilters={currentFilters} isSticky={true} />
-      
-      <ComponentToRender {...componentProps} />
-      
-      {/* Videos destacados - Layout especial para contenido de YouTube */}
-      {pageData.videos && (
-        <VideoGallery 
-          videos={pageData.videos} 
-          title="🎬 Contenido Exclusivo CLIC"
-          subtitle="Descubre más en nuestro canal con 200K suscriptores"
-          layout="featured"
-        />
-      )}
-      
-      {/* Carruseles de propiedades temáticas */}
-      {pageData.propertyCarousels && pageData.propertyCarousels.map((carousel, index) => (
-        <PropertyCarousel 
-          key={index}
-          title={carousel.title}
-          subtitle={carousel.subtitle}
-          properties={carousel.properties}
-          viewAllLink={carousel.viewAllLink}
-          theme={index === 0 ? 'luxury' : 'default'}
-        />
-      ))}
-      
-      {/* Testimonios con diseño mejorado */}
-      {pageData.testimonials && (
-        <Testimonials 
-          testimonials={pageData.testimonials}
-          title="Clientes Satisfechos"
-          subtitle="Únete a las miles de familias que han encontrado su hogar ideal con CLIC"
-        />
-      )}
-      
-      {/* FAQs contextuales */}
-      {pageData.faqs && (
-        <DynamicFAQs 
-          faqs={pageData.faqs}
-          context={{
-            location: 'Cortecito',
-            propertyType: 'Villa',
-            features: ['airbnb']
-          }}
-        />
-      )}
-      
-      {/* Asesores de la zona */}
-      {pageData.advisors && (
-        <AreaAdvisors 
-          advisors={pageData.advisors}
-          location="Cortecito"
-        />
-      )}
-      
-      {/* Artículos relacionados */}
-      {pageData.articles && (
-        <RelatedArticles 
-          articles={pageData.articles}
-          title="Artículos que te pueden interesar"
-        />
-      )}
-    </>
-  )}
-  
-  {pageData.type === 'property' && pageData.property && (
-    <>
-      <!-- MiniSearchBar no sticky para páginas individuales -->
-      <MiniSearchBar currentFilters={currentFilters} isSticky={false} />
-      
-      <div class="container mx-auto px-4 py-8">
-        <div class="max-w-7xl mx-auto">
-          {/* Galería de imágenes */}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div class="aspect-[4/3] overflow-hidden rounded-lg">
-              <img 
-                src={pageData.property.imagen} 
-                alt={pageData.property.titulo}
-                class="w-full h-full object-cover"
-              />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              {pageData.property.imagenes?.slice(1, 5).map((img, idx) => (
-                <div key={idx} class="aspect-[4/3] overflow-hidden rounded-lg">
-                  <img 
-                    src={img} 
-                    alt={`${pageData.property.titulo} - Imagen ${idx + 2}`}
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+<!-- DEBUGGING OUTPUT -->
+<script is:inline>
+  console.log('🔍 CLIENT DEBUG:', {
+    pageType: '{pageType}',
+    show404: {show404},
+    pathname: '{Astro.url.pathname}',
+    hasPageData: {!!pageData}
+  });
+</script>
 
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Información principal */}
-            <div class="lg:col-span-2">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">{pageData.property.titulo}</h1>
-              <p class="text-xl text-gray-600 mb-6">{pageData.property.sector}</p>
-              
-              <div class="flex flex-wrap gap-6 mb-8 text-gray-700">
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                  </svg>
-                  <span>{pageData.property.habitaciones} habitaciones</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2m12 0V5a2 2 0 00-2-2M8 7V5a2 2 0 012-2"></path>
-                  </svg>
-                  <span>{pageData.property.banos} baños</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path>
-                  </svg>
-                  <span>{pageData.property.metros} m²</span>
-                </div>
-              </div>
+{show404 && (
+  <Error404Layout data={pageData} language={pageData?.language || 'es'} />
+)}
 
-              <div class="prose max-w-none mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Descripción</h2>
-                <p class="text-gray-700">{pageData.property.descripcion}</p>
-              </div>
+{showPropertyList && <PropertyListLayout data={pageData} language={pageData?.language || 'es'} />}
 
-              {pageData.property.amenidades && (
-                <div class="mb-8">
-                  <h2 class="text-2xl font-semibold mb-4">Amenidades</h2>
-                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {pageData.property.amenidades.map((amenidad, idx) => (
-                      <div key={idx} class="flex items-center gap-2 text-gray-700">
-                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>{amenidad}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+{showSingleProperty && <SinglePropertyLayout data={pageData} language={pageData?.language || 'es'} />}
 
-            {/* Sidebar con precio y contacto */}
-            <div class="lg:col-span-1">
-              <div class="bg-white rounded-lg shadow-lg p-6 sticky top-24">
-                <div class="text-3xl font-bold text-[#f04e00] mb-6">{pageData.property.precio}</div>
-                
-                {pageData.property.caracteristicas && (
-                  <div class="space-y-3 mb-6">
-                    {Object.entries(pageData.property.caracteristicas).map(([key, value], idx) => (
-                      <div key={idx} class="flex justify-between text-sm">
-                        <span class="text-gray-600">{key}:</span>
-                        <span class="font-medium">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+{showAdvisorsList && <AdvisorsLayout data={pageData} language={pageData?.language || 'es'} />}
 
-                <button class="w-full bg-[#f04e00] text-white py-3 rounded-md hover:bg-[#d94400] transition-colors mb-3">
-                  Contactar asesor
-                </button>
-                
-                <button class="w-full border border-gray-300 py-3 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                  </svg>
-                  WhatsApp
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )}
-  
-  {pageData.type === 'article' && (
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-      <article class="prose lg:prose-lg mx-auto">
-        <h1 class="text-3xl font-bold mb-4">Artículo del Blog</h1>
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p class="text-blue-800">
-            <strong>En construcción:</strong> El componente Article se implementará próximamente.
-          </p>
-        </div>
-      </article>
-    </div>
-  )}
-  
-  {pageData.type === 'advisor' && (
-    <div class="container mx-auto px-4 py-8">
-      <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold mb-4">Perfil de Asesor</h1>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p class="text-green-800">
-            <strong>En construcción:</strong> El componente AdvisorProfile se implementará próximamente.
-          </p>
-        </div>
-      </div>
-    </div>
-  )}
-  
-  {pageData.type === '404' && (
-    <div class="container mx-auto px-4 py-16 text-center">
-      <div class="max-w-2xl mx-auto">
-        <h1 class="text-6xl font-bold text-gray-300 mb-4">404</h1>
-        <h2 class="text-2xl font-semibold text-gray-900 mb-4">
-          {pageData.meta?.title || 'Página no encontrada'}
-        </h2>
-        <p class="text-lg text-gray-600 mb-8">
-          {pageData.meta?.description || 'La página que buscas no existe o ha sido movida.'}
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/" class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors">
-            Volver al inicio
-          </a>
-          <a href="/comprar" class="inline-block px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-            Ver propiedades
-          </a>
-        </div>
-      </div>
-    </div>
-  )}
-  
-  <!-- Schema.org JSON-LD para SEO -->
-  {breadcrumbNavegacion.length > 0 && (
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": breadcrumbNavegacion.map((crumb, index) => ({
-        "@type": "ListItem",
-        "position": index + 1,
-        "name": crumb.label,
-        "item": `https://clicinmobiliaria.com${crumb.path}`
-      }))
-    })} />
-  )}
-</Layout>
+{showAdvisorSingle && <SingleAdvisorLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showFavoritesMain && <FavoritesLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showFavoritesShared && <SharedFavoritesLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsMain && <TestimonialsMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsCategory && <TestimonialsCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showTestimonialsSingle && <TestimonialsSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesMain && <ArticlesMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesCategory && <ArticlesCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showArticlesSingle && <ArticlesSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosMain && <VideosMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosCategory && <VideosCategoryLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVideosSingle && <VideosSingleLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showContact && <ContactLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showSell && <SellLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsMain && <VacationRentalsMainLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsPlans && <VacationRentalsLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showVacationRentalsDynamic && <VacationRentalsDynamicLayout data={pageData} language={pageData?.language || 'es'} />}
+
+{showPropertiesMain && <PropertiesLayout data={pageData} language={pageData?.language || 'es'} />}

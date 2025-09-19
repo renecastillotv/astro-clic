@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Tags Universales</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+    <div x-data="universalTagsPanel()" x-init="init()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">Admin Panel - Tags Universales</h1>
+                    <div class="flex space-x-2 overflow-x-auto">
+                        <button @click="activeTab = 'properties'" 
+                                :class="activeTab === 'properties' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            Propiedades
+                        </button>
+                        <button @click="activeTab = 'articles'" 
+                                :class="activeTab === 'articles' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            Artículos
+                        </button>
+                        <button @click="activeTab = 'videos'" 
+                                :class="activeTab === 'videos' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            Videos
+                        </button>
+                        <button @click="activeTab = 'testimonials'" 
+                                :class="activeTab === 'testimonials' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            Testimonios
+                        </button>
+                        <button @click="activeTab = 'faqs'" 
+                                :class="activeTab === 'faqs' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            FAQs
+                        </button>
+                        <button @click="activeTab = 'seo_content'" 
+                                :class="activeTab === 'seo_content' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            SEO Content
+                        </button>
+                        <button @click="activeTab = 'users'" 
+                                :class="activeTab === 'users' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            Usuarios
+                        </button>
+                        <button @click="activeTab = 'tags'" 
+                                :class="activeTab === 'tags' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap">
+                            🏷️ Tags
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading -->
+        <div x-show="loading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Properties Tab -->
+        <div x-show="activeTab === 'properties'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('properties', currentItems.properties, 'Propiedades')"></div>
+        </div>
+
+        <!-- Articles Tab -->
+        <div x-show="activeTab === 'articles'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('articles', currentItems.articles, 'Artículos')"></div>
+        </div>
+
+        <!-- Videos Tab -->
+        <div x-show="activeTab === 'videos'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('videos', currentItems.videos, 'Videos')"></div>
+        </div>
+
+        <!-- Testimonials Tab -->
+        <div x-show="activeTab === 'testimonials'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('testimonials', currentItems.testimonials, 'Testimonios')"></div>
+        </div>
+
+        <!-- FAQs Tab -->
+        <div x-show="activeTab === 'faqs'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('faqs', currentItems.faqs, 'FAQs')"></div>
+        </div>
+
+        <!-- SEO Content Tab -->
+        <div x-show="activeTab === 'seo_content'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('seo_content', currentItems.seo_content, 'SEO Content')"></div>
+        </div>
+
+        <!-- Users Tab -->
+        <div x-show="activeTab === 'users'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div x-html="generateContentTab('users', currentItems.users, 'Usuarios')"></div>
+        </div>
+
+        <!-- Tags Management Tab -->
+        <div x-show="activeTab === 'tags'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Create Tag Form -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h2 class="text-lg font-semibold mb-4">Crear Nuevo Tag</h2>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <input x-model="newTag.name" placeholder="Nombre del tag" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input x-model="newTag.slug" placeholder="Slug (auto-generado)" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="newTag.category" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Seleccionar categoría</option>
+                        <option value="operacion">Operación</option>
+                        <option value="categoria">Categoría</option>
+                        <option value="ubicacion">Ubicación</option>
+                        <option value="amenidad">Amenidad</option>
+                        <option value="precio">Precio</option>
+                        <option value="caracteristica">Característica</option>
+                        <option value="contenido">Contenido</option>
+                        <option value="seo">SEO</option>
+                        <option value="perfil">Perfil</option>
+                    </select>
+                    <input x-model="newTag.color" type="color" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button @click="createTag()" :disabled="!newTag.name || !newTag.category"
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                        Crear Tag
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <textarea x-model="newTag.description" placeholder="Descripción del tag (opcional)" 
+                              class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
+                </div>
+            </div>
+
+            <!-- Tags List -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-semibold">Tags Existentes (<span x-text="filteredTags.length"></span>)</h2>
+                        <div class="flex space-x-2">
+                            <select x-model="tagCategoryFilter" @change="filterTags()" 
+                                    class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Todas las categorías</option>
+                                <option value="operacion">Operación</option>
+                                <option value="categoria">Categoría</option>
+                                <option value="ubicacion">Ubicación</option>
+                                <option value="amenidad">Amenidad</option>
+                                <option value="precio">Precio</option>
+                                <option value="caracteristica">Característica</option>
+                                <option value="contenido">Contenido</option>
+                                <option value="seo">SEO</option>
+                                <option value="perfil">Perfil</option>
+                            </select>
+                            <input x-model="tagSearch" @input="filterTags()" 
+                                   placeholder="Buscar tags..." 
+                                   class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+                    <template x-for="tag in filteredTags" :key="tag.id">
+                        <div class="border rounded-lg p-4 hover:bg-gray-50">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-1">
+                                        <div class="w-4 h-4 rounded-full" :style="`background-color: ${tag.color || '#3b82f6'}`"></div>
+                                        <h3 class="font-semibold text-sm" x-text="tag.name"></h3>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mb-1" x-text="tag.slug"></p>
+                                    <p class="text-xs text-gray-500" x-text="tag.description"></p>
+                                </div>
+                                <button @click="deleteTag(tag.id)" 
+                                        class="text-red-500 hover:text-red-700 text-sm ml-2">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full" x-text="tag.category"></span>
+                                <div class="text-xs text-gray-500">
+                                    <span x-text="tag.usage_count || 0"></span> usos
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div x-show="toast.show" x-transition 
+             :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+             class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            <p x-text="toast.message"></p>
+        </div>
+    </div>
+
+    <script>
+        function universalTagsPanel() {
+            return {
+                // Configuration
+                supabaseUrl: 'https://pacewqgypevfgjmdsorz.supabase.co',
+                supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs',
+                supabase: null,
+
+                // State
+                activeTab: 'properties',
+                loading: false,
+                
+                // Content items
+                currentItems: {
+                    properties: [],
+                    articles: [],
+                    videos: [],
+                    testimonials: [],
+                    faqs: [],
+                    seo_content: [],
+                    users: []
+                },
+                
+                // Tags
+                tags: [],
+                availableTags: [],
+                filteredTags: [],
+                tagSearch: '',
+                tagCategoryFilter: '',
+                newTag: {
+                    name: '',
+                    slug: '',
+                    category: '',
+                    color: '#3b82f6',
+                    description: ''
+                },
+
+                // Pagination
+                currentPage: 1,
+                pageSize: 10,
+
+                // Toast
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
+
+                // Initialize
+                async init() {
+                    try {
+                        this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
+                        await this.loadData();
+                    } catch (error) {
+                        this.showToast('Error conectando con Supabase: ' + error.message, 'error');
+                    }
+                },
+
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        await Promise.all([
+                            this.loadTags(),
+                            this.loadContentItems()
+                        ]);
+                    } catch (error) {
+                        this.showToast('Error cargando datos: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Content loading methods
+                async loadContentItems() {
+                    await Promise.all([
+                        this.loadProperties(),
+                        this.loadArticles(),
+                        this.loadVideos(),
+                        this.loadTestimonials(),
+                        this.loadFAQs(),
+                        this.loadSEOContent(),
+                        this.loadUsers()
+                    ]);
+                },
+
+                async loadProperties() {
+                    const { data, error } = await this.supabase
+                        .from('properties')
+                        .select(`
+                            id, code, name, private_name, property_status,
+                            sale_price, sale_currency, rental_price, rental_currency,
+                            property_categories(name),
+                            cities(name),
+                            sectors(name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.properties = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.private_name || item.name || `Propiedad #${item.code}`,
+                        subtitle: `${item.property_categories?.name || 'Sin categoría'} - ${item.cities?.name || 'Sin ciudad'}`
+                    }));
+                },
+
+                async loadArticles() {
+                    const { data, error } = await this.supabase
+                        .from('articles')
+                        .select('id, title, slug, category, status, excerpt')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.articles = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.title,
+                        subtitle: `${item.category || 'Sin categoría'} - ${item.status || 'draft'}`
+                    }));
+                },
+
+                async loadVideos() {
+                    const { data, error } = await this.supabase
+                        .from('videos')
+                        .select('id, title, video_slug, category, status, duration')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.videos = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.title,
+                        subtitle: `${item.category || 'Sin categoría'} - ${item.duration || 'N/A'}`
+                    }));
+                },
+
+                async loadTestimonials() {
+                    const { data, error } = await this.supabase
+                        .from('testimonials')
+                        .select('id, title, slug, client_name, category, rating, status')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.testimonials = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.title || `Testimonio de ${item.client_name}`,
+                        subtitle: `${item.category || 'Sin categoría'} - ${item.rating || 5}⭐`
+                    }));
+                },
+
+                async loadFAQs() {
+                    const { data, error } = await this.supabase
+                        .from('faqs')
+                        .select('id, question, category, status, context_location')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.faqs = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.question,
+                        subtitle: `${item.category || 'Sin categoría'} - ${item.context_location || 'General'}`
+                    }));
+                },
+
+                async loadSEOContent() {
+                    const { data, error } = await this.supabase
+                        .from('seo_content')
+                        .select('id, title, content_type, identifier, status, location_context')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.seo_content = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: item.title || `SEO: ${item.identifier}`,
+                        subtitle: `${item.content_type || 'Sin tipo'} - ${item.location_context || 'General'}`
+                    }));
+                },
+
+                async loadUsers() {
+                    const { data, error } = await this.supabase
+                        .from('users')
+                        .select('id, first_name, last_name, email, role, position, active')
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+                    this.currentItems.users = data.map(item => ({ 
+                        ...item, 
+                        selectedTagId: '', 
+                        currentTags: [],
+                        display_name: `${item.first_name} ${item.last_name}`,
+                        subtitle: `${item.role || 'Sin rol'} - ${item.position || 'Sin posición'}`
+                    }));
+                },
+
+                // Tags methods
+                async loadTags() {
+                    const { data, error } = await this.supabase
+                        .from('tags')
+                        .select(`
+                            id, name, slug, category, color, description,
+                            content_tags(content_id, content_type)
+                        `)
+                        .order('category')
+                        .order('name');
+
+                    if (error) throw error;
+
+                    this.tags = data.map(tag => ({
+                        ...tag,
+                        usage_count: tag.content_tags?.length || 0
+                    }));
+
+                    this.availableTags = [...this.tags];
+                    this.filterTags();
+                },
+
+                async loadItemTags(itemId, contentType) {
+                    const { data, error } = await this.supabase
+                        .from('content_tags')
+                        .select(`
+                            tag_id,
+                            tags(id, name, slug, category, color)
+                        `)
+                        .eq('content_id', itemId)
+                        .eq('content_type', contentType);
+
+                    if (error) {
+                        this.showToast('Error cargando tags: ' + error.message, 'error');
+                        return;
+                    }
+
+                    const item = this.findItemById(itemId, contentType);
+                    if (item) {
+                        item.currentTags = data.map(ct => ct.tags);
+                    }
+                },
+
+                async addTagToItem(itemId, tagId, contentType) {
+                    if (!tagId) return;
+
+                    const { error } = await this.supabase
+                        .from('content_tags')
+                        .insert({
+                            content_id: itemId,
+                            tag_id: tagId,
+                            content_type: contentType
+                        });
+
+                    if (error) {
+                        this.showToast('Error agregando tag: ' + error.message, 'error');
+                        return;
+                    }
+
+                    await this.loadItemTags(itemId, contentType);
+                    const item = this.findItemById(itemId, contentType);
+                    if (item) item.selectedTagId = '';
+                    
+                    this.showToast('Tag agregado exitosamente');
+                },
+
+                async removeTagFromItem(itemId, tagId, contentType) {
+                    const { error } = await this.supabase
+                        .from('content_tags')
+                        .delete()
+                        .eq('content_id', itemId)
+                        .eq('tag_id', tagId)
+                        .eq('content_type', contentType);
+
+                    if (error) {
+                        this.showToast('Error removiendo tag: ' + error.message, 'error');
+                        return;
+                    }
+
+                    await this.loadItemTags(itemId, contentType);
+                    this.showToast('Tag removido exitosamente');
+                },
+
+                async createTag() {
+                    if (!this.newTag.name || !this.newTag.category) return;
+
+                    // Auto-generate slug if empty
+                    if (!this.newTag.slug) {
+                        this.newTag.slug = this.generateSlug(this.newTag.name);
+                    }
+
+                    const { error } = await this.supabase
+                        .from('tags')
+                        .insert({
+                            name: this.newTag.name,
+                            slug: this.newTag.slug,
+                            category: this.newTag.category,
+                            color: this.newTag.color,
+                            description: this.newTag.description
+                        });
+
+                    if (error) {
+                        this.showToast('Error creando tag: ' + error.message, 'error');
+                        return;
+                    }
+
+                    this.newTag = { name: '', slug: '', category: '', color: '#3b82f6', description: '' };
+                    await this.loadTags();
+                    this.showToast('Tag creado exitosamente');
+                },
+
+                async deleteTag(tagId) {
+                    if (!confirm('¿Estás seguro de eliminar este tag? Se removerá de todo el contenido asociado.')) return;
+
+                    const { error } = await this.supabase
+                        .from('tags')
+                        .delete()
+                        .eq('id', tagId);
+
+                    if (error) {
+                        this.showToast('Error eliminando tag: ' + error.message, 'error');
+                        return;
+                    }
+
+                    await this.loadTags();
+                    this.showToast('Tag eliminado exitosamente');
+                },
+
+                filterTags() {
+                    let filtered = this.tags;
+
+                    if (this.tagCategoryFilter) {
+                        filtered = filtered.filter(tag => tag.category === this.tagCategoryFilter);
+                    }
+
+                    if (this.tagSearch) {
+                        const search = this.tagSearch.toLowerCase();
+                        filtered = filtered.filter(tag => 
+                            tag.name.toLowerCase().includes(search) ||
+                            tag.slug.toLowerCase().includes(search) ||
+                            tag.category.toLowerCase().includes(search) ||
+                            (tag.description || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    this.filteredTags = filtered;
+                },
+
+                // Utility methods
+                findItemById(itemId, contentType) {
+                    const items = this.currentItems[contentType] || [];
+                    return items.find(item => item.id === itemId);
+                },
+
+                generateSlug(text) {
+                    return text
+                        .toLowerCase()
+                        .replace(/[áàäâ]/g, 'a')
+                        .replace(/[éèëê]/g, 'e')
+                        .replace(/[íìïî]/g, 'i')
+                        .replace(/[óòöô]/g, 'o')
+                        .replace(/[úùüû]/g, 'u')
+                        .replace(/[ñ]/g, 'n')
+                        .replace(/[^a-z0-9\s-]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-')
+                        .replace(/^-|-$/g, '');
+                },
+
+                generateContentTab(contentType, items, title) {
+                    if (!items || items.length === 0) {
+                        return `
+                            <div class="bg-white p-6 rounded-lg shadow-sm text-center">
+                                <p class="text-gray-500">No hay ${title.toLowerCase()} para mostrar</p>
+                                <button onclick="location.reload()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                                    Recargar
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    const itemsHtml = items.slice(0, 20).map(item => `
+                        <div class="p-6 hover:bg-gray-50 border-b">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-4 mb-2">
+                                        <h3 class="font-semibold text-lg">${item.display_name || 'Sin nombre'}</h3>
+                                        <span class="text-sm text-gray-500">${item.subtitle || ''}</span>
+                                    </div>
+                                    
+                                    <!-- Current Tags -->
+                                    <div class="mb-3">
+                                        <div class="flex items-center space-x-2 mb-2">
+                                            <span class="text-sm font-medium text-gray-700">Tags actuales:</span>
+                                            <button onclick="window.tagPanel.loadItemTags('${item.id}', '${contentType}')" 
+                                                    class="text-blue-500 text-xs hover:underline">
+                                                Actualizar
+                                            </button>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1" id="tags-${item.id}">
+                                            <!-- Tags will be loaded here -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Add Tag -->
+                                    <div class="flex items-center space-x-2">
+                                        <select onchange="window.tagPanel.updateSelectedTag('${item.id}', this.value)" 
+                                                class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                            <option value="">Seleccionar tag...</option>
+                                            ${this.availableTags.map(tag => `<option value="${tag.id}">${tag.name} (${tag.category})</option>`).join('')}
+                                        </select>
+                                        <button onclick="window.tagPanel.addTagToItem('${item.id}', window.tagPanel.getSelectedTag('${item.id}'), '${contentType}')" 
+                                                class="bg-green-500 text-white px-3 py-1 text-sm rounded hover:bg-green-600">
+                                            Agregar Tag
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="bg-white rounded-lg shadow-sm">
+                            <div class="px-6 py-4 border-b">
+                                <h2 class="text-lg font-semibold">${title} (${items.length})</h2>
+                            </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    `;
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                },
+
+                // Helper methods for inline functionality
+                updateSelectedTag(itemId, tagId) {
+                    this.selectedTags = this.selectedTags || {};
+                    this.selectedTags[itemId] = tagId;
+                },
+
+                getSelectedTag(itemId) {
+                    return this.selectedTags?.[itemId] || '';
+                },
+
+                // Watch for changes
+                $watch: {
+                    'newTag.name'() {
+                        if (this.newTag.name && !this.newTag.slug) {
+                            setTimeout(() => {
+                                this.newTag.slug = this.generateSlug(this.newTag.name);
+                            }, 100);
+                        }
+                    },
+                    activeTab() {
+                        // Load tags for items when switching tabs
+                        setTimeout(() => {
+                            const items = this.currentItems[this.activeTab] || [];
+                            items.slice(0, 10).forEach(item => {
+                                this.loadItemTags(item.id, this.activeTab);
+                            });
+                        }, 100);
+                    }
+                }
+            }
+        }
+
+        // Make panel globally accessible for inline event handlers
+        window.tagPanel = null;
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('universalTagsPanel', universalTagsPanel);
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.tagPanel = Alpine.$data(document.querySelector('[x-data]'));
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

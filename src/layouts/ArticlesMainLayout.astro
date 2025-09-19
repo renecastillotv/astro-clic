@@ -1,0 +1,779 @@
+---
+// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let articlesData = data;
+
+// Si no hay datos, usar fallback estático
+if (!articlesData || !articlesData.categories) {
+  console.log('📋 ArticlesMainLayout: Usando datos estáticos de fallback');
+  
+  articlesData = {
+    language: language,
+    categories: [
+      {
+        id: 'guias-de-compra',
+        slug: 'guias-de-compra',
+        title: language === 'es' ? 'Guías de Compra' :
+               language === 'en' ? 'Buying Guides' :
+               'Guides d\'Achat',
+        description: language === 'es' ? 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana' :
+                     language === 'en' ? 'Everything you need to know to buy your ideal property in Dominican Republic' :
+                     'Tout ce que vous devez savoir pour acheter votre propriété idéale en République dominicaine',
+        thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
+        articleCount: 15,
+        featured: true,
+        recentArticles: [
+          language === 'es' ? 'Guía completa para comprar una villa en Punta Cana' :
+          language === 'en' ? 'Complete guide to buying a villa in Punta Cana' :
+          'Guide complet pour acheter une villa à Punta Cana',
+          language === 'es' ? 'Documentos necesarios para extranjeros que compran en RD' :
+          language === 'en' ? 'Required documents for foreigners buying in DR' :
+          'Documents nécessaires pour les étrangers achetant en RD',
+          language === 'es' ? 'Cómo negociar el precio de una propiedad' :
+          language === 'en' ? 'How to negotiate property prices' :
+          'Comment négocier le prix d\'une propriété'
+        ],
+        icon: '📚'
+      },
+      {
+        id: 'inversion-inmobiliaria',
+        slug: 'inversion-inmobiliaria',
+        title: language === 'es' ? 'Inversión Inmobiliaria' :
+               language === 'en' ? 'Real Estate Investment' :
+               'Investissement Immobilier',
+        description: language === 'es' ? 'Estrategias, análisis y casos de éxito para maximizar tu retorno de inversión' :
+                     language === 'en' ? 'Strategies, analysis and success cases to maximize your return on investment' :
+                     'Stratégies, analyses et cas de succès pour maximiser votre retour sur investissement',
+        thumbnail: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop',
+        articleCount: 12,
+        featured: true,
+        recentArticles: [
+          language === 'es' ? 'ROI de Airbnb en Punta Cana: Análisis completo 2024' :
+          language === 'en' ? 'Airbnb ROI in Punta Cana: Complete 2024 analysis' :
+          'ROI Airbnb à Punta Cana : Analyse complète 2024',
+          language === 'es' ? 'Las 5 mejores zonas para inversión inmobiliaria en RD' :
+          language === 'en' ? 'Top 5 areas for real estate investment in DR' :
+          'Les 5 meilleures zones d\'investissement immobilier en RD',
+          language === 'es' ? 'Cómo calcular el ROI de una propiedad de alquiler' :
+          language === 'en' ? 'How to calculate ROI on rental property' :
+          'Comment calculer le ROI d\'une propriété locative'
+        ],
+        icon: '📈'
+      },
+      {
+        id: 'mercado-inmobiliario',
+        slug: 'mercado-inmobiliario',
+        title: language === 'es' ? 'Mercado Inmobiliario' :
+               language === 'en' ? 'Real Estate Market' :
+               'Marché Immobilier',
+        description: language === 'es' ? 'Análisis de tendencias, precios y oportunidades en el mercado dominicano' :
+                     language === 'en' ? 'Analysis of trends, prices and opportunities in the Dominican market' :
+                     'Analyse des tendances, prix et opportunités sur le marché dominicain',
+        thumbnail: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=600&fit=crop',
+        articleCount: 8,
+        featured: false,
+        recentArticles: [
+          language === 'es' ? 'Tendencias del mercado inmobiliario dominicano 2024' :
+          language === 'en' ? 'Dominican real estate market trends 2024' :
+          'Tendances du marché immobilier dominicain 2024',
+          language === 'es' ? 'Precios promedio por zona en Santo Domingo' :
+          language === 'en' ? 'Average prices by area in Santo Domingo' :
+          'Prix moyens par zone à Santo Domingo'
+        ],
+        icon: '🏘️'
+      },
+      {
+        id: 'estilo-de-vida',
+        slug: 'estilo-de-vida',
+        title: language === 'es' ? 'Estilo de Vida' :
+               language === 'en' ? 'Lifestyle' :
+               'Style de Vie',
+        description: language === 'es' ? 'Descubre la vida en República Dominicana: cultura, servicios y calidad de vida' :
+                     language === 'en' ? 'Discover life in Dominican Republic: culture, services and quality of life' :
+                     'Découvrez la vie en République dominicaine : culture, services et qualité de vie',
+        thumbnail: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=600&fit=crop',
+        articleCount: 10,
+        featured: false,
+        recentArticles: [
+          language === 'es' ? 'Vivir en Punta Cana: Guía completa para expatriados' :
+          language === 'en' ? 'Living in Punta Cana: Complete guide for expats' :
+          'Vivre à Punta Cana : Guide complet pour les expatriés',
+          language === 'es' ? 'Mejores colegios internacionales en República Dominicana' :
+          language === 'en' ? 'Best international schools in Dominican Republic' :
+          'Meilleures écoles internationales en République dominicaine'
+        ],
+        icon: '🌴'
+      },
+      {
+        id: 'legal-y-financiero',
+        slug: 'legal-y-financiero',
+        title: language === 'es' ? 'Legal y Financiero' :
+               language === 'en' ? 'Legal & Financial' :
+               'Juridique et Financier',
+        description: language === 'es' ? 'Aspectos legales, fiscales y financieros de la compra de propiedades' :
+                     language === 'en' ? 'Legal, tax and financial aspects of property purchases' :
+                     'Aspects juridiques, fiscaux et financiers des achats immobiliers',
+        thumbnail: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=600&fit=crop',
+        articleCount: 9,
+        featured: false,
+        recentArticles: [
+          language === 'es' ? 'Impuestos sobre propiedades para extranjeros en RD' :
+          language === 'en' ? 'Property taxes for foreigners in DR' :
+          'Impôts fonciers pour les étrangers en RD',
+          language === 'es' ? 'Cómo obtener un préstamo hipotecario en República Dominicana' :
+          language === 'en' ? 'How to get a mortgage in Dominican Republic' :
+          'Comment obtenir un prêt hypothécaire en République dominicaine'
+        ],
+        icon: '⚖️'
+      },
+      {
+        id: 'tecnologia-proptech',
+        slug: 'tecnologia-proptech',
+        title: language === 'es' ? 'Tecnología y PropTech' :
+               language === 'en' ? 'Technology & PropTech' :
+               'Technologie et PropTech',
+        description: language === 'es' ? 'Innovaciones tecnológicas que están transformando el sector inmobiliario' :
+                     language === 'en' ? 'Technological innovations transforming the real estate sector' :
+                     'Innovations technologiques transformant le secteur immobilier',
+        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+        articleCount: 6,
+        featured: false,
+        recentArticles: [
+          language === 'es' ? 'Tours virtuales: El futuro de las visitas inmobiliarias' :
+          language === 'en' ? 'Virtual tours: The future of property viewings' :
+          'Visites virtuelles : L\'avenir des visites immobilières',
+          language === 'es' ? 'Inteligencia artificial en la valoración de propiedades' :
+          language === 'en' ? 'Artificial intelligence in property valuation' :
+          'Intelligence artificielle dans l\'évaluation immobilière'
+        ],
+        icon: '🔧'
+      }
+    ],
+    featuredArticles: [
+      {
+        slug: 'guia-completa-comprar-villa-punta-cana',
+        title: language === 'es' ? 'Guía Completa para Comprar una Villa en Punta Cana' :
+                language === 'en' ? 'Complete Guide to Buying a Villa in Punta Cana' :
+                'Guide Complet pour Acheter une Villa à Punta Cana',
+        excerpt: language === 'es' ? 'Descubre paso a paso cómo adquirir tu villa soñada en el paraíso caribeño' :
+                 language === 'en' ? 'Discover step by step how to acquire your dream villa in the Caribbean paradise' :
+                 'Découvrez étape par étape comment acquérir votre villa de rêve dans le paradis caribéen',
+        featuredImage: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=450&fit=crop',
+        category: language === 'es' ? 'Guías de Compra' :
+                  language === 'en' ? 'Buying Guides' :
+                  'Guides d\'Achat',
+        categorySlug: 'guias-de-compra',
+        author: {
+          name: 'María Rodríguez',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          title: language === 'es' ? 'Especialista en Punta Cana' :
+                 language === 'en' ? 'Punta Cana Specialist' :
+                 'Spécialiste de Punta Cana'
+        },
+        publishedAt: '2024-03-20',
+        readTime: 15,
+        views: '12.5K',
+        tags: ['Punta Cana', 'Villas', language === 'es' ? 'Proceso de Compra' : language === 'en' ? 'Buying Process' : 'Processus d\'Achat']
+      },
+      {
+        slug: 'roi-airbnb-punta-cana-2024',
+        title: language === 'es' ? 'ROI de Airbnb en Punta Cana: Análisis Completo 2024' :
+                language === 'en' ? 'Airbnb ROI in Punta Cana: Complete 2024 Analysis' :
+                'ROI Airbnb à Punta Cana : Analyse Complète 2024',
+        excerpt: language === 'es' ? 'Estudio detallado de rentabilidad por zonas, tipos de propiedad y temporadas' :
+                 language === 'en' ? 'Detailed profitability study by areas, property types and seasons' :
+                 'Étude détaillée de rentabilité par zones, types de propriétés et saisons',
+        featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
+        category: language === 'es' ? 'Inversión Inmobiliaria' :
+                  language === 'en' ? 'Real Estate Investment' :
+                  'Investissement Immobilier',
+        categorySlug: 'inversion-inmobiliaria',
+        author: {
+          name: 'Pedro Santos',
+          avatar: 'https://i.pravatar.cc/150?img=6',
+          title: language === 'es' ? 'Experto en Inversiones' :
+                 language === 'en' ? 'Investment Expert' :
+                 'Expert en Investissements'
+        },
+        publishedAt: '2024-03-22',
+        readTime: 18,
+        views: '45.2K',
+        tags: ['Airbnb', 'ROI', 'Punta Cana']
+      }
+    ],
+    relatedProperties: [
+      {
+        slug: 'villa-punta-cana-inversion',
+        titulo: language === 'es' ? 'Villa para Inversión en Punta Cana' :
+                language === 'en' ? 'Investment Villa in Punta Cana' :
+                'Villa d\'Investissement à Punta Cana',
+        precio: '$485,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 3,
+        banos: 3,
+        metros: 250,
+        tipo: language === 'es' ? 'Villa' :
+              language === 'en' ? 'Villa' :
+              'Villa',
+        destacado: true,
+        descuento: 'ROI 16%'
+      },
+      {
+        slug: 'apartamento-airbnb-bavaro',
+        titulo: language === 'es' ? 'Apartamento Perfecto para Airbnb' :
+                language === 'en' ? 'Perfect Apartment for Airbnb' :
+                'Appartement Parfait pour Airbnb',
+        precio: '$185,000',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Bávaro',
+        habitaciones: 2,
+        banos: 2,
+        metros: 95,
+        tipo: language === 'es' ? 'Apartamento' :
+              language === 'en' ? 'Apartment' :
+              'Appartement',
+        nuevo: true
+      }
+    ],
+    stats: {
+      totalArticles: 60,
+      totalReads: '2.3M',
+      avgRating: 4.8,
+      publishedThisMonth: 8
+    },
+    seo: {
+      title: language === 'es' ? 'Blog Inmobiliario - Artículos CLIC' :
+             language === 'en' ? 'Real Estate Blog - CLIC Articles' :
+             'Blog Immobilier - Articles CLIC',
+      description: language === 'es' ? 'Descubre guías, consejos y análisis expertos sobre el mercado inmobiliario dominicano' :
+                   language === 'en' ? 'Discover guides, tips and expert analysis on the Dominican real estate market' :
+                   'Découvrez des guides, conseils et analyses d\'experts sur le marché immobilier dominicain'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const categories = articlesData.categories || [];
+const featuredCategories = categories.filter(cat => cat.featured);
+const regularCategories = categories.filter(cat => !cat.featured);
+const featuredArticles = articlesData.featuredArticles || [];
+const relatedProperties = articlesData.relatedProperties || [];
+const stats = articlesData.stats || {};
+const seo = articlesData.seo || {};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Blog Inmobiliario CLIC',
+    subtitle: 'Guías, consejos y análisis expertos para tomar las mejores decisiones inmobiliarias en República Dominicana',
+    featuredTitle: '🌟 Artículos más leídos',
+    categoriesTitle: 'Categorías Destacadas',
+    allCategoriesTitle: 'Todas las Categorías',
+    propertiesTitle: 'Propiedades destacadas en nuestros artículos',
+    propertiesSubtitle: 'Inversiones recomendadas por nuestros expertos',
+    expertiseTitle: '¿Por qué confiar en nuestro contenido?',
+    expertiseSubtitle: 'Nuestros artículos están respaldados por más de 15 años de experiencia en el mercado inmobiliario dominicano',
+    ctaTitle: '¿Necesitas asesoría personalizada?',
+    ctaSubtitle: 'Nuestros expertos están listos para ayudarte a tomar la mejor decisión',
+    ctaButton1: 'Hablar con un experto',
+    ctaButton2: 'Ver todas las propiedades',
+    readMore: 'Leer más',
+    articles: 'artículos',
+    recentArticles: 'Artículos recientes:',
+    minRead: 'min de lectura',
+    views: 'lecturas',
+    author: 'Por',
+    statsLabels: {
+      articles: 'Artículos publicados',
+      reads: 'Lecturas totales',
+      rating: 'Calificación promedio',
+      thisMonth: 'Nuevos este mes'
+    },
+    expertiseItems: {
+      local: {
+        title: 'Conocimiento Local',
+        description: 'Expertos que viven y trabajan en República Dominicana'
+      },
+      experience: {
+        title: '15+ Años de Experiencia',
+        description: 'Hemos acompañado a miles de clientes en sus decisiones inmobiliarias'
+      },
+      updated: {
+        title: 'Información Actualizada',
+        description: 'Contenido revisado y actualizado regularmente por nuestros especialistas'
+      },
+      verified: {
+        title: 'Datos Verificados',
+        description: 'Todas nuestras cifras y análisis están respaldados por fuentes oficiales'
+      }
+    }
+  },
+  en: {
+    title: 'CLIC Real Estate Blog',
+    subtitle: 'Expert guides, tips and analysis to make the best real estate decisions in Dominican Republic',
+    featuredTitle: '🌟 Most read articles',
+    categoriesTitle: 'Featured Categories',
+    allCategoriesTitle: 'All Categories',
+    propertiesTitle: 'Properties featured in our articles',
+    propertiesSubtitle: 'Investments recommended by our experts',
+    expertiseTitle: 'Why trust our content?',
+    expertiseSubtitle: 'Our articles are backed by more than 15 years of experience in the Dominican real estate market',
+    ctaTitle: 'Need personalized advice?',
+    ctaSubtitle: 'Our experts are ready to help you make the best decision',
+    ctaButton1: 'Talk to an expert',
+    ctaButton2: 'View all properties',
+    readMore: 'Read more',
+    articles: 'articles',
+    recentArticles: 'Recent articles:',
+    minRead: 'min read',
+    views: 'views',
+    author: 'By',
+    statsLabels: {
+      articles: 'Published articles',
+      reads: 'Total reads',
+      rating: 'Average rating',
+      thisMonth: 'New this month'
+    },
+    expertiseItems: {
+      local: {
+        title: 'Local Knowledge',
+        description: 'Experts who live and work in Dominican Republic'
+      },
+      experience: {
+        title: '15+ Years Experience',
+        description: 'We have guided thousands of clients in their real estate decisions'
+      },
+      updated: {
+        title: 'Updated Information',
+        description: 'Content reviewed and updated regularly by our specialists'
+      },
+      verified: {
+        title: 'Verified Data',
+        description: 'All our figures and analysis are backed by official sources'
+      }
+    }
+  },
+  fr: {
+    title: 'Blog Immobilier CLIC',
+    subtitle: 'Guides, conseils et analyses d\'experts pour prendre les meilleures décisions immobilières en République dominicaine',
+    featuredTitle: '🌟 Articles les plus lus',
+    categoriesTitle: 'Catégories en Vedette',
+    allCategoriesTitle: 'Toutes les Catégories',
+    propertiesTitle: 'Propriétés mises en avant dans nos articles',
+    propertiesSubtitle: 'Investissements recommandés par nos experts',
+    expertiseTitle: 'Pourquoi faire confiance à notre contenu?',
+    expertiseSubtitle: 'Nos articles sont soutenus par plus de 15 ans d\'expérience sur le marché immobilier dominicain',
+    ctaTitle: 'Besoin de conseils personnalisés?',
+    ctaSubtitle: 'Nos experts sont prêts à vous aider à prendre la meilleure décision',
+    ctaButton1: 'Parler à un expert',
+    ctaButton2: 'Voir toutes les propriétés',
+    readMore: 'Lire plus',
+    articles: 'articles',
+    recentArticles: 'Articles récents:',
+    minRead: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    statsLabels: {
+      articles: 'Articles publiés',
+      reads: 'Lectures totales',
+      rating: 'Note moyenne',
+      thisMonth: 'Nouveaux ce mois'
+    },
+    expertiseItems: {
+      local: {
+        title: 'Connaissance Locale',
+        description: 'Experts qui vivent et travaillent en République dominicaine'
+      },
+      experience: {
+        title: '15+ Ans d\'Expérience',
+        description: 'Nous avons guidé des milliers de clients dans leurs décisions immobilières'
+      },
+      updated: {
+        title: 'Information Mise à Jour',
+        description: 'Contenu revu et mis à jour régulièrement par nos spécialistes'
+      },
+      verified: {
+        title: 'Données Vérifiées',
+        description: 'Tous nos chiffres et analyses sont soutenus par des sources officielles'
+      }
+    }
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    properties: '/comprar',
+    articlesBase: '/articulos'
+  },
+  en: {
+    contact: '/en/contact',
+    properties: '/en/buy',
+    articlesBase: '/en/articles'
+  },
+  fr: {
+    contact: '/fr/contact',
+    properties: '/fr/acheter',
+    articlesBase: '/fr/articles'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = {
+    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+  };
+  
+  const monthNames = months[language] || months.es;
+  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+console.log('✅ ArticlesMainLayout preparado:', {
+  language,
+  categoriesCount: categories.length,
+  featuredCount: featuredCategories.length,
+  featuredArticlesCount: featuredArticles.length,
+  totalArticles: stats.totalArticles
+});
+---
+
+<Layout 
+  title={seo.title || text.title}
+  description={seo.description || text.subtitle}
+  language={language}
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center text-white">
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">
+          {text.title}
+        </h1>
+        <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+          {text.subtitle}
+        </p>
+        
+        <!-- Stats -->
+        <div class="flex flex-wrap justify-center gap-8 mt-10">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">{stats.totalArticles || 60}+</div>
+            <div class="text-sm text-white/80">{text.statsLabels.articles}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">{stats.totalReads || '2.3M'}+</div>
+            <div class="text-sm text-white/80">{text.statsLabels.reads}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">{stats.avgRating || 4.8}/5</div>
+            <div class="text-sm text-white/80">{text.statsLabels.rating}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">{stats.publishedThisMonth || 8}</div>
+            <div class="text-sm text-white/80">{text.statsLabels.thisMonth}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Articles -->
+  {featuredArticles.length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          {text.featuredTitle}
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredArticles.map((article) => (
+            <a 
+              href={`${currentRoutes.articlesBase}/${article.categorySlug}/${article.slug}`}
+              class="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              <div class="aspect-[16/9] relative overflow-hidden">
+                <img 
+                  src={article.featuredImage} 
+                  alt={article.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                
+                <!-- Category badge -->
+                <div class="absolute top-4 left-4">
+                  <span class="bg-[#f04e00] text-white px-3 py-1 rounded-full text-sm font-medium">
+                    {article.category}
+                  </span>
+                </div>
+                
+                <!-- Read stats -->
+                <div class="absolute top-4 right-4 bg-black/80 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  {article.views}
+                </div>
+                
+                <!-- Read time indicator -->
+                <div class="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm">
+                  {article.readTime} {text.minRead}
+                </div>
+              </div>
+              
+              <div class="p-6">
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                  {article.tags.map(tag => (
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors">
+                  {article.title}
+                </h3>
+                
+                <p class="text-gray-600 mb-4">
+                  {article.excerpt}
+                </p>
+                
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img 
+                      src={article.author.avatar} 
+                      alt={article.author.name}
+                      class="w-10 h-10 rounded-full"
+                    />
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
+                      <p class="text-xs text-gray-500">{article.author.title}</p>
+                    </div>
+                  </div>
+                  
+                  <span class="text-sm text-gray-500">
+                    {formatDate(article.publishedAt)}
+                  </span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Featured Categories -->
+  {featuredCategories.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.categoriesTitle}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredCategories.map((category) => (
+            <a 
+              href={`${currentRoutes.articlesBase}/${category.slug}`}
+              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div class="aspect-[16/9] relative">
+                <img 
+                  src={category.thumbnail} 
+                  alt={category.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                
+                <!-- Content overlay -->
+                <div class="absolute bottom-0 left-0 right-0 p-8">
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="text-4xl">{category.icon}</span>
+                    <h3 class="text-3xl font-bold text-white">{category.title}</h3>
+                  </div>
+                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/80">
+                      {category.articleCount} {text.articles}
+                    </span>
+                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                      {text.readMore}
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
+                  
+                  <!-- Recent articles preview -->
+                  {category.recentArticles && (
+                    <div class="mt-4 pt-4 border-t border-white/20">
+                      <p class="text-sm text-white/70 mb-2">{text.recentArticles}</p>
+                      <ul class="text-sm text-white/90 space-y-1">
+                        {category.recentArticles.slice(0, 3).map(article => (
+                          <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            {article}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- All Categories -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularCategories.map((category) => (
+          <a 
+            href={`${currentRoutes.articlesBase}/${category.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
+          >
+            <div class="flex items-start gap-4">
+              <span class="text-4xl flex-shrink-0">{category.icon}</span>
+              <div class="flex-1">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                  {category.title}
+                </h3>
+                <p class="text-gray-600 mb-4">{category.description}</p>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-500">
+                    {category.articleCount} {text.articles}
+                  </span>
+                  <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    {text.readMore}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  <PropertyCarousel 
+    title={text.propertiesTitle}
+    subtitle={text.propertiesSubtitle}
+    properties={relatedProperties}
+    viewAllLink={`${currentRoutes.properties}?fuente=blog`}
+    language={language}
+  />
+
+  <!-- Expertise Section -->
+  <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        {text.expertiseTitle}
+      </h2>
+      <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
+        {text.expertiseSubtitle}
+      </p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.local.title}</h3>
+          <p class="text-sm text-white/70">{text.expertiseItems.local.description}</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.experience.title}</h3>
+          <p class="text-sm text-white/70">{text.expertiseItems.experience.description}</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.updated.title}</h3>
+          <p class="text-sm text-white/70">{text.expertiseItems.updated.description}</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.verified.title}</h3>
+          <p class="text-sm text-white/70">{text.expertiseItems.verified.description}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        {text.ctaTitle}
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        {text.ctaSubtitle}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href={currentRoutes.contact} class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium">
+          {text.ctaButton1}
+        </a>
+        <a href={currentRoutes.properties} class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium">
+          {text.ctaButton2}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

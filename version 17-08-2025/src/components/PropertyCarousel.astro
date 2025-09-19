@@ -1,0 +1,244 @@
+---
+export interface Props {
+  title: string;
+  subtitle?: string;
+  properties: Array<{
+    slug: string;
+    titulo: string;
+    precio: string;
+    imagen: string;
+    sector: string;
+    habitaciones: number;
+    banos: number;
+    metros: number;
+    tipo: string;
+    destacado?: boolean;
+    nuevo?: boolean;
+    descuento?: string;
+  }>;
+  viewAllLink?: string;
+  theme?: 'default' | 'luxury' | 'investment';
+}
+
+const { 
+  title, 
+  subtitle, 
+  properties, 
+  viewAllLink,
+  theme = 'default' 
+} = Astro.props;
+
+if (!properties || properties.length === 0) return null;
+
+// ID único para este carrusel
+const carouselId = `carousel-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<section class="py-12">
+  <div class="container mx-auto px-4">
+    {/* Header */}
+    <div class="flex items-start justify-between mb-8 gap-6">
+      <div class="flex-1">
+        <h3 class="text-2xl md:text-3xl font-bold text-gray-900">{title}</h3>
+        {subtitle && (
+          <p class="text-gray-600 mt-2">{subtitle}</p>
+        )}
+      </div>
+      {viewAllLink && (
+        <div class="hidden md:flex flex-col items-end">
+          <a 
+            href={viewAllLink}
+            class="flex items-start gap-2 text-[#f04e00] hover:text-[#d94400] font-medium transition-colors text-right leading-tight max-w-xs"
+          >
+            <span class="text-sm leading-tight">
+              Ver todas las {title.toLowerCase()}
+            </span>
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      )}
+    </div>
+
+    {/* Carrusel Container */}
+    <div class="relative">
+      {/* Botones de navegación */}
+      <button 
+        class="carousel-prev absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow"
+        aria-label="Anterior"
+      >
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      
+      <button 
+        class="carousel-next absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow"
+        aria-label="Siguiente"
+      >
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </button>
+
+      {/* Carrusel */}
+      <div class="overflow-hidden">
+        <div class="flex gap-6 transition-transform duration-300" id={carouselId}>
+          {properties.map((property) => (
+            <article class="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 xl:w-1/4">
+              <a 
+                href={`/comprar/${property.tipo?.toLowerCase().replace(/\s+/g, '-')}/${property.sector?.toLowerCase().replace(/[,\s]+/g, '-')}/${property.slug}`}
+                class="block group"
+              >
+                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                  {/* Imagen */}
+                  <div class="relative aspect-[4/3] overflow-hidden">
+                    <img 
+                      src={property.imagen} 
+                      alt={property.titulo}
+                      class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                    
+                    {/* Badges */}
+                    <div class="absolute top-3 left-3 flex flex-col gap-2">
+                      {property.destacado && (
+                        <span class="bg-[#f04e00] text-white px-3 py-1 rounded-full text-xs font-medium">
+                          Destacado
+                        </span>
+                      )}
+                      {property.nuevo && (
+                        <span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          Nuevo
+                        </span>
+                      )}
+                      {property.descuento && (
+                        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          {property.descuento}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Tipo de propiedad */}
+                    <span class="absolute bottom-3 left-3 bg-black/70 text-white px-3 py-1 rounded text-sm">
+                      {property.tipo}
+                    </span>
+                    
+                    {/* Favorito */}
+                    <button 
+                      class="absolute top-3 right-3 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                      onclick="event.preventDefault(); event.stopPropagation();"
+                    >
+                      <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Contenido */}
+                  <div class="p-4">
+                    <p class="text-sm text-gray-600 mb-1">{property.sector}</p>
+                    <h4 class="font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors">
+                      {property.titulo}
+                    </h4>
+                    
+                    {/* Características */}
+                    <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        {property.habitaciones}
+                      </span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2m12 0V5a2 2 0 00-2-2M8 7V5a2 2 0 012-2"></path>
+                        </svg>
+                        {property.banos}
+                      </span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path>
+                        </svg>
+                        {property.metros} m²
+                      </span>
+                    </div>
+                    
+                    {/* Precio */}
+                    <div class="text-xl font-bold text-[#f04e00]">
+                      {property.precio}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Ver todas móvil - también con text wrap */}
+    {viewAllLink && (
+      <div class="mt-6 text-center md:hidden">
+        <a 
+          href={viewAllLink}
+          class="inline-flex items-start gap-2 text-[#f04e00] hover:text-[#d94400] font-medium"
+        >
+          <span class="text-sm leading-tight">
+            Ver todas las {title.toLowerCase()}
+          </span>
+          <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
+    )}
+  </div>
+</section>
+
+<script define:vars={{ carouselId }}>
+  document.addEventListener('DOMContentLoaded', () => {
+    const carousel = document.getElementById(carouselId);
+    const prevBtn = carousel.parentElement.querySelector('.carousel-prev');
+    const nextBtn = carousel.parentElement.querySelector('.carousel-next');
+    
+    let currentIndex = 0;
+    const itemWidth = carousel.children[0].offsetWidth + 24; // width + gap
+    const visibleItems = Math.floor(carousel.parentElement.offsetWidth / itemWidth);
+    const maxIndex = Math.max(0, carousel.children.length - visibleItems);
+    
+    function updateCarousel() {
+      carousel.style.transform = `translateX(-${currentIndex * itemWidth}px)`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex >= maxIndex;
+      prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
+      nextBtn.style.opacity = currentIndex >= maxIndex ? '0.5' : '1';
+    }
+    
+    prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateCarousel();
+      }
+    });
+    
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < maxIndex) {
+        currentIndex++;
+        updateCarousel();
+      }
+    });
+    
+    updateCarousel();
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

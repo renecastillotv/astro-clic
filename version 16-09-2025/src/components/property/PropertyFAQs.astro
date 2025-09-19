@@ -1,0 +1,243 @@
+---
+// src/components/property/PropertyFAQs.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+const project = data.project || null;
+
+// Función para limpiar texto de FAQs
+function cleanFAQText(text) {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')  // Remover **texto**
+    .replace(/<b>(.*?)<\/b>/gi, '$1') // Remover <b>texto</b>
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remover <strong>texto</strong>
+    .replace(/<i>(.*?)<\/i>/gi, '$1') // Remover <i>texto</i>
+    .replace(/<em>(.*?)<\/em>/gi, '$1') // Remover <em>texto</em>
+    .replace(/<br\s*\/?>/gi, ' ') // Remover <br>
+    .replace(/<p>(.*?)<\/p>/gi, '$1 ') // Remover <p>texto</p>
+    .replace(/<[^>]*>/g, '') // Remover cualquier otra etiqueta HTML
+    .replace(/&nbsp;/g, ' ') // Remover &nbsp;
+    .replace(/&amp;/g, '&') // Decodificar &amp;
+    .replace(/&lt;/g, '<') // Decodificar &lt;
+    .replace(/&gt;/g, '>') // Decodificar &gt;
+    .replace(/&quot;/g, '"') // Decodificar &quot;
+    .replace(/&#39;/g, "'") // Decodificar &#39;
+    .replace(/\s+/g, ' ') // Múltiples espacios a uno
+    .trim();
+}
+
+// Obtener FAQs de múltiples fuentes
+const contentFaqs = data.content?.faqs || [];
+const relatedFaqs = data.relatedContent?.faqs || [];
+const seoFaqs = data.content?.seo_content?.filter(item => item.content_type === 'faq') || [];
+
+// Combinar FAQs de todas las fuentes y limpiar texto
+let allFaqs = [
+  ...contentFaqs.map(faq => ({
+    ...faq,
+    question: cleanFAQText(faq.question),
+    answer: cleanFAQText(faq.answer)
+  })),
+  ...relatedFaqs.map(faq => ({
+    ...faq,
+    question: cleanFAQText(faq.question),
+    answer: cleanFAQText(faq.answer)
+  })),
+  ...seoFaqs.map(seoItem => ({
+    question: cleanFAQText(seoItem.title),
+    answer: cleanFAQText(seoItem.description || seoItem.excerpt || seoItem.content),
+    source: 'seo_content'
+  }))
+];
+
+// Si no hay FAQs del provider, usar FAQs de fallback específicos para la propiedad
+const fallbackFaqs = [
+  {
+    question: "¿Cómo funciona el proceso de compra?",
+    answer: "El proceso incluye: 1) Selección de propiedad, 2) Verificación legal, 3) Negociación, 4) Financiamiento, 5) Firma y entrega de llaves. Te acompañamos en cada paso para garantizar una transacción segura y transparente."
+  },
+  {
+    question: data.isProject ? "¿Cuándo es la entrega del proyecto?" : "¿La propiedad está lista para habitar?",
+    answer: data.isProject 
+      ? `La entrega está programada para ${project?.phases?.[0]?.estimatedDelivery ? new Date(project.phases[0].estimatedDelivery).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' }) : 'abril 2026'}. El proyecto cuenta con garantías del desarrollador y seguimiento durante toda la construcción.`
+      : "Esta propiedad está lista para mudarse inmediatamente. Cuenta con todos los servicios básicos conectados y documentación legal al día."
+  },
+  {
+    question: "¿Qué incluye el Bono Primera Vivienda?",
+    answer: "El Bono Primera Vivienda puede cubrir hasta RD$300,000 del valor de la propiedad. Incluye subsidio del gobierno y beneficios fiscales para compradores elegibles que cumplan con los requisitos establecidos por el estado."
+  },
+  {
+    question: data.isProject ? "¿Qué garantías ofrece el desarrollador?" : "¿Qué documentos legales incluye la compra?",
+    answer: data.isProject
+      ? "El desarrollador ofrece garantía de construcción, seguro de cumplimiento, certificaciones de calidad y respaldo legal completo. Además, el proyecto cuenta con todos los permisos municipales y ambientales."
+      : "La compra incluye: título de propiedad, certificado catastral, paz y salvo municipal, certificación registral, planos aprobados y todos los documentos legales necesarios para el traspaso."
+  },
+  {
+    question: "¿Ofrecen opciones de financiamiento?",
+    answer: "Trabajamos con los principales bancos del país para ofrecerte las mejores opciones de financiamiento. Disponible hasta 80% del valor con tasas preferenciales y planes de pago flexibles adaptados a tu perfil crediticio."
+  },
+  {
+    question: `¿Por qué invertir en ${property.sector || property.location}?`,
+    answer: `${property.sector || property.location} es una zona de alta valorización con excelente conectividad, servicios cercanos, infraestructura desarrollada y crecimiento sostenido. Ideal tanto para inversión como para residencia familiar.`
+  }
+];
+
+// Usar FAQs del provider si están disponibles, sino usar fallback
+const faqsToShow = allFaqs.length > 0 ? allFaqs : fallbackFaqs;
+---
+
+<!-- FAQs Section -->
+{faqsToShow.length > 0 && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      Preguntas Frecuentes
+    </h2>
+    
+    <div class="space-y-4" id="faqs-container">
+      {faqsToShow.slice(0, 6).map((faq, index) => (
+        <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+          <button 
+            onclick={`toggleFAQ(${index})`}
+            class="w-full text-left p-4 bg-white hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20"
+            aria-expanded="false"
+            id={`faq-button-${index}`}
+          >
+            <span class="font-medium text-gray-900 pr-4 leading-snug">
+              {faq.question}
+            </span>
+            <i class="fas fa-chevron-down text-[#f04e00] transform transition-transform duration-200 flex-shrink-0 text-sm" id={`faq-icon-${index}`}></i>
+          </button>
+          
+          <div 
+            class="hidden border-t border-gray-100 p-4 bg-gray-50" 
+            id={`faq-content-${index}`}
+            aria-hidden="true"
+          >
+            <div class="prose prose-sm max-w-none">
+              <p class="text-gray-700 leading-relaxed m-0">
+                {faq.answer}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Call to Action limpio y profesional -->
+    <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+      <div class="text-center space-y-3">
+        <div class="flex items-center justify-center gap-2 text-[#f04e00]">
+          <i class="fas fa-question-circle text-xl"></i>
+          <span class="font-semibold">¿Tienes más preguntas?</span>
+        </div>
+        <p class="text-gray-600 text-sm">
+          Nuestros asesores están listos para resolver todas tus dudas sobre esta propiedad
+        </p>
+        <button 
+          onclick="requestPropertyConsultation()"
+          class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-all duration-300 hover:shadow-lg"
+        >
+          <i class="fas fa-comments"></i>
+          Consultar con Experto
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  // Función para toggle de FAQs
+  window.toggleFAQ = function(index) {
+    const content = document.getElementById(`faq-content-${index}`);
+    const button = document.getElementById(`faq-button-${index}`);
+    const icon = document.getElementById(`faq-icon-${index}`);
+    
+    if (!content || !button || !icon) return;
+    
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    
+    if (isExpanded) {
+      // Cerrar
+      content.classList.add('hidden');
+      content.setAttribute('aria-hidden', 'true');
+      button.setAttribute('aria-expanded', 'false');
+      icon.style.transform = 'rotate(0deg)';
+      icon.classList.remove('fa-chevron-up');
+      icon.classList.add('fa-chevron-down');
+    } else {
+      // Abrir
+      content.classList.remove('hidden');
+      content.setAttribute('aria-hidden', 'false');
+      button.setAttribute('aria-expanded', 'true');
+      icon.style.transform = 'rotate(180deg)';
+      icon.classList.remove('fa-chevron-down');
+      icon.classList.add('fa-chevron-up');
+      
+      // Scroll suave hacia la pregunta
+      setTimeout(() => {
+        button.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+        });
+      }, 100);
+    }
+  };
+
+  // Función para solicitar consulta
+  window.requestPropertyConsultation = function() {
+    const propertyTitle = document.querySelector('h1')?.textContent || 'Propiedad de interés';
+    const message = `¡Hola! Tengo preguntas sobre: ${propertyTitle}. Me gustaría hablar con un asesor para resolver mis dudas sobre financiamiento, documentación y proceso de compra.`;
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback
+    showCopyFeedback('¡Perfecto! Te contactaremos pronto para resolver tus dudas.');
+  };
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+</script>

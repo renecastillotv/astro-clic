@@ -1,0 +1,1736 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+};
+// =====================================================
+// FUNCIONES SEO CON GOOGLE PLACES INTEGRATION (EXISTENTES)
+// =====================================================
+const googlePlacesCache = new Map();
+async function getLocationGooglePlacesData(supabaseClient, locationName) {
+  if (!locationName) return null;
+  if (googlePlacesCache.has(locationName)) {
+    console.log(`🎯 Cache hit para Google Places: ${locationName}`);
+    return googlePlacesCache.get(locationName);
+  }
+  console.log(`🔍 Obteniendo datos de Google Places para: ${locationName}`);
+  try {
+    const { data: locationInsight, error: locationError } = await supabaseClient.from('location_insights_with_places').select('id, location_name, services_score').ilike('location_name', `%${locationName}%`).eq('status', 'active').single();
+    if (locationError || !locationInsight) {
+      console.log(`⚠️ No se encontró location_insight para: ${locationName}`);
+      return null;
+    }
+    const { data: placesData, error: placesError } = await supabaseClient.from('google_places_data').select(`
+        place_name, place_category, place_type, rating, 
+        user_ratings_total, distance_display, business_status,
+        is_featured, relevance_score, address
+      `).eq('location_insight_id', locationInsight.id).eq('status', 'active').order('distance_meters', {
+      ascending: true
+    });
+    if (placesError) {
+      console.error(`❌ Error obteniendo Google Places data:`, placesError);
+      return null;
+    }
+    const placesByCategory = {};
+    const featuredPlaces = [];
+    (placesData || []).forEach((place)=>{
+      if (!placesByCategory[place.place_category]) {
+        placesByCategory[place.place_category] = [];
+      }
+      placesByCategory[place.place_category].push(place);
+      if (place.is_featured && featuredPlaces.length < 10) {
+        featuredPlaces.push(place);
+      }
+    });
+    const stats = {
+      total_places: placesData?.length || 0,
+      categories_count: Object.keys(placesByCategory).length,
+      featured_count: featuredPlaces.length,
+      avg_rating: placesData?.length > 0 ? (placesData.filter((p)=>p.rating).reduce((sum, p)=>sum + p.rating, 0) / placesData.filter((p)=>p.rating).length).toFixed(1) : null,
+      services_score: locationInsight.services_score || 0
+    };
+    const result = {
+      location_insight_id: locationInsight.id,
+      location_name: locationInsight.location_name,
+      places_by_category: placesByCategory,
+      featured_places: featuredPlaces,
+      stats
+    };
+    googlePlacesCache.set(locationName, result);
+    setTimeout(()=>googlePlacesCache.delete(locationName), 30 * 60 * 1000);
+    return result;
+  } catch (error) {
+    console.error(`❌ Error crítico obteniendo Google Places data:`, error);
+    return null;
+  }
+}
+function optimizePropertyImages(property) {
+  const location = property.sectors?.name || property.cities?.name || '';
+  const propertyType = property.property_categories?.name || 'Propiedad';
+  const allImages = new Map();
+  if (property.main_image_url && property.main_image_url.trim()) {
+    allImages.set(property.main_image_url, {
+      url: property.main_image_url,
+      title: `${property.name} - Imagen Principal`,
+      description: `${propertyType} de ${property.bedrooms} habitaciones en ${location}`,
+      is_main: true,
+      sort_order: 0,
+      source: 'main'
+    });
+  }
+  if (property.property_images && property.property_images.length > 0) {
+    property.property_images.forEach((img, index)=>{
+      if (img.url && img.url.trim()) {
+        const key = img.url;
+        if (!allImages.has(key)) {
+          allImages.set(key, {
+            url: img.url,
+            title: img.title || `${property.name} - Vista ${index + 1}`,
+            description: img.description || `${propertyType} en ${location}`,
+            is_main: img.is_main || false,
+            sort_order: img.sort_order || index + 1,
+            source: 'property_images'
+          });
+        }
+      }
+    });
+  }
+  if (property.gallery_images_url && typeof property.gallery_images_url === 'string') {
+    const galleryUrls = property.gallery_images_url.split(',').map((url)=>url.trim()).filter((url)=>url.length > 0 && url !== ',');
+    galleryUrls.forEach((url, index)=>{
+      if (!allImages.has(url)) {
+        allImages.set(url, {
+          url: url,
+          title: `${property.name} - Galería ${index + 1}`,
+          description: `${propertyType} en ${location}`,
+          is_main: false,
+          sort_order: 100 + index,
+          source: 'gallery'
+        });
+      }
+    });
+  }
+  const unifiedImages = Array.from(allImages.values()).sort((a, b)=>{
+    if (a.is_main && !b.is_main) return -1;
+    if (!a.is_main && b.is_main) return 1;
+    return a.sort_order - b.sort_order;
+  }).map((img, index)=>({
+      ...img,
+      optimized_url: `${img.url}?w=800&h=600&q=85&f=webp`,
+      thumbnail_url: `${img.url}?w=300&h=200&q=80&f=webp`,
+      position: index
+    }));
+  const mainImage = unifiedImages.find((img)=>img.is_main) || unifiedImages[0];
+  return {
+    ...property,
+    main_image_optimized: mainImage ? {
+      url: mainImage.url,
+      alt: mainImage.title,
+      width: 800,
+      height: 600,
+      optimized_url: mainImage.optimized_url
+    } : null,
+    images_unified: unifiedImages,
+    images_count: unifiedImages.length
+  };
+}
+function unifyPropertyPricing(property) {
+  const prices = {
+    sale: null,
+    rental: null,
+    temp_rental: null,
+    furnished_rental: null,
+    display_price: null,
+    price_range: null
+  };
+  if (property.sale_price && property.sale_price > 0) {
+    prices.sale = {
+      amount: property.sale_price,
+      currency: property.sale_currency || 'USD',
+      formatted: `$${property.sale_price.toLocaleString()} ${property.sale_currency || 'USD'}`
+    };
+  }
+  if (property.rental_price && property.rental_price > 0) {
+    prices.rental = {
+      amount: property.rental_price,
+      currency: property.rental_currency || 'USD',
+      formatted: `$${property.rental_price.toLocaleString()} ${property.rental_currency || 'USD'}/mes`
+    };
+  }
+  if (property.temp_rental_price && property.temp_rental_price > 0) {
+    prices.temp_rental = {
+      amount: property.temp_rental_price,
+      currency: property.temp_rental_currency || 'USD',
+      formatted: `$${property.temp_rental_price.toLocaleString()} ${property.temp_rental_currency || 'USD'}/noche`
+    };
+  }
+  if (property.furnished_rental_price && property.furnished_rental_price > 0) {
+    prices.furnished_rental = {
+      amount: property.furnished_rental_price,
+      currency: property.furnished_rental_currency || 'USD',
+      formatted: `$${property.furnished_rental_price.toLocaleString()} ${property.furnished_rental_currency || 'USD'}/mes amueblado`
+    };
+  }
+  if (prices.sale) {
+    prices.display_price = prices.sale;
+    prices.operation_type = 'sale';
+  } else if (prices.rental) {
+    prices.display_price = prices.rental;
+    prices.operation_type = 'rental';
+  } else if (prices.furnished_rental) {
+    prices.display_price = prices.furnished_rental;
+    prices.operation_type = 'furnished_rental';
+  } else if (prices.temp_rental) {
+    prices.display_price = prices.temp_rental;
+    prices.operation_type = 'temp_rental';
+  }
+  return {
+    ...property,
+    pricing_unified: prices
+  };
+}
+function generateSEOMetadata(context) {
+  const { type, searchResults, property, tags, urlSegments, googlePlacesData } = context;
+  let seoData = {
+    title: '',
+    description: '',
+    keywords: [],
+    h1: '',
+    structured_data: {},
+    og: {},
+    twitter: {},
+    technical: {},
+    places_enrichment: null
+  };
+  if (type === 'single-property' || type === 'single-property-project') {
+    const prop = property;
+    const location = prop.sectors?.name || prop.cities?.name || 'República Dominicana';
+    const propertyType = prop.property_categories?.name || 'Propiedad';
+    const pricing = prop.pricing_unified?.display_price;
+    const price = pricing ? pricing.formatted : 'Precio disponible';
+    let nearbyServices = '';
+    if (googlePlacesData && googlePlacesData.featured_places?.length > 0) {
+      const topServices = googlePlacesData.featured_places.slice(0, 3);
+      nearbyServices = ` Cerca de ${topServices.map((s)=>s.place_name).join(', ')}.`;
+    }
+    seoData.title = `${prop.name} | ${propertyType} en ${location} | CLIC Inmobiliaria`;
+    seoData.description = `${propertyType} de ${prop.bedrooms} habitaciones y ${prop.bathrooms} baños en ${location}. ${price}. ${prop.built_area}m².${nearbyServices} Ver fotos y detalles.`;
+    seoData.h1 = prop.name;
+    seoData.keywords = [
+      `${propertyType.toLowerCase()} ${location.toLowerCase()}`,
+      `${prop.bedrooms} habitaciones ${location.toLowerCase()}`,
+      `comprar ${propertyType.toLowerCase()} ${location.toLowerCase()}`,
+      'bienes raices republica dominicana'
+    ];
+    if (googlePlacesData) {
+      const serviceKeywords = Object.keys(googlePlacesData.places_by_category).map((category)=>`cerca de ${category.replace('_', ' ')}`).slice(0, 3);
+      seoData.keywords.push(...serviceKeywords);
+    }
+    seoData.structured_data = {
+      "@context": "https://schema.org",
+      "@type": "RealEstateListing",
+      "name": prop.name,
+      "description": seoData.description,
+      "url": `https://clic.do/${prop.slug_url}`,
+      "image": [
+        prop.main_image_optimized?.url
+      ].filter(Boolean),
+      "offers": {
+        "@type": "Offer",
+        "price": pricing?.amount,
+        "priceCurrency": pricing?.currency,
+        "availability": prop.property_status === 'Publicada' ? "InStock" : "OutOfStock"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": location,
+        "addressCountry": "DO"
+      },
+      "floorSize": {
+        "@type": "QuantitativeValue",
+        "value": prop.built_area,
+        "unitCode": "MTK"
+      },
+      "numberOfRooms": prop.bedrooms,
+      "numberOfBathroomsTotal": prop.bathrooms
+    };
+    if (googlePlacesData && googlePlacesData.featured_places?.length > 0) {
+      seoData.structured_data.nearbyPoints = googlePlacesData.featured_places.slice(0, 5).map((place)=>({
+          "@type": "Place",
+          "name": place.place_name,
+          "description": place.place_category,
+          "address": place.address
+        }));
+    }
+  } else if (type === 'property-list') {
+    const properties = searchResults?.properties || [];
+    const count = searchResults?.pagination?.totalCount || properties.length;
+    const location = extractLocationFromTags(tags) || 'República Dominicana';
+    const propertyType = extractPropertyTypeFromTags(tags) || 'Propiedades';
+    const operation = extractOperationFromTags(tags) || 'Venta';
+    const displayPrices = properties.map((p)=>p.pricing_unified?.display_price?.amount).filter((p)=>p && p > 0).sort((a, b)=>a - b);
+    const minPrice = displayPrices.length > 0 ? displayPrices[0] : null;
+    const maxPrice = displayPrices.length > 0 ? displayPrices[displayPrices.length - 1] : null;
+    let servicesInfo = '';
+    if (googlePlacesData && googlePlacesData.stats.total_places > 0) {
+      const topCategories = Object.keys(googlePlacesData.places_by_category).sort((a, b)=>googlePlacesData.places_by_category[b].length - googlePlacesData.places_by_category[a].length).slice(0, 3);
+      const categoryNames = {
+        'banks': 'bancos',
+        'hospitals': 'centros médicos',
+        'schools': 'colegios',
+        'supermarkets': 'supermercados',
+        'shopping_malls': 'centros comerciales',
+        'restaurants': 'restaurantes'
+      };
+      const services = topCategories.map((cat)=>categoryNames[cat] || cat).join(', ');
+      servicesInfo = ` Zona con excelentes servicios: ${services}.`;
+    }
+    seoData.title = `${propertyType} en ${operation} en ${location} | ${count} Disponibles | CLIC Inmobiliaria`;
+    let priceInfo = '';
+    if (minPrice && maxPrice) {
+      if (minPrice === maxPrice) {
+        priceInfo = `Precio: $${minPrice.toLocaleString()}`;
+      } else {
+        priceInfo = `Precios desde $${minPrice.toLocaleString()} hasta $${maxPrice.toLocaleString()}`;
+      }
+    }
+    seoData.description = `Descubre ${count} ${propertyType.toLowerCase()} en ${operation.toLowerCase()} en ${location}. ${priceInfo}.${servicesInfo} ✅ Tours virtuales ✅ Financiamiento disponible`;
+    seoData.h1 = `${propertyType} en ${operation} en ${location} - ${count} Propiedades Disponibles`;
+    seoData.keywords = [
+      `${propertyType.toLowerCase()} ${location.toLowerCase()}`,
+      `${operation.toLowerCase()} ${propertyType.toLowerCase()} ${location.toLowerCase()}`,
+      `bienes raices ${location.toLowerCase()}`,
+      'inmobiliaria republica dominicana',
+      'propiedades republica dominicana'
+    ];
+    seoData.structured_data = {
+      "@context": "https://schema.org",
+      "@type": "SearchResultsPage",
+      "name": seoData.title,
+      "description": seoData.description,
+      "url": `https://clic.do/${urlSegments?.join('/') || ''}`,
+      "mainEntity": {
+        "@type": "ItemList",
+        "numberOfItems": count,
+        "itemListElement": properties.slice(0, 10).map((prop, index)=>({
+            "@type": "RealEstateListing",
+            "position": index + 1,
+            "name": prop.name,
+            "url": `https://clic.do/${prop.slug_url}`,
+            "offers": {
+              "@type": "Offer",
+              "price": prop.pricing_unified?.display_price?.amount,
+              "priceCurrency": prop.pricing_unified?.display_price?.currency
+            }
+          }))
+      }
+    };
+    if (googlePlacesData) {
+      seoData.places_enrichment = {
+        total_services: googlePlacesData.stats.total_places,
+        services_score: googlePlacesData.stats.services_score,
+        avg_rating: googlePlacesData.stats.avg_rating,
+        top_categories: Object.keys(googlePlacesData.places_by_category),
+        featured_services: googlePlacesData.featured_places.slice(0, 5)
+      };
+    }
+  }
+  seoData.og = {
+    title: seoData.title,
+    description: seoData.description,
+    image: type === 'single-property' ? property.main_image_optimized?.url : searchResults?.properties?.[0]?.main_image_optimized?.url || 'https://clic.do/default-og-image.jpg',
+    url: `https://clic.do/${urlSegments?.join('/') || ''}`,
+    type: "website",
+    site_name: "CLIC Inmobiliaria",
+    locale: "es_DO"
+  };
+  seoData.twitter = {
+    card: "summary_large_image",
+    title: seoData.title,
+    description: seoData.description,
+    image: seoData.og.image,
+    site: "@clicinmobiliaria"
+  };
+  seoData.technical = {
+    robots: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1
+    },
+    sitemap: {
+      lastModified: new Date().toISOString(),
+      changeFreq: type === 'single-property' ? "weekly" : "daily",
+      priority: type === 'single-property' ? 0.8 : 0.6
+    }
+  };
+  return seoData;
+}
+// =====================================================
+// FUNCIONES DE BÚSQUEDA OPTIMIZADAS (EXISTENTES)
+// =====================================================
+async function searchPropertiesByTags(supabaseClient, tagIds, page = 1, limit = 32) {
+  if (tagIds.length === 0) {
+    return {
+      properties: [],
+      totalCount: 0,
+      currentPage: page,
+      hasMore: false,
+      itemsPerPage: limit
+    };
+  }
+  try {
+    console.log(`🔍 Buscando propiedades con tags: [${tagIds.join(', ')}], página: ${page}, límite: ${limit}`);
+    let totalCount = 0;
+    let validPropertyIds = [];
+    const { data: rpcPropertyIds, error: rpcError } = await supabaseClient.rpc('get_properties_with_all_tags', {
+      tag_ids: tagIds
+    });
+    if (!rpcError && rpcPropertyIds && rpcPropertyIds.length > 0) {
+      validPropertyIds = rpcPropertyIds;
+      totalCount = rpcPropertyIds.length;
+      console.log(`✅ RPC exitoso: ${totalCount} propiedades encontradas`);
+    } else {
+      console.log('🔄 Usando método fallback con content_tags');
+      const { data: contentTags, error: contentTagsError } = await supabaseClient.from('content_tags').select('content_id, tag_id').eq('content_type', 'properties').in('tag_id', tagIds);
+      if (contentTagsError || !contentTags) {
+        return {
+          properties: [],
+          totalCount: 0,
+          currentPage: page,
+          hasMore: false,
+          itemsPerPage: limit
+        };
+      }
+      const tagCountByProperty = {};
+      contentTags.forEach((ct)=>{
+        tagCountByProperty[ct.content_id] = (tagCountByProperty[ct.content_id] || 0) + 1;
+      });
+      const requiredTagCount = tagIds.length;
+      validPropertyIds = Object.keys(tagCountByProperty).filter((propertyId)=>tagCountByProperty[propertyId] === requiredTagCount);
+      totalCount = validPropertyIds.length;
+      console.log(`✅ Fallback exitoso: ${totalCount} propiedades encontradas`);
+    }
+    if (totalCount === 0) {
+      return {
+        properties: [],
+        totalCount: 0,
+        currentPage: page,
+        hasMore: false,
+        itemsPerPage: limit
+      };
+    }
+    const offset = (page - 1) * limit;
+    const paginatedPropertyIds = validPropertyIds.slice(offset, offset + limit);
+    console.log(`📄 Obteniendo página ${page}: ${paginatedPropertyIds.length} propiedades (offset: ${offset})`);
+    const { data: properties, error: propertiesError } = await supabaseClient.from('properties').select(`
+        id, code, name, description, agent_id, slug_url,
+        sale_price, sale_currency, rental_price, rental_currency,
+        temp_rental_price, temp_rental_currency, 
+        furnished_rental_price, furnished_rental_currency,
+        bedrooms, bathrooms, parking_spots, built_area, land_area,
+        main_image_url, gallery_images_url, property_status, is_project,
+        delivery_date, project_detail_id,
+        property_categories(name, description),
+        cities(name, provinces(name)),
+        sectors(name),
+        property_images(url, title, description, is_main, sort_order)
+      `).in('id', paginatedPropertyIds).eq('availability', 1).eq('property_status', 'Publicada');
+    if (propertiesError) {
+      console.error('❌ Error obteniendo propiedades:', propertiesError);
+      return {
+        properties: [],
+        totalCount: 0,
+        currentPage: page,
+        hasMore: false,
+        itemsPerPage: limit
+      };
+    }
+    const hasMore = offset + limit < totalCount;
+    console.log(`✅ Búsqueda completada: ${properties?.length || 0} propiedades obtenidas, ${totalCount} total, hasMore: ${hasMore}`);
+    return {
+      properties: properties || [],
+      totalCount,
+      currentPage: page,
+      hasMore,
+      itemsPerPage: limit
+    };
+  } catch (error) {
+    console.error('❌ Error en searchPropertiesByTags:', error);
+    return {
+      properties: [],
+      totalCount: 0,
+      currentPage: page,
+      hasMore: false,
+      itemsPerPage: limit
+    };
+  }
+}
+async function searchPropertyBySlugUrl(supabaseClient, searchPath) {
+  console.log('🔍 Búsqueda por slug_url:', searchPath);
+  const selectQuery = `
+    id, code, name, description, agent_id, slug_url,
+    sale_price, sale_currency, rental_price, rental_currency,
+    temp_rental_price, temp_rental_currency, 
+    furnished_rental_price, furnished_rental_currency,
+    bedrooms, bathrooms, parking_spots, built_area, land_area,
+    main_image_url, gallery_images_url, property_status, is_project,
+    delivery_date, project_detail_id,
+    property_categories(name, description),
+    cities(name, provinces(name)),
+    sectors(name),
+    property_images(url, title, description, is_main, sort_order),
+    property_amenities(amenity_id, value, amenities(name, icon, category))
+  `;
+  const searchVariants = [
+    searchPath,
+    `/${searchPath}`,
+    searchPath.replace(/^\//, ''),
+    `/${searchPath.replace(/^\//, '')}`
+  ];
+  for (const variant of searchVariants){
+    const { data: property, error } = await supabaseClient.from('properties').select(selectQuery).eq('slug_url', variant).eq('availability', 1).eq('property_status', 'Publicada').single();
+    if (!error && property) {
+      console.log(`✅ Propiedad encontrada con slug: "${variant}"`);
+      return {
+        found: true,
+        property: property,
+        searchMethod: 'exact_slug',
+        matchedVariant: variant
+      };
+    }
+  }
+  return {
+    found: false,
+    property: null,
+    searchPath: searchPath
+  };
+}
+// =====================================================
+// ✨ NUEVAS FUNCIONES DE PROPIEDADES SIMILARES INTEGRADAS
+// =====================================================
+/**
+ * Obtiene los tags de una propiedad específica
+ */ async function getPropertyTags(supabaseClient, propertyId) {
+  try {
+    console.log('🏷️ Obteniendo tags de la propiedad:', propertyId);
+    const { data: contentTags, error } = await supabaseClient.from('content_tags').select(`
+        tag_id,
+        weight,
+        tags!inner(id, name, slug, category, display_name)
+      `).eq('content_id', propertyId).eq('content_type', 'property').order('weight', {
+      ascending: false
+    });
+    if (error) {
+      console.error('❌ Error obteniendo tags de propiedad:', error);
+      return [];
+    }
+    const tags = (contentTags || []).filter((ct)=>ct.tags).map((ct)=>({
+        ...ct.tags,
+        weight: ct.weight || 1
+      }));
+    console.log('✅ Tags de propiedad obtenidos:', {
+      total: tags.length,
+      byCategory: tags.reduce((acc, tag)=>{
+        acc[tag.category] = (acc[tag.category] || 0) + 1;
+        return acc;
+      }, {}),
+      topWeights: tags.slice(0, 5).map((t)=>`${t.category}:${t.name}(${t.weight})`)
+    });
+    return tags;
+  } catch (error) {
+    console.error('❌ Error en getPropertyTags:', error);
+    return [];
+  }
+}
+/**
+ * Busca propiedades similares usando sistema inteligente de scoring
+ */ async function getSmartSimilarProperties(supabaseClient, propertyTags, excludeId) {
+  console.log('🏠 === BUSCANDO PROPIEDADES SIMILARES INTELIGENTES ===');
+  console.log('📋 Exclude ID:', excludeId);
+  console.log('📋 Tags disponibles:', propertyTags?.length || 0);
+  if (!propertyTags || propertyTags.length === 0) {
+    console.log('⚠️ No hay tags de la propiedad, buscando propiedades aleatorias');
+    return await getFallbackSimilarProperties(supabaseClient, excludeId);
+  }
+  try {
+    const tagIds = propertyTags.map((t)=>t.id);
+    console.log('🔍 Buscando propiedades que tengan estos tag IDs:', tagIds);
+    const { data: propertyMatches, error } = await supabaseClient.from('content_tags').select(`
+        content_id,
+        tag_id,
+        weight,
+        tags(id, name, category)
+      `).eq('content_type', 'property').in('tag_id', tagIds).neq('content_id', excludeId);
+    if (error || !propertyMatches) {
+      console.error('❌ Error buscando propiedades similares:', error);
+      return await getFallbackSimilarProperties(supabaseClient, excludeId);
+    }
+    console.log('📊 Property matches encontrados:', propertyMatches.length);
+    // Sistema de scoring mejorado
+    const propertyScores = {};
+    const categoryWeights = {
+      'operacion': 5,
+      'categoria': 4,
+      'ciudad': 3,
+      'sector': 3,
+      'provincia': 2,
+      'caracteristica': 1 // Características específicas
+    };
+    propertyMatches.forEach((match)=>{
+      const propertyId = match.content_id;
+      const tagCategory = match.tags?.category || 'caracteristica';
+      const categoryWeight = categoryWeights[tagCategory] || 1;
+      const tagWeight = match.weight || 1;
+      if (!propertyScores[propertyId]) {
+        propertyScores[propertyId] = {
+          property_id: propertyId,
+          total_score: 0,
+          matched_tags: 0,
+          categories: new Set()
+        };
+      }
+      propertyScores[propertyId].total_score += categoryWeight * tagWeight;
+      propertyScores[propertyId].matched_tags += 1;
+      propertyScores[propertyId].categories.add(tagCategory);
+    });
+    // Filtrar propiedades que tengan al menos 2 tags coincidentes
+    const validProperties = Object.values(propertyScores).filter((prop)=>prop.matched_tags >= 2).sort((a, b)=>b.total_score - a.total_score).slice(0, 6);
+    if (validProperties.length === 0) {
+      console.log('⚠️ No hay propiedades con suficientes coincidencias, bajando a 1 tag mínimo');
+      const validPropertiesLowBar = Object.values(propertyScores).filter((prop)=>prop.matched_tags >= 1).sort((a, b)=>b.total_score - a.total_score).slice(0, 6);
+      if (validPropertiesLowBar.length === 0) {
+        return await getFallbackSimilarProperties(supabaseClient, excludeId);
+      }
+      const propertyIds = validPropertiesLowBar.map((p)=>p.property_id);
+      return await getPropertiesDetails(supabaseClient, propertyIds);
+    }
+    console.log('📊 Propiedades similares encontradas:', {
+      totalMatches: Object.keys(propertyScores).length,
+      with2PlusMatches: validProperties.length,
+      topScores: validProperties.slice(0, 3).map((p)=>`${p.matched_tags} tags, score: ${p.total_score}`)
+    });
+    const propertyIds = validProperties.map((p)=>p.property_id);
+    return await getPropertiesDetails(supabaseClient, propertyIds);
+  } catch (error) {
+    console.error('❌ Error en getSmartSimilarProperties:', error);
+    return await getFallbackSimilarProperties(supabaseClient, excludeId);
+  }
+}
+/**
+ * Método fallback para propiedades similares cuando no hay tags suficientes
+ */ async function getFallbackSimilarProperties(supabaseClient, excludeId) {
+  console.log('🔄 Usando método fallback para propiedades similares');
+  try {
+    const { data: properties, error } = await supabaseClient.from('properties').select(`
+        id, code, name, sale_price, rental_price, temp_rental_price,
+        furnished_rental_price, sale_currency, rental_currency,
+        bedrooms, bathrooms, parking_spots, built_area, land_area,
+        main_image_url, gallery_images_url, is_project, slug_url,
+        property_categories(name),
+        cities(name, provinces(name)),
+        sectors(name),
+        property_images(url, title, description, is_main, sort_order)
+      `).neq('id', excludeId).eq('availability', 1).eq('property_status', 'Publicada').order('created_at', {
+      ascending: false
+    }).limit(6);
+    if (error) {
+      console.error('❌ Error en fallback properties:', error);
+      return [];
+    }
+    console.log('✅ Propiedades fallback obtenidas:', properties?.length || 0);
+    return (properties || []).map(formatSimilarProperty);
+  } catch (error) {
+    console.error('❌ Error en getFallbackSimilarProperties:', error);
+    return [];
+  }
+}
+/**
+ * Obtiene detalles completos de propiedades por IDs para similares
+ */ async function getPropertiesDetails(supabaseClient, propertyIds) {
+  if (!propertyIds || propertyIds.length === 0) return [];
+  console.log('📋 Obteniendo detalles de', propertyIds.length, 'propiedades similares');
+  try {
+    const { data: properties, error } = await supabaseClient.from('properties').select(`
+        id, code, name, sale_price, rental_price, temp_rental_price,
+        furnished_rental_price, sale_currency, rental_currency,
+        bedrooms, bathrooms, parking_spots, built_area, land_area,
+        main_image_url, gallery_images_url, is_project, slug_url,
+        property_categories(name),
+        cities(name, provinces(name)),
+        sectors(name),
+        property_images(url, title, description, is_main, sort_order)
+      `).in('id', propertyIds).eq('availability', 1).eq('property_status', 'Publicada');
+    if (error) {
+      console.error('❌ Error obteniendo detalles de propiedades:', error);
+      return [];
+    }
+    // Mantener el orden según el scoring
+    const orderedProperties = propertyIds.map((id)=>properties?.find((prop)=>prop.id === id)).filter(Boolean);
+    console.log('✅ Propiedades similares obtenidas:', orderedProperties.length);
+    return orderedProperties.map(formatSimilarProperty);
+  } catch (error) {
+    console.error('❌ Error en getPropertiesDetails:', error);
+    return [];
+  }
+}
+/**
+ * Formatea una propiedad para listado de similares
+ */ function formatSimilarProperty(property) {
+  let price = 'Precio a consultar';
+  if (property.sale_price) {
+    price = `$${property.sale_price.toLocaleString()} ${property.sale_currency || 'USD'}`;
+  } else if (property.rental_price) {
+    price = `$${property.rental_price.toLocaleString()} ${property.rental_currency || 'USD'}/mes`;
+  } else if (property.temp_rental_price) {
+    price = `$${property.temp_rental_price.toLocaleString()} ${property.temp_rental_currency || 'USD'}/noche`;
+  } else if (property.furnished_rental_price) {
+    price = `$${property.furnished_rental_price.toLocaleString()} ${property.furnished_rental_currency || 'USD'}/mes`;
+  }
+  // Determinar imagen principal con fallback a gallery
+  let mainImage = property.main_image_url;
+  if (!mainImage && property.property_images && property.property_images.length > 0) {
+    const mainImg = property.property_images.find((img)=>img.is_main);
+    mainImage = mainImg ? mainImg.url : property.property_images[0].url;
+  }
+  if (!mainImage && property.gallery_images_url) {
+    if (Array.isArray(property.gallery_images_url)) {
+      mainImage = property.gallery_images_url[0];
+    } else if (typeof property.gallery_images_url === 'string') {
+      mainImage = property.gallery_images_url.split(',')[0]?.trim();
+    }
+  }
+  // Formatear ubicación
+  const locationParts = [
+    property.sectors?.name,
+    property.cities?.name
+  ].filter(Boolean);
+  const location = locationParts.length > 0 ? locationParts.join(', ') : 'Ubicación no especificada';
+  return {
+    id: property.id,
+    title: property.name,
+    price: price,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    area: property.built_area || property.land_area,
+    image: mainImage || '/images/placeholder-property.jpg',
+    location: location,
+    type: property.property_categories?.name,
+    url: property.slug_url || `/propiedad/${property.id}`,
+    is_project: property.is_project,
+    parking_spots: property.parking_spots
+  };
+}
+// =====================================================
+// ✨ NUEVA FUNCIÓN: CONTENIDO RELACIONADO POR TAGS
+// =====================================================
+/**
+ * Obtiene contenido relacionado basado en tags usando RPC
+ */ async function getRelatedContent(supabaseClient, tagIds, limitPerType = 5) {
+  if (!tagIds || tagIds.length === 0) {
+    console.log('⚠️ No hay tags para buscar contenido relacionado');
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+  }
+  console.log('🔍 === OBTENIENDO CONTENIDO RELACIONADO POR TAGS ===');
+  console.log('📋 Parámetros:', {
+    tagIds,
+    limitPerType,
+    tagCount: tagIds.length
+  });
+  try {
+    // ✅ PASO 1: Llamar a la función RPC
+    console.log('🚀 Llamando RPC get_all_content_by_tags...');
+    const { data: contentResults, error: rpcError } = await supabaseClient.rpc('get_all_content_by_tags', {
+      tag_ids: tagIds,
+      limit_per_type: limitPerType
+    });
+    if (rpcError) {
+      console.error('❌ Error en RPC get_all_content_by_tags:', rpcError);
+      return {
+        articles: [],
+        videos: [],
+        testimonials: [],
+        faqs: [],
+        seo_content: []
+      };
+    }
+    if (!contentResults || contentResults.length === 0) {
+      console.log('⚠️ No se encontró contenido relacionado por tags');
+      return {
+        articles: [],
+        videos: [],
+        testimonials: [],
+        faqs: [],
+        seo_content: []
+      };
+    }
+    console.log('✅ RPC ejecutado exitosamente:', {
+      totalResults: contentResults.length,
+      types: [
+        ...new Set(contentResults.map((r)=>r.content_type))
+      ]
+    });
+    // ✅ PASO 2: Agrupar por tipo de contenido
+    const groupedIds = {
+      article: [],
+      video: [],
+      testimonial: [],
+      faq: [],
+      seo_content: []
+    };
+    // Crear un mapa para mantener la metadata de relevancia
+    const metadataMap = {};
+    contentResults.forEach((result)=>{
+      const { content_id, content_type, total_weight, matched_tags } = result;
+      if (groupedIds[content_type]) {
+        groupedIds[content_type].push(content_id);
+        metadataMap[content_id] = {
+          total_weight,
+          matched_tags,
+          content_type,
+          is_tag_related: true
+        };
+      }
+    });
+    console.log('📊 Contenido agrupado por tags:', {
+      articles: groupedIds.article.length,
+      videos: groupedIds.video.length,
+      testimonials: groupedIds.testimonial.length,
+      faqs: groupedIds.faq.length,
+      seo_content: groupedIds.seo_content.length
+    });
+    // ✅ PASO 3: Obtener datos reales de cada tabla
+    const contentResults_final = {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+    // ✅ ARTÍCULOS
+    if (groupedIds.article.length > 0) {
+      console.log('📚 Obteniendo', groupedIds.article.length, 'artículos por tags...');
+      const { data: articles, error: articlesError } = await supabaseClient.from('articles').select(`
+          id, title, slug, excerpt, content, featured_image,
+          published_at, created_at, updated_at,
+          meta_title, meta_description, reading_time
+        `).in('id', groupedIds.article).eq('status', 'published').order('published_at', {
+        ascending: false
+      });
+      if (!articlesError && articles) {
+        contentResults_final.articles = articles.map((article)=>({
+            ...article,
+            ...metadataMap[article.id]
+          }));
+      }
+    }
+    // ✅ VIDEOS
+    if (groupedIds.video.length > 0) {
+      console.log('🎥 Obteniendo', groupedIds.video.length, 'videos por tags...');
+      const { data: videos, error: videosError } = await supabaseClient.from('videos').select(`
+          id, title, description, video_slug, thumbnail, video_id, 
+          video_platform, duration, views, category, featured,
+          meta_title, meta_description, status, published_at, 
+          created_at, updated_at, subtitle
+        `).in('id', groupedIds.video).eq('status', 'published').order('published_at', {
+        ascending: false
+      });
+      if (!videosError && videos) {
+        contentResults_final.videos = videos.map((video)=>({
+            ...video,
+            ...metadataMap[video.id],
+            formatted_duration: formatDuration(video.duration),
+            youtube_url: video.video_platform === 'youtube' && video.video_id ? `https://www.youtube.com/watch?v=${video.video_id}` : null
+          }));
+      }
+    }
+    // ✅ TESTIMONIOS
+    if (groupedIds.testimonial.length > 0) {
+      console.log('💬 Obteniendo', groupedIds.testimonial.length, 'testimonios por tags...');
+      const { data: testimonials, error: testimonialsError } = await supabaseClient.from('testimonials').select(`
+          id, slug, title, excerpt, full_testimonial, rating,
+          client_name, client_avatar, client_location, client_verified,
+          client_profession, featured_image, views, featured,
+          meta_title, meta_description, status, published_at, created_at
+        `).in('id', groupedIds.testimonial).eq('status', 'published').order('published_at', {
+        ascending: false
+      });
+      if (!testimonialsError && testimonials) {
+        contentResults_final.testimonials = testimonials.map((testimonial)=>({
+            ...testimonial,
+            ...metadataMap[testimonial.id],
+            content: testimonial.full_testimonial,
+            client_title: testimonial.client_profession
+          }));
+      }
+    }
+    // ✅ FAQS
+    if (groupedIds.faq.length > 0) {
+      console.log('❓ Obteniendo', groupedIds.faq.length, 'FAQs por tags...');
+      const { data: faqs, error: faqsError } = await supabaseClient.from('faqs').select(`
+          id, question, answer, sort_order,
+          created_at, updated_at
+        `).in('id', groupedIds.faq).eq('status', 'published').order('sort_order', {
+        ascending: true
+      });
+      if (!faqsError && faqs) {
+        contentResults_final.faqs = faqs.map((faq)=>({
+            ...faq,
+            ...metadataMap[faq.id]
+          }));
+      }
+    }
+    // ✅ SEO CONTENT
+    if (groupedIds.seo_content.length > 0) {
+      console.log('🎯 Obteniendo', groupedIds.seo_content.length, 'contenido SEO por tags...');
+      const { data: seoContent, error: seoError } = await supabaseClient.from('seo_content').select(`
+          id, title, description, h1_title, h2_subtitle, 
+          seo_content, content_type, identifier,
+          location_context, property_type_context, operation_context,
+          views, performance_score, version, status,
+          created_at, updated_at
+        `).in('id', groupedIds.seo_content).eq('status', 'published').order('created_at', {
+        ascending: false
+      });
+      if (!seoError && seoContent) {
+        contentResults_final.seo_content = seoContent.map((content)=>({
+            ...content,
+            ...metadataMap[content.id],
+            content: content.seo_content,
+            page_url: content.identifier
+          }));
+      }
+    }
+    console.log('✅ Contenido relacionado por tags obtenido:', {
+      articles: contentResults_final.articles.length,
+      videos: contentResults_final.videos.length,
+      testimonials: contentResults_final.testimonials.length,
+      faqs: contentResults_final.faqs.length,
+      seo_content: contentResults_final.seo_content.length
+    });
+    return contentResults_final;
+  } catch (error) {
+    console.error('❌ Error obteniendo contenido relacionado por tags:', error);
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+  }
+}
+/**
+ * Función auxiliar para formatear duración
+ */ function formatDuration(seconds) {
+  if (!seconds) return null;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  const remainingSeconds = seconds % 60;
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+}
+// =====================================================
+// FUNCIONES DE CONTENIDO Y PROYECTO (EXISTENTES)
+// =====================================================
+const agentCache = new Map();
+async function getPropertyAgent(supabaseClient, agentId) {
+  if (!agentId) return null;
+  if (agentCache.has(agentId)) {
+    return agentCache.get(agentId);
+  }
+  try {
+    const { data: agent, error } = await supabaseClient.from('users').select(`
+        id, external_id, first_name, last_name, email, phone, 
+        position, slug, biography, facebook_url, instagram_url, 
+        twitter_url, linkedin_url, youtube_url,
+        active, show_on_website, user_type, team_id
+      `).eq('id', agentId).single();
+    if (error) {
+      console.log('❌ Error obteniendo agente:', error.message);
+      return null;
+    }
+    agentCache.set(agentId, agent);
+    setTimeout(()=>agentCache.delete(agentId), 15 * 60 * 1000);
+    return agent;
+  } catch (error) {
+    console.error('❌ Error crítico buscando agente:', error);
+    return null;
+  }
+}
+async function getReferralAgent(supabaseClient, externalId) {
+  if (!externalId) return null;
+  try {
+    const { data: referralAgent, error } = await supabaseClient.from('users').select(`
+        id, external_id, first_name, last_name, email, phone, 
+        position, slug, biography, facebook_url, instagram_url, 
+        twitter_url, linkedin_url, youtube_url,
+        active, show_on_website, user_type, team_id
+      `).eq('external_id', externalId).eq('active', true).single();
+    if (error || !referralAgent) {
+      console.log('⚠️ Usuario referido no encontrado:', externalId);
+      return null;
+    }
+    return referralAgent;
+  } catch (error) {
+    console.error('❌ Error buscando usuario referido:', error);
+    return null;
+  }
+}
+function formatAgent(agent, type = 'agent') {
+  if (!agent) return null;
+  return {
+    id: agent.id,
+    name: `${agent.first_name || ''} ${agent.last_name || ''}`.trim(),
+    email: agent.email,
+    phone: agent.phone,
+    position: agent.position || 'Asesor Inmobiliario',
+    slug: agent.slug,
+    biography: agent.biography,
+    external_id: agent.external_id,
+    social: {
+      facebook: agent.facebook_url,
+      instagram: agent.instagram_url,
+      twitter: agent.twitter_url,
+      linkedin: agent.linkedin_url,
+      youtube: agent.youtube_url
+    },
+    active: agent.active,
+    show_on_website: agent.show_on_website,
+    team_id: agent.team_id,
+    user_type: agent.user_type,
+    agent_type: type
+  };
+}
+async function getCompleteProjectDetails(supabaseClient, projectDetailId) {
+  if (!projectDetailId) return null;
+  try {
+    const { data: projectData, error } = await supabaseClient.from('project_details').select(`
+        *,
+        developers(*),
+        project_typologies(*),
+        project_amenities(*, amenities(*)),
+        project_payment_plans(*),
+        project_phases(*),
+        project_availability(*, project_typologies(*)),
+        project_benefits(*, project_benefits_catalog(*)),
+        project_documents(*, project_documents_catalog(*))
+      `).eq('id', projectDetailId).single();
+    if (error) {
+      console.error('❌ Error obteniendo detalles del proyecto:', error);
+      return null;
+    }
+    return projectData;
+  } catch (error) {
+    console.error('❌ Error crítico en getCompleteProjectDetails:', error);
+    return null;
+  }
+}
+async function getPropertySpecificContent(supabaseClient, propertyId) {
+  try {
+    const { data: relations, error } = await supabaseClient.from('content_property_relations').select('content_id, content_type, relation_type, weight').eq('property_id', propertyId).order('weight', {
+      ascending: false
+    });
+    if (error || !relations || relations.length === 0) {
+      return null;
+    }
+    const contentByType = relations.reduce((acc, rel)=>{
+      if (!acc[rel.content_type]) acc[rel.content_type] = [];
+      acc[rel.content_type].push(rel.content_id);
+      return acc;
+    }, {});
+    const [articles, videos, testimonials, faqs] = await Promise.all([
+      contentByType.articles ? supabaseClient.from('articles').select('*').in('id', contentByType.articles).eq('status', 'published') : Promise.resolve({
+        data: []
+      }),
+      contentByType.videos ? supabaseClient.from('videos').select('*').in('id', contentByType.videos).eq('status', 'published') : Promise.resolve({
+        data: []
+      }),
+      contentByType.testimonials ? supabaseClient.from('testimonials').select('*').in('id', contentByType.testimonials).eq('status', 'published') : Promise.resolve({
+        data: []
+      }),
+      contentByType.faqs ? supabaseClient.from('faqs').select('*').in('id', contentByType.faqs).eq('status', 'published') : Promise.resolve({
+        data: []
+      })
+    ]);
+    return {
+      articles: articles.data || [],
+      videos: videos.data || [],
+      testimonials: testimonials.data || [],
+      faqs: faqs.data || [],
+      has_specific_content: true
+    };
+  } catch (error) {
+    console.error('❌ Error obteniendo contenido específico:', error);
+    return null;
+  }
+}
+async function getDefaultRelatedContent(supabaseClient) {
+  try {
+    const [articles, videos, faqs, testimonials] = await Promise.all([
+      supabaseClient.from('articles').select('*').eq('status', 'published').order('published_at', {
+        ascending: false
+      }).limit(5),
+      supabaseClient.from('videos').select('*').eq('status', 'published').order('published_at', {
+        ascending: false
+      }).limit(4),
+      supabaseClient.from('faqs').select('*').eq('status', 'published').order('sort_order').limit(6),
+      supabaseClient.from('testimonials').select('*').eq('status', 'published').order('published_at', {
+        ascending: false
+      }).limit(3)
+    ]);
+    return {
+      articles: articles.data || [],
+      videos: videos.data || [],
+      testimonials: testimonials.data || [],
+      faqs: faqs.data || []
+    };
+  } catch (error) {
+    console.error('❌ Error obteniendo contenido por defecto:', error);
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: []
+    };
+  }
+}
+function combineSpecificAndGeneralContent(specificContent, defaultContent) {
+  if (!specificContent || !specificContent.has_specific_content) {
+    return {
+      ...defaultContent,
+      content_source: 'general_only'
+    };
+  }
+  return {
+    articles: [
+      ...specificContent.articles,
+      ...defaultContent.articles.slice(0, Math.max(0, 5 - specificContent.articles.length))
+    ],
+    videos: [
+      ...specificContent.videos,
+      ...defaultContent.videos.slice(0, Math.max(0, 4 - specificContent.videos.length))
+    ],
+    testimonials: [
+      ...specificContent.testimonials,
+      ...defaultContent.testimonials.slice(0, Math.max(0, 3 - specificContent.testimonials.length))
+    ],
+    faqs: [
+      ...specificContent.faqs,
+      ...defaultContent.faqs.slice(0, Math.max(0, 6 - specificContent.faqs.length))
+    ],
+    content_source: 'specific_and_general'
+  };
+}
+// =====================================================
+// ✨ NUEVA FUNCIÓN: COMBINACIÓN INTELIGENTE DE CONTENIDO CON JERARQUÍA
+// =====================================================
+/**
+ * Combina contenido en orden de prioridad:
+ * 1. Específico de la propiedad (mayor prioridad)
+ * 2. Relacionado por tags (prioridad media)
+ * 3. General/default (menor prioridad)
+ */ function combineContentWithTagsHierarchy(specificContent, tagRelatedContent, defaultContent) {
+  console.log('🔄 === COMBINANDO CONTENIDO CON JERARQUÍA DE TAGS ===');
+  console.log('📊 Contenido recibido:', {
+    specific: {
+      hasContent: !!specificContent?.has_specific_content,
+      articles: specificContent?.articles?.length || 0,
+      videos: specificContent?.videos?.length || 0,
+      testimonials: specificContent?.testimonials?.length || 0,
+      faqs: specificContent?.faqs?.length || 0,
+      seo_content: specificContent?.seo_content?.length || 0
+    },
+    tagRelated: {
+      articles: tagRelatedContent?.articles?.length || 0,
+      videos: tagRelatedContent?.videos?.length || 0,
+      testimonials: tagRelatedContent?.testimonials?.length || 0,
+      faqs: tagRelatedContent?.faqs?.length || 0,
+      seo_content: tagRelatedContent?.seo_content?.length || 0
+    },
+    default: {
+      articles: defaultContent?.articles?.length || 0,
+      videos: defaultContent?.videos?.length || 0,
+      testimonials: defaultContent?.testimonials?.length || 0,
+      faqs: defaultContent?.faqs?.length || 0,
+      seo_content: defaultContent?.seo_content?.length || 0
+    }
+  });
+  // Definir límites máximos por tipo
+  const maxLimits = {
+    articles: 8,
+    videos: 6,
+    testimonials: 4,
+    faqs: 10,
+    seo_content: 5
+  };
+  const combined = {
+    articles: [],
+    videos: [],
+    testimonials: [],
+    faqs: [],
+    seo_content: [],
+    content_source: 'hierarchical',
+    hierarchy_info: {
+      specific_count: 0,
+      tag_related_count: 0,
+      default_count: 0
+    }
+  };
+  // Función auxiliar para combinar un tipo específico de contenido
+  function combineContentType(type) {
+    const maxLimit = maxLimits[type];
+    let currentCount = 0;
+    let specificCount = 0;
+    let tagRelatedCount = 0;
+    let defaultCount = 0;
+    // 1. PRIMERA PRIORIDAD: Contenido específico de la propiedad
+    if (specificContent?.has_specific_content && specificContent[type]) {
+      const specificItems = specificContent[type].slice(0, Math.min(maxLimit, specificContent[type].length)).map((item)=>({
+          ...item,
+          content_priority: 'specific',
+          is_property_specific: true
+        }));
+      combined[type].push(...specificItems);
+      currentCount += specificItems.length;
+      specificCount = specificItems.length;
+      console.log(`✅ ${type}: Agregados ${specificItems.length} items específicos`);
+    }
+    // 2. SEGUNDA PRIORIDAD: Contenido relacionado por tags
+    if (currentCount < maxLimit && tagRelatedContent?.[type]) {
+      const remainingSlots = maxLimit - currentCount;
+      const tagItems = tagRelatedContent[type].slice(0, Math.min(remainingSlots, tagRelatedContent[type].length)).map((item)=>({
+          ...item,
+          content_priority: 'tag_related',
+          is_tag_related: true
+        }));
+      combined[type].push(...tagItems);
+      currentCount += tagItems.length;
+      tagRelatedCount = tagItems.length;
+      console.log(`✅ ${type}: Agregados ${tagItems.length} items relacionados por tags`);
+    }
+    // 3. TERCERA PRIORIDAD: Contenido general/default
+    if (currentCount < maxLimit && defaultContent?.[type]) {
+      const remainingSlots = maxLimit - currentCount;
+      const defaultItems = defaultContent[type].slice(0, Math.min(remainingSlots, defaultContent[type].length)).map((item)=>({
+          ...item,
+          content_priority: 'default',
+          is_default_content: true
+        }));
+      combined[type].push(...defaultItems);
+      currentCount += defaultItems.length;
+      defaultCount = defaultItems.length;
+      console.log(`✅ ${type}: Agregados ${defaultItems.length} items por defecto`);
+    }
+    // Actualizar contadores de jerarquía
+    combined.hierarchy_info.specific_count += specificCount;
+    combined.hierarchy_info.tag_related_count += tagRelatedCount;
+    combined.hierarchy_info.default_count += defaultCount;
+    console.log(`📊 ${type} final: ${currentCount} items (${specificCount} específicos + ${tagRelatedCount} por tags + ${defaultCount} por defecto)`);
+  }
+  // Combinar cada tipo de contenido
+  [
+    'articles',
+    'videos',
+    'testimonials',
+    'faqs',
+    'seo_content'
+  ].forEach(combineContentType);
+  // Determinar la fuente principal de contenido
+  const { specific_count, tag_related_count, default_count } = combined.hierarchy_info;
+  if (specific_count > 0 && tag_related_count > 0) {
+    combined.content_source = 'specific_and_tag_related_and_general';
+  } else if (specific_count > 0) {
+    combined.content_source = 'specific_and_general';
+  } else if (tag_related_count > 0) {
+    combined.content_source = 'tag_related_and_general';
+  } else {
+    combined.content_source = 'general_only';
+  }
+  console.log('✅ === CONTENIDO COMBINADO EXITOSAMENTE ===');
+  console.log('📊 Resumen final:', {
+    content_source: combined.content_source,
+    total_items: specific_count + tag_related_count + default_count,
+    hierarchy: combined.hierarchy_info,
+    breakdown: {
+      articles: `${combined.articles.length} total`,
+      videos: `${combined.videos.length} total`,
+      testimonials: `${combined.testimonials.length} total`,
+      faqs: `${combined.faqs.length} total`,
+      seo_content: `${combined.seo_content.length} total`
+    }
+  });
+  return combined;
+}
+// =====================================================
+// FUNCIONES AUXILIARES (EXISTENTES)
+// =====================================================
+function parseUrlToSlugs(pathname) {
+  const systemRoutes = [
+    '/property-search',
+    '/api',
+    '/functions',
+    '/_app',
+    '/admin'
+  ];
+  if (systemRoutes.some((route)=>pathname.startsWith(route))) {
+    return [];
+  }
+  return pathname.replace(/^\//, '').split('/').filter((segment)=>segment.length > 0).map((segment)=>segment.toLowerCase().trim());
+}
+// =====================================================
+// ✨ NUEVA FUNCIÓN DE BREADCRUMBS
+// =====================================================
+/**
+ * Genera breadcrumbs estructurados siguiendo el patrón:
+ * inicio → operación → categoría → ciudad → sector [→ otros tags de la URL]
+ */ async function generateSmartBreadcrumbs(supabaseClient, tags, urlSegments, context = 'listing') {
+  console.log('🍞 === GENERANDO BREADCRUMBS INTELIGENTES ===');
+  console.log('📋 Context:', context);
+  console.log('🏷️ Tags recibidos:', tags?.length || 0);
+  console.log('📎 URL segments:', urlSegments);
+  const breadcrumbs = [];
+  // 1. INICIO siempre es el primer elemento
+  breadcrumbs.push({
+    name: 'Inicio',
+    slug: '',
+    url: '/',
+    category: 'root',
+    is_active: false,
+    position: 0
+  });
+  if (!tags || tags.length === 0) {
+    console.log('⚠️ No hay tags, retornando solo breadcrumb de inicio');
+    return breadcrumbs;
+  }
+  // 2. Organizar tags por categoría con prioridad específica
+  const tagsByCategory = {
+    operacion: tags.filter((t)=>t.category === 'operacion'),
+    categoria: tags.filter((t)=>t.category === 'categoria'),
+    ciudad: tags.filter((t)=>t.category === 'ciudad'),
+    sector: tags.filter((t)=>t.category === 'sector'),
+    provincia: tags.filter((t)=>t.category === 'provincia'),
+    otros: tags.filter((t)=>![
+        'operacion',
+        'categoria',
+        'ciudad',
+        'sector',
+        'provincia'
+      ].includes(t.category))
+  };
+  console.log('📊 Tags organizados por categoría:', {
+    operacion: tagsByCategory.operacion.length,
+    categoria: tagsByCategory.categoria.length,
+    ciudad: tagsByCategory.ciudad.length,
+    sector: tagsByCategory.sector.length,
+    provincia: tagsByCategory.provincia.length,
+    otros: tagsByCategory.otros.length
+  });
+  // 3. Construcción progresiva de breadcrumbs siguiendo el patrón jerárquico
+  const hierarchyOrder = [
+    'operacion',
+    'categoria',
+    'ciudad',
+    'sector'
+  ];
+  let currentPath = '';
+  let position = 1;
+  // Para single property/project, limitamos a los 4 pilares principales
+  const maxDepth = context === 'single' ? hierarchyOrder.length : hierarchyOrder.length + 2;
+  for (const categoryKey of hierarchyOrder){
+    const categoryTags = tagsByCategory[categoryKey];
+    if (categoryTags.length > 0) {
+      // Tomar el primer tag de esta categoría (el más relevante)
+      const tag = categoryTags[0];
+      // Construir la URL acumulativa
+      currentPath = currentPath ? `${currentPath}/${tag.slug}` : tag.slug;
+      breadcrumbs.push({
+        name: tag.display_name || tag.name,
+        slug: tag.slug,
+        url: `/${currentPath}`,
+        category: tag.category,
+        is_active: false,
+        position: position,
+        tag_id: tag.id,
+        description: tag.description,
+        icon: tag.icon
+      });
+      position++;
+      console.log(`✅ Agregado breadcrumb ${categoryKey}: ${tag.name} → /${currentPath}`);
+    }
+  }
+  // 4. Para listados, agregar tags adicionales de la URL que no estén en los pilares principales
+  if (context === 'listing' && tagsByCategory.otros.length > 0) {
+    console.log('📎 Agregando tags adicionales para listado...');
+    // Filtrar tags que ya están en la URL pero no en los pilares principales
+    const additionalTags = tagsByCategory.otros.filter((tag)=>urlSegments.includes(tag.slug)).slice(0, 2); // Máximo 2 tags adicionales para no sobrecargar
+    for (const tag of additionalTags){
+      currentPath = `${currentPath}/${tag.slug}`;
+      breadcrumbs.push({
+        name: tag.display_name || tag.name,
+        slug: tag.slug,
+        url: `/${currentPath}`,
+        category: tag.category,
+        is_active: false,
+        position: position,
+        tag_id: tag.id,
+        description: tag.description,
+        icon: tag.icon
+      });
+      position++;
+      console.log(`✅ Agregado tag adicional: ${tag.name} → /${currentPath}`);
+    }
+  }
+  // 5. Marcar el último elemento como activo (página actual)
+  if (breadcrumbs.length > 1) {
+    breadcrumbs[breadcrumbs.length - 1].is_active = true;
+  }
+  // 6. Validar y limpiar breadcrumbs
+  const validBreadcrumbs = breadcrumbs.filter((bc)=>bc.name && bc.name.trim().length > 0);
+  console.log('✅ === BREADCRUMBS GENERADOS EXITOSAMENTE ===');
+  console.log('📊 Resumen:', {
+    total_breadcrumbs: validBreadcrumbs.length,
+    context: context,
+    final_url: validBreadcrumbs[validBreadcrumbs.length - 1]?.url,
+    structure: validBreadcrumbs.map((bc)=>`${bc.category}:${bc.name}`).join(' → ')
+  });
+  return validBreadcrumbs;
+}
+/**
+ * Función auxiliar para obtener breadcrumbs para propiedades individuales
+ * Toma los tags de la propiedad y genera breadcrumbs básicos
+ */ async function generatePropertyBreadcrumbs(supabaseClient, property) {
+  console.log('🏠 Generando breadcrumbs para propiedad individual:', property.name);
+  try {
+    // Obtener tags de la propiedad
+    const propertyTags = await getPropertyTags(supabaseClient, property.id);
+    if (propertyTags.length === 0) {
+      // Breadcrumbs mínimos basados en datos de la propiedad
+      return await generateFallbackPropertyBreadcrumbs(property);
+    }
+    // Generar breadcrumbs usando los tags de la propiedad
+    const breadcrumbs = await generateSmartBreadcrumbs(supabaseClient, propertyTags, [], 'single');
+    // Agregar la propiedad como elemento final
+    const lastBreadcrumb = breadcrumbs[breadcrumbs.length - 1];
+    const finalUrl = lastBreadcrumb ? `${lastBreadcrumb.url}/${property.slug_url || property.id}` : `/${property.slug_url || property.id}`;
+    breadcrumbs.push({
+      name: property.name,
+      slug: property.slug_url || property.id,
+      url: finalUrl,
+      category: 'property',
+      is_active: true,
+      position: breadcrumbs.length,
+      is_current_page: true
+    });
+    console.log('✅ Breadcrumbs de propiedad generados:', breadcrumbs.length);
+    return breadcrumbs;
+  } catch (error) {
+    console.error('❌ Error generando breadcrumbs de propiedad:', error);
+    return await generateFallbackPropertyBreadcrumbs(property);
+  }
+}
+/**
+ * Breadcrumbs de fallback para propiedades sin tags suficientes
+ */ async function generateFallbackPropertyBreadcrumbs(property) {
+  const breadcrumbs = [
+    {
+      name: 'Inicio',
+      slug: '',
+      url: '/',
+      category: 'root',
+      is_active: false,
+      position: 0
+    }
+  ];
+  // Agregar categoría si está disponible
+  if (property.property_categories?.name) {
+    const categorySlug = property.property_categories.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+    breadcrumbs.push({
+      name: property.property_categories.name,
+      slug: categorySlug,
+      url: `/${categorySlug}`,
+      category: 'categoria',
+      is_active: false,
+      position: 1
+    });
+  }
+  // Agregar ubicación si está disponible
+  if (property.cities?.name) {
+    const citySlug = property.cities.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+    const previousUrl = breadcrumbs[breadcrumbs.length - 1].url;
+    const cityUrl = previousUrl === '/' ? `/${citySlug}` : `${previousUrl}/${citySlug}`;
+    breadcrumbs.push({
+      name: property.cities.name,
+      slug: citySlug,
+      url: cityUrl,
+      category: 'ciudad',
+      is_active: false,
+      position: breadcrumbs.length
+    });
+  }
+  // Agregar la propiedad como elemento final
+  const lastBreadcrumb = breadcrumbs[breadcrumbs.length - 1];
+  const finalUrl = `${lastBreadcrumb.url}/${property.slug_url || property.id}`;
+  breadcrumbs.push({
+    name: property.name,
+    slug: property.slug_url || property.id,
+    url: finalUrl,
+    category: 'property',
+    is_active: true,
+    position: breadcrumbs.length,
+    is_current_page: true
+  });
+  console.log('✅ Breadcrumbs fallback generados para propiedad');
+  return breadcrumbs;
+}
+async function findTagsBySlug(supabaseClient, slugs) {
+  if (slugs.length === 0) return [];
+  const { data: tags, error } = await supabaseClient.from('tags').select('id, name, slug, category').in('slug', slugs);
+  if (error) {
+    console.error('Error buscando tags:', error);
+    return [];
+  }
+  return tags || [];
+}
+function extractLocationFromTags(tags) {
+  const locationTag = tags?.find((tag)=>tag.category === 'ciudad' || tag.category === 'sector' || tag.category === 'provincia');
+  return locationTag?.name || null;
+}
+function extractPropertyTypeFromTags(tags) {
+  const typeTag = tags?.find((tag)=>tag.category === 'categoria');
+  return typeTag?.name || null;
+}
+function extractOperationFromTags(tags) {
+  const operationTag = tags?.find((tag)=>tag.category === 'operacion');
+  return operationTag?.name || null;
+}
+// =====================================================
+// FUNCIÓN PRINCIPAL INTEGRADA
+// =====================================================
+Deno.serve(async (req)=>{
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: corsHeaders
+    });
+  }
+  try {
+    const supabase = createClient('https://pacewqgypevfgjmdsorz.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs');
+    const url = new URL(req.url);
+    const pathname = url.pathname;
+    // Extraer slug después de 'busqueda/'
+    const pathSegments = pathname.split('/').filter((segment)=>segment.length > 0);
+    const busquedaIndex = pathSegments.findIndex((segment)=>segment === 'busqueda');
+    let slug = '';
+    if (busquedaIndex !== -1 && busquedaIndex < pathSegments.length - 1) {
+      slug = pathSegments.slice(busquedaIndex + 1).join('/');
+    } else {
+      slug = url.searchParams.get('url') || url.searchParams.get('slug') || '';
+    }
+    const refParam = url.searchParams.get('ref');
+    const page = parseInt(url.searchParams.get('page')) || 1;
+    const limit = parseInt(url.searchParams.get('limit')) || 32;
+    if (!slug) {
+      return new Response(JSON.stringify({
+        error: 'Invalid URL format. Expected: /function-name/busqueda/your-slug-here',
+        type: 'error',
+        received_path: pathname
+      }), {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+    console.log('🔍 Iniciando búsqueda unificada:', {
+      slug,
+      refParam,
+      page,
+      limit
+    });
+    // Obtener usuario referido si existe
+    let referralAgent = null;
+    if (refParam) {
+      referralAgent = await getReferralAgent(supabase, refParam);
+    }
+    // PASO 1: Intentar búsqueda por slug_url (propiedad individual)
+    const propertyResult = await searchPropertyBySlugUrl(supabase, slug);
+    if (propertyResult.found && propertyResult.property) {
+      console.log('✅ Encontrada como propiedad individual');
+      const property = propertyResult.property;
+      // Procesar propiedad
+      const optimizedProperty = optimizePropertyImages(unifyPropertyPricing(property));
+      // ✨ INTEGRACIÓN: Obtener propiedades similares con el nuevo sistema
+      console.log('🏠 Obteniendo propiedades similares...');
+      const propertyTags = await getPropertyTags(supabase, property.id);
+      const similarProperties = await getSmartSimilarProperties(supabase, propertyTags, property.id);
+      // ✨ NUEVA INTEGRACIÓN: Obtener contenido relacionado por tags
+      console.log('🏷️ Obteniendo contenido relacionado por tags...');
+      const tagIds = propertyTags.map((tag)=>tag.id);
+      const tagRelatedContent = await getRelatedContent(supabase, tagIds, 3); // Límite 3 por tipo
+      // Obtener datos relacionados en paralelo
+      const [specificContent, defaultContent, projectDetails, agentData, googlePlacesData] = await Promise.all([
+        getPropertySpecificContent(supabase, property.id),
+        getDefaultRelatedContent(supabase),
+        property.is_project && property.project_detail_id ? getCompleteProjectDetails(supabase, property.project_detail_id) : Promise.resolve(null),
+        property.agent_id ? getPropertyAgent(supabase, property.agent_id) : Promise.resolve(null),
+        property.sectors?.name || property.cities?.name ? getLocationGooglePlacesData(supabase, property.sectors?.name || property.cities?.name) : Promise.resolve(null)
+      ]);
+      // ✨ NUEVA FUNCIONALIDAD: Combinar contenido con jerarquía de tags
+      const enhancedContent = combineContentWithTagsHierarchy(specificContent, tagRelatedContent, defaultContent);
+      const responseType = property.is_project ? 'single-property-project' : 'single-property';
+      const seoData = generateSEOMetadata({
+        type: responseType,
+        property: optimizedProperty,
+        urlSegments: [
+          slug
+        ],
+        googlePlacesData
+      });
+      const response = {
+        type: responseType,
+        available: property.property_status === 'Publicada',
+        property: optimizedProperty,
+        relatedContent: enhancedContent,
+        projectDetails: projectDetails || null,
+        agent: formatAgent(agentData, 'agent') || null,
+        referralAgent: formatAgent(referralAgent, 'referral') || null,
+        // ✨ NUEVA SECCIÓN: Propiedades similares integradas
+        similarProperties: similarProperties,
+        similarPropertiesDebug: {
+          total_found: similarProperties.length,
+          tags_used: propertyTags.length,
+          search_method: propertyTags.length > 0 ? 'smart_tags' : 'fallback'
+        },
+        // ✨ NUEVA SECCIÓN: Breadcrumbs para propiedad individual
+        breadcrumbs: await generatePropertyBreadcrumbs(supabase, property),
+        seo: seoData,
+        meta: {
+          slug,
+          searchPath: pathname,
+          referralParam: refParam,
+          // ✨ NUEVOS METADATOS: Información sobre contenido por tags
+          contentHierarchy: enhancedContent.hierarchy_info,
+          contentSource: enhancedContent.content_source,
+          tagRelatedContentUsed: tagRelatedContent ? Object.keys(tagRelatedContent).some((key)=>tagRelatedContent[key] && tagRelatedContent[key].length > 0) : false,
+          timestamp: new Date().toISOString()
+        }
+      };
+      return new Response(JSON.stringify(response), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
+    }
+    // PASO 2: Búsqueda por tags (listado de propiedades)
+    console.log('🔍 Procesando como listado por tags');
+    const urlSegments = parseUrlToSlugs(slug);
+    const tags = await findTagsBySlug(supabase, urlSegments);
+    const tagIds = tags.map((t)=>t.id);
+    console.log('🏷️ Tags encontrados:', {
+      slugs: urlSegments,
+      tagCount: tags.length
+    });
+    // Búsqueda con paginación
+    const searchResults = await searchPropertiesByTags(supabase, tagIds, page, limit);
+    // Procesar propiedades en paralelo
+    console.log('🔄 Procesando propiedades...');
+    const enrichedProperties = await Promise.all((searchResults.properties || []).map(async (property)=>{
+      const optimizedProperty = optimizePropertyImages(unifyPropertyPricing(property));
+      const [projectDetails, agentData] = await Promise.all([
+        property.is_project && property.project_detail_id ? getCompleteProjectDetails(supabase, property.project_detail_id) : Promise.resolve(null),
+        property.agent_id ? getPropertyAgent(supabase, property.agent_id) : Promise.resolve(null)
+      ]);
+      return {
+        ...optimizedProperty,
+        projectDetails: projectDetails || null,
+        agent: formatAgent(agentData, 'agent') || null
+      };
+    }));
+    // Obtener contenido relacionado y datos de Google Places
+    const [relatedContent, googlePlacesData] = await Promise.all([
+      getDefaultRelatedContent(supabase),
+      extractLocationFromTags(tags) ? getLocationGooglePlacesData(supabase, extractLocationFromTags(tags)) : Promise.resolve(null)
+    ]);
+    const seoData = generateSEOMetadata({
+      type: 'property-list',
+      searchResults: {
+        properties: enrichedProperties,
+        pagination: {
+          currentPage: searchResults.currentPage,
+          totalCount: searchResults.totalCount,
+          itemsPerPage: searchResults.itemsPerPage,
+          totalPages: Math.ceil(searchResults.totalCount / searchResults.itemsPerPage),
+          hasMore: searchResults.hasMore
+        }
+      },
+      tags,
+      urlSegments,
+      googlePlacesData
+    });
+    const response = {
+      type: 'property-list',
+      available: true,
+      searchResults: {
+        properties: enrichedProperties,
+        tags,
+        searchTerms: urlSegments,
+        pagination: {
+          currentPage: searchResults.currentPage,
+          totalCount: searchResults.totalCount,
+          itemsPerPage: searchResults.itemsPerPage,
+          totalPages: Math.ceil(searchResults.totalCount / searchResults.itemsPerPage),
+          hasMore: searchResults.hasMore,
+          hasNextPage: searchResults.hasMore,
+          hasPreviousPage: searchResults.currentPage > 1
+        }
+      },
+      relatedContent,
+      referralAgent: formatAgent(referralAgent, 'referral') || null,
+      // ✨ NUEVA SECCIÓN: Breadcrumbs para listado de propiedades
+      breadcrumbs: await generateSmartBreadcrumbs(supabase, tags, urlSegments, 'listing'),
+      seo: seoData,
+      meta: {
+        slug,
+        searchPath: pathname,
+        urlSegments,
+        referralParam: refParam,
+        page,
+        limit,
+        timestamp: new Date().toISOString()
+      }
+    };
+    return new Response(JSON.stringify(response), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=1800'
+      }
+    });
+  } catch (error) {
+    console.error('Edge function error:', error);
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      type: 'error',
+      details: error.message
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+});

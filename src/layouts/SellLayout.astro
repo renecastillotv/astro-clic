@@ -1,0 +1,454 @@
+---
+// src/layouts/SellLayout.astro - Layout para página de vender
+import Layout from './Layout.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let sellData = data;
+
+// Si no hay datos, usar fallback estático
+if (!sellData || !sellData.services) {
+  console.log('💼 SellLayout: Usando datos estáticos de fallback');
+  
+  sellData = {
+    language: language,
+    services: [
+      {
+        title: language === 'es' ? 'Vende tu Propiedad' :
+               language === 'en' ? 'Sell Your Property' :
+               'Vendez votre Propriété',
+        description: language === 'es' ? 'Te ayudamos a vender tu casa, apartamento o villa. Marketing profesional y acompañamiento en todo el proceso.' :
+                     language === 'en' ? 'We help you sell your house, apartment or villa. Professional marketing and accompaniment throughout the process.' :
+                     'Nous vous aidons à vendre votre maison, appartement ou villa. Marketing professionnel et accompagnement tout au long du processus.',
+        benefits: [
+          language === 'es' ? 'Evaluación gratuita de tu propiedad' :
+          language === 'en' ? 'Free property evaluation' :
+          'Évaluation gratuite de votre propriété',
+          language === 'es' ? 'Fotos profesionales' :
+          language === 'en' ? 'Professional photos' :
+          'Photos professionnelles',
+          language === 'es' ? 'Publicación en portales principales' :
+          language === 'en' ? 'Publication on main portals' :
+          'Publication sur les principaux portails',
+          language === 'es' ? 'Te acompañamos hasta el cierre' :
+          language === 'en' ? 'We accompany you until closing' :
+          'Nous vous accompagnons jusqu\'à la clôture'
+        ],
+        cta: language === 'es' ? 'Quiero vender' :
+             language === 'en' ? 'I want to sell' :
+             'Je veux vendre',
+        link: '/contacto?servicio=vender'
+      },
+      {
+        title: language === 'es' ? 'Desarrolladores' :
+               language === 'en' ? 'Developers' :
+               'Développeurs',
+        description: language === 'es' ? 'Comercializamos tu proyecto inmobiliario. Desde la preventa hasta la entrega final.' :
+                     language === 'en' ? 'We market your real estate project. From pre-sale to final delivery.' :
+                     'Nous commercialisons votre projet immobilier. De la prévente à la livraison finale.',
+        benefits: [
+          language === 'es' ? 'Estrategia de ventas personalizada' :
+          language === 'en' ? 'Personalized sales strategy' :
+          'Stratégie de vente personnalisée',
+          language === 'es' ? 'Marketing digital del proyecto' :
+          language === 'en' ? 'Digital marketing of the project' :
+          'Marketing numérique du projet',
+          language === 'es' ? 'Equipo de ventas dedicado' :
+          language === 'en' ? 'Dedicated sales team' :
+          'Équipe de vente dédiée',
+          language === 'es' ? 'Reportes de progreso semanales' :
+          language === 'en' ? 'Weekly progress reports' :
+          'Rapports de progrès hebdomadaires'
+        ],
+        cta: language === 'es' ? 'Presentar proyecto' :
+             language === 'en' ? 'Present project' :
+             'Présenter le projet',
+        link: '/contacto?servicio=desarrollo'
+      },
+      {
+        title: language === 'es' ? 'Rentas Vacacionales' :
+               language === 'en' ? 'Vacation Rentals' :
+               'Locations de Vacances',
+        description: language === 'es' ? 'Membresía mensual para listar tu propiedad de alquiler vacacional en nuestra plataforma.' :
+                     language === 'en' ? 'Monthly membership to list your vacation rental property on our platform.' :
+                     'Adhésion mensuelle pour répertorier votre propriété de location de vacances sur notre plateforme.',
+        benefits: [
+          language === 'es' ? 'Listado en nuestra web' :
+          language === 'en' ? 'Listing on our website' :
+          'Inscription sur notre site web',
+          language === 'es' ? 'Acceso a nuestra base de clientes' :
+          language === 'en' ? 'Access to our client base' :
+          'Accès à notre base de clients',
+          language === 'es' ? 'Tú manejas las reservas directamente' :
+          language === 'en' ? 'You handle reservations directly' :
+          'Vous gérez les réservations directement',
+          language === 'es' ? 'Sin comisiones por booking' :
+          language === 'en' ? 'No booking commissions' :
+          'Pas de commissions de réservation'
+        ],
+        cta: language === 'es' ? 'Ver precios' :
+             language === 'en' ? 'See prices' :
+             'Voir les prix',
+        link: '/planes-rentas-vacacionales#planes',
+        membership: true
+      }
+    ],
+    stats: [
+      { 
+        number: '150+', 
+        label: language === 'es' ? 'Propiedades vendidas' :
+               language === 'en' ? 'Properties sold' :
+               'Propriétés vendues'
+      },
+      { 
+        number: '3', 
+        label: language === 'es' ? 'Años de experiencia' :
+               language === 'en' ? 'Years of experience' :
+               'Années d\'expérience'
+      },
+      { 
+        number: '95%', 
+        label: language === 'es' ? 'Clientes satisfechos' :
+               language === 'en' ? 'Satisfied clients' :
+               'Clients satisfaits'
+      },
+      { 
+        number: '60', 
+        label: language === 'es' ? 'Días promedio de venta' :
+               language === 'en' ? 'Average days to sell' :
+               'Jours moyens de vente'
+      }
+    ],
+    testimonials: [
+      {
+        text: language === 'es' ? 'CLIC me ayudó a vender mi apartamento en Naco. El proceso fue transparente y me mantuvieron informada todo el tiempo.' :
+              language === 'en' ? 'CLIC helped me sell my apartment in Naco. The process was transparent and they kept me informed all the time.' :
+              'CLIC m\'a aidé à vendre mon appartement à Naco. Le processus était transparent et ils m\'ont tenu informé tout le temps.',
+        author: 'Carmen Pérez',
+        property: language === 'es' ? 'Apartamento en Naco' :
+                  language === 'en' ? 'Apartment in Naco' :
+                  'Appartement à Naco'
+      },
+      {
+        text: language === 'es' ? 'Confiamos en CLIC para comercializar nuestro pequeño proyecto. Logramos vender el 70% en preventa.' :
+              language === 'en' ? 'We trusted CLIC to market our small project. We managed to sell 70% in pre-sale.' :
+              'Nous avons fait confiance à CLIC pour commercialiser notre petit projet. Nous avons réussi à vendre 70% en prévente.',
+        author: language === 'es' ? 'Constructora Familiar' :
+                language === 'en' ? 'Family Construction' :
+                'Construction Familiale',
+        property: language === 'es' ? 'Proyecto de 12 unidades' :
+                  language === 'en' ? '12-unit project' :
+                  'Projet de 12 unités'
+      }
+    ],
+    seo: {
+      title: language === 'es' ? 'Vender con CLIC - Servicios Inmobiliarios' :
+             language === 'en' ? 'Sell with CLIC - Real Estate Services' :
+             'Vendre avec CLIC - Services Immobiliers',
+      description: language === 'es' ? '¿Tienes una propiedad para vender o un proyecto para desarrollar? Te ayudamos con honestidad y profesionalismo.' :
+                   language === 'en' ? 'Do you have a property to sell or a project to develop? We help you with honesty and professionalism.' :
+                   'Avez-vous une propriété à vendre ou un projet à développer? Nous vous aidons avec honnêteté et professionnalisme.'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const services = sellData.services || [];
+const stats = sellData.stats || [];
+const testimonials = sellData.testimonials || [];
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    heroTitle: '¿Tienes algo que vender?',
+    heroSubtitle: 'Te ayudamos a vender tu propiedad o comercializar tu proyecto con honestidad y profesionalismo. Somos una empresa joven pero comprometida con tus resultados.',
+    servicesTitle: 'Nuestros Servicios',
+    servicesSubtitle: 'Tres formas en las que podemos trabajar juntos',
+    processTitle: 'Cómo trabajamos contigo',
+    testimonialsTitle: 'Lo que dicen nuestros clientes',
+    ctaTitle: '¿Hablamos de tu proyecto?',
+    ctaSubtitle: 'Conversemos sin compromiso sobre cómo podemos ayudarte',
+    ctaButton1: 'Contactar ahora',
+    ctaButton2: 'WhatsApp',
+    viewMore: 'Ver cómo te ayudamos',
+    membership: 'Membresía',
+    processSteps: [
+      {
+        title: 'Conversamos',
+        description: 'Nos cuentas qué tienes y qué necesitas. Todo sin compromiso.'
+      },
+      {
+        title: 'Planificamos',
+        description: 'Creamos una estrategia realista para tu propiedad o proyecto.'
+      },
+      {
+        title: 'Ejecutamos',
+        description: 'Trabajamos juntos hasta lograr tus objetivos.'
+      }
+    ]
+  },
+  en: {
+    heroTitle: 'Do you have something to sell?',
+    heroSubtitle: 'We help you sell your property or market your project with honesty and professionalism. We are a young company but committed to your results.',
+    servicesTitle: 'Our Services',
+    servicesSubtitle: 'Three ways we can work together',
+    processTitle: 'How we work with you',
+    testimonialsTitle: 'What our clients say',
+    ctaTitle: 'Shall we talk about your project?',
+    ctaSubtitle: 'Let\'s talk without commitment about how we can help you',
+    ctaButton1: 'Contact now',
+    ctaButton2: 'WhatsApp',
+    viewMore: 'See how we help you',
+    membership: 'Membership',
+    processSteps: [
+      {
+        title: 'We talk',
+        description: 'You tell us what you have and what you need. All without commitment.'
+      },
+      {
+        title: 'We plan',
+        description: 'We create a realistic strategy for your property or project.'
+      },
+      {
+        title: 'We execute',
+        description: 'We work together until we achieve your goals.'
+      }
+    ]
+  },
+  fr: {
+    heroTitle: 'Avez-vous quelque chose à vendre?',
+    heroSubtitle: 'Nous vous aidons à vendre votre propriété ou à commercialiser votre projet avec honnêteté et professionnalisme. Nous sommes une jeune entreprise mais engagée dans vos résultats.',
+    servicesTitle: 'Nos Services',
+    servicesSubtitle: 'Trois façons dont nous pouvons travailler ensemble',
+    processTitle: 'Comment nous travaillons avec vous',
+    testimonialsTitle: 'Ce que disent nos clients',
+    ctaTitle: 'Parlons-nous de votre projet?',
+    ctaSubtitle: 'Parlons sans engagement de la façon dont nous pouvons vous aider',
+    ctaButton1: 'Contacter maintenant',
+    ctaButton2: 'WhatsApp',
+    viewMore: 'Voir comment nous vous aidons',
+    membership: 'Adhésion',
+    processSteps: [
+      {
+        title: 'Nous parlons',
+        description: 'Vous nous dites ce que vous avez et ce dont vous avez besoin. Tout sans engagement.'
+      },
+      {
+        title: 'Nous planifions',
+        description: 'Nous créons une stratégie réaliste pour votre propriété ou projet.'
+      },
+      {
+        title: 'Nous exécutons',
+        description: 'Nous travaillons ensemble jusqu\'à atteindre vos objectifs.'
+      }
+    ]
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto'
+  },
+  en: {
+    contact: '/en/contact'
+  },
+  fr: {
+    contact: '/fr/contact'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ SellLayout preparado:', {
+  language,
+  servicesCount: services.length,
+  statsCount: stats.length,
+  testimonialsCount: testimonials.length
+});
+---
+
+<Layout 
+  title={sellData.seo?.title || text.heroTitle}
+  description={sellData.seo?.description || text.heroSubtitle}
+  language={language}
+>
+  <!-- Hero Section -->
+  <section class="bg-white py-16">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          {text.heroTitle}
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+          {text.heroSubtitle}
+        </p>
+        
+        <!-- Simple Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          {stats.map((stat) => (
+            <div class="text-center">
+              <div class="text-2xl font-bold text-[#f04e00] mb-1">{stat.number}</div>
+              <div class="text-sm text-gray-600">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <a 
+          href="#servicios" 
+          class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+        >
+          {text.viewMore}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="servicios" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">
+          {text.servicesTitle}
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          {text.servicesSubtitle}
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {services.map((servicio) => (
+          <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+              {servicio.title}
+              {servicio.membership && (
+                <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  {text.membership}
+                </span>
+              )}
+            </h3>
+            
+            <p class="text-gray-600 mb-6">{servicio.description}</p>
+            
+            <ul class="space-y-2 mb-6">
+              {servicio.benefits.map((benefit) => (
+                <li class="flex items-start gap-2">
+                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700 text-sm">{benefit}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <a 
+              href={servicio.link}
+              class="block w-full text-center px-4 py-2 bg-[#f04e00] text-white rounded hover:bg-[#d94400] transition-colors"
+            >
+              {servicio.cta}
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Simple Process -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl font-bold text-gray-900 mb-12">
+          {text.processTitle}
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {text.processSteps.map((step, index) => (
+            <div class="text-center">
+              <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-white font-bold">{index + 1}</span>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">{step.title}</h3>
+              <p class="text-gray-600 text-sm">
+                {step.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  {testimonials.length > 0 && (
+    <section class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">
+            {text.testimonialsTitle}
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {testimonials.map((testimonio) => (
+              <div class="bg-white rounded-lg p-6 shadow-md">
+                <blockquote class="text-gray-700 mb-4 italic">
+                  "{testimonio.text}"
+                </blockquote>
+                <div class="text-sm">
+                  <div class="font-semibold text-gray-900">{testimonio.author}</div>
+                  <div class="text-gray-600">{testimonio.property}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Simple CTA -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-2xl mx-auto text-white">
+        <h2 class="text-3xl font-bold mb-4">
+          {text.ctaTitle}
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {text.ctaSubtitle}
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact} 
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            {text.ctaButton1}
+          </a>
+          <a 
+            href="https://wa.me/18095550100" 
+            target="_blank"
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            {text.ctaButton2}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

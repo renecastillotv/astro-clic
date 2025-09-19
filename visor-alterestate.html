@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor de Propiedades AlterEstate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .main-image {
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+        .gallery-image {
+            aspect-ratio: 1;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery-image:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                🏠 Visor de Propiedades AlterEstate
+            </h1>
+            <p class="text-gray-600 mb-4">
+                Conectando con la API para verificar disponibilidad de imágenes y comparar con el sistema actual
+            </p>
+            
+            <!-- CORS Solution Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h3 class="text-blue-800 font-semibold mb-2">💡 Soluciones para el problema de CORS:</h3>
+                <div class="text-sm text-blue-700 space-y-1">
+                    <p><strong>Opción 1:</strong> Usar extensión del navegador "CORS Unblock" o "CORS Everywhere"</p>
+                    <p><strong>Opción 2:</strong> Abrir Chrome con: <code class="bg-blue-100 px-1 rounded">--disable-web-security --user-data-dir=/tmp/chrome_dev</code></p>
+                    <p><strong>Opción 3:</strong> Implementar un proxy en tu servidor backend</p>
+                    <p><strong>Opción 4:</strong> Usar datos de ejemplo para probar la interfaz</p>
+                </div>
+            </div>
+            
+            <!-- Test Buttons -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="testDirectAPI()" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">
+                    🔄 Probar API Directa
+                </button>
+                <button onclick="testWithProxy()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600">
+                    🌐 Probar con Proxy
+                </button>
+                <button onclick="loadSampleData()" class="bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600">
+                    📋 Cargar Datos de Ejemplo
+                </button>
+                <button onclick="showCurlExample()" class="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600">
+                    📄 Ver cURL Example
+                </button>
+            </div>
+            
+            <!-- Stats -->
+            <div class="flex gap-4 mt-4" id="stats">
+                <div class="bg-blue-50 px-4 py-2 rounded-lg">
+                    <span class="text-sm text-blue-600">Total: </span>
+                    <span class="font-semibold text-blue-800" id="total-count">-</span>
+                </div>
+                <div class="bg-green-50 px-4 py-2 rounded-lg">
+                    <span class="text-sm text-green-600">Con múltiples fotos: </span>
+                    <span class="font-semibold text-green-800" id="multi-photos-count">-</span>
+                </div>
+                <div class="bg-orange-50 px-4 py-2 rounded-lg">
+                    <span class="text-sm text-orange-600">Con 1 foto: </span>
+                    <span class="font-semibold text-orange-800" id="single-photo-count">-</span>
+                </div>
+                <div class="bg-red-50 px-4 py-2 rounded-lg">
+                    <span class="text-sm text-red-600">Sin fotos: </span>
+                    <span class="font-semibold text-red-800" id="no-photos-count">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="loading w-12 h-12 border-4 border-gray-200 rounded-full mx-auto mb-4"></div>
+            <p class="text-gray-600">Cargando propiedades desde AlterEstate API...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div class="flex items-center mb-2">
+                <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                <h3 class="text-red-800 font-semibold">Error al cargar propiedades</h3>
+            </div>
+            <p class="text-red-600" id="error-message"></p>
+        </div>
+
+        <!-- Properties Grid -->
+        <div id="properties-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <!-- Properties will be inserted here -->
+        </div>
+
+        <!-- Property Detail Modal -->
+        <div id="property-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+            <div class="min-h-screen px-4 text-center">
+                <div class="fixed inset-0" onclick="closeModal()"></div>
+                
+                <div class="inline-block w-full max-w-4xl my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+                    <!-- Modal Header -->
+                    <div class="flex justify-between items-start p-6 border-b">
+                        <div>
+                            <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
+                            <p id="modal-location" class="text-gray-600"></p>
+                        </div>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Content -->
+                    <div class="p-6">
+                        <!-- Main Image -->
+                        <div class="mb-6">
+                            <img id="modal-main-image" class="w-full h-64 object-cover rounded-lg" alt="Imagen principal">
+                        </div>
+                        
+                        <!-- Property Info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-3">📋 Información</h3>
+                                <div id="modal-info" class="space-y-2 text-sm">
+                                    <!-- Info will be inserted here -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold mb-3">📊 Análisis de Imágenes</h3>
+                                <div id="modal-image-analysis" class="space-y-2 text-sm">
+                                    <!-- Analysis will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Gallery -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-3">🖼️ Galería de Imágenes</h3>
+                            <div id="modal-gallery" class="image-grid">
+                                <!-- Gallery will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_TOKEN = 'n5STySdGSauDqdr7sHxHe4TvVMV6ZiB8ubM';
+        const API_URL = 'https://secure.alterestate.com/api/v1/properties/filter/';
+        
+        let allProperties = [];
+        
+        // Test functions for different approaches
+        async function testDirectAPI() {
+            try {
+                showLoading();
+                console.log('🔄 Testing direct API call...');
+                
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'aetoken': API_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allProperties = data.results || data.data || data || [];
+                    displayProperties(allProperties);
+                    updateStats(allProperties);
+                    showSuccess('✅ API directa funcionó correctamente');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError(`API directa falló: ${error.message}`);
+            }
+        }
+        
+        async function testWithProxy() {
+            try {
+                showLoading();
+                console.log('🔄 Testing with proxy...');
+                
+                // Create the request URL with headers as query parameters
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_URL + '?token=' + API_TOKEN);
+                
+                const response = await fetch(proxyUrl);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allProperties = data.results || data.data || data || [];
+                    displayProperties(allProperties);
+                    updateStats(allProperties);
+                    showSuccess('✅ Proxy funcionó correctamente');
+                } else {
+                    throw new Error(`Proxy failed: ${response.status}`);
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError(`Proxy falló: ${error.message}`);
+            }
+        }
+        
+        function loadSampleData() {
+            console.log('📋 Loading sample data...');
+            const data = getSampleData();
+            allProperties = data;
+            displayProperties(allProperties);
+            updateStats(allProperties);
+            showSuccess('✅ Datos de ejemplo cargados correctamente');
+        }
+        
+        function showCurlExample() {
+            const curlCommand = `curl -X GET "${API_URL}" \\
+  -H "aetoken: ${API_TOKEN}" \\
+  -H "Content-Type: application/json"`;
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
+                    <h3 class="text-lg font-semibold mb-4">📄 Comando cURL para probar la API</h3>
+                    <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                        <pre class="text-sm overflow-x-auto">${curlCommand}</pre>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Ejecuta este comando en tu terminal para probar la API directamente.
+                        Si funciona, el problema es solo de CORS en el navegador.
+                    </p>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Cerrar
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        
+        // Load properties on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Don't auto-load, let user choose method
+            hideLoading();
+        });
+        
+        async function loadProperties() {
+            try {
+                showLoading();
+                
+                console.log('🚀 Calling AlterEstate API...');
+                
+                // Try multiple approaches to bypass CORS
+                let data;
+                
+                // Method 1: Direct call (might work in some environments)
+                try {
+                    console.log('🔄 Trying direct API call...');
+                    const response = await fetch(API_URL, {
+                        method: 'GET',
+                        headers: {
+                            'aetoken': API_TOKEN,
+                            'Content-Type': 'application/json'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log('✅ Direct API call successful');
+                    }
+                } catch (corsError) {
+                    console.log('❌ Direct call failed (CORS):', corsError.message);
+                }
+                
+                // Method 2: Using public CORS proxy
+                if (!data) {
+                    try {
+                        console.log('🔄 Trying with CORS proxy...');
+                        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(API_URL)}`;
+                        const proxyResponse = await fetch(proxyUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (proxyResponse.ok) {
+                            const proxyData = await proxyResponse.json();
+                            // The proxy returns the actual response in the 'contents' field
+                            data = JSON.parse(proxyData.contents);
+                            console.log('✅ CORS proxy call successful');
+                        }
+                    } catch (proxyError) {
+                        console.log('❌ Proxy call failed:', proxyError.message);
+                    }
+                }
+                
+                // Method 3: Alternative CORS proxy
+                if (!data) {
+                    try {
+                        console.log('🔄 Trying alternative CORS proxy...');
+                        const altProxyUrl = `https://corsproxy.io/?${encodeURIComponent(API_URL)}`;
+                        const altResponse = await fetch(altProxyUrl, {
+                            method: 'GET',
+                            headers: {
+                                'aetoken': API_TOKEN,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (altResponse.ok) {
+                            data = await altResponse.json();
+                            console.log('✅ Alternative proxy call successful');
+                        }
+                    } catch (altError) {
+                        console.log('❌ Alternative proxy failed:', altError.message);
+                    }
+                }
+                
+                // Method 4: Load sample data for testing
+                if (!data) {
+                    console.log('🔄 Loading sample data for testing...');
+                    data = getSampleData();
+                    console.log('✅ Sample data loaded');
+                    showWarning('Mostrando datos de ejemplo. La API de AlterEstate no está accesible debido a CORS.');
+                }
+                
+                allProperties = data.results || data.data || data || [];
+                console.log('📊 Total properties loaded:', allProperties.length);
+                
+                displayProperties(allProperties);
+                updateStats(allProperties);
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Error loading properties:', error);
+                showError(`Error: ${error.message}. Revisa la consola para más detalles.`);
+                hideLoading();
+            }
+        }
+        
+        function getSampleData() {
+            return [
+                {
+                    id: 'sample-1',
+                    title: 'Apartamento de Lujo en Naco',
+                    location: 'Naco, Santo Domingo',
+                    price: '$250,000',
+                    bedrooms: 3,
+                    bathrooms: 2,
+                    area: '120 m²',
+                    type: 'Apartamento',
+                    status: 'Disponible',
+                    images: [
+                        'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800',
+                        'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800',
+                        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+                        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800'
+                    ]
+                },
+                {
+                    id: 'sample-2',
+                    title: 'Casa en Punta Cana',
+                    location: 'Punta Cana, La Altagracia',
+                    price: '$450,000',
+                    bedrooms: 4,
+                    bathrooms: 3,
+                    area: '200 m²',
+                    type: 'Casa',
+                    status: 'Disponible',
+                    images: [
+                        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800'
+                    ]
+                },
+                {
+                    id: 'sample-3',
+                    title: 'Estudio en Zona Colonial',
+                    location: 'Zona Colonial, Santo Domingo',
+                    price: '$120,000',
+                    bedrooms: 1,
+                    bathrooms: 1,
+                    area: '45 m²',
+                    type: 'Estudio',
+                    status: 'Disponible',
+                    images: []
+                }
+            ];
+        }
+        
+        function showWarning(message) {
+            const warningDiv = document.createElement('div');
+            warningDiv.className = 'bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6';
+            warningDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-yellow-800">${message}</p>
+                </div>
+            `;
+            
+            const container = document.querySelector('.container');
+            const firstChild = container.children[1]; // After header
+            container.insertBefore(warningDiv, firstChild);
+        }
+        
+        function displayProperties(properties) {
+            const grid = document.getElementById('properties-grid');
+            grid.innerHTML = '';
+            
+            if (properties.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500">No se encontraron propiedades</p></div>';
+                grid.classList.remove('hidden');
+                return;
+            }
+            
+            properties.forEach(property => {
+                const card = createPropertyCard(property);
+                grid.appendChild(card);
+            });
+            
+            grid.classList.remove('hidden');
+        }
+        
+        function createPropertyCard(property) {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer';
+            div.onclick = () => showPropertyDetail(property);
+            
+            const images = getPropertyImages(property);
+            const imageCount = images.length;
+            const mainImage = images[0] || '/api/placeholder/300/200';
+            
+            const statusColor = imageCount === 0 ? 'bg-red-100 text-red-800' : 
+                               imageCount === 1 ? 'bg-orange-100 text-orange-800' : 
+                               'bg-green-100 text-green-800';
+            
+            div.innerHTML = `
+                <div class="relative">
+                    <img src="${mainImage}" alt="${property.title || property.name || 'Propiedad'}" 
+                         class="w-full h-48 object-cover" 
+                         onerror="this.src='/api/placeholder/300/200'">
+                    <div class="absolute top-2 right-2 ${statusColor} px-2 py-1 rounded text-xs font-medium">
+                        ${imageCount} foto${imageCount !== 1 ? 's' : ''}
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">
+                        ${property.title || property.name || 'Sin título'}
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-2">
+                        ${property.location || property.address || 'Ubicación no especificada'}
+                    </p>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-blue-600 font-medium">
+                            Código: ${property.id || property.code || 'N/A'}
+                        </span>
+                        <span class="text-gray-500">
+                            ${property.bedrooms || 0} hab • ${property.bathrooms || 0} baños
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        function getPropertyImages(property) {
+            let images = [];
+            
+            // Try different possible image fields
+            if (property.images && Array.isArray(property.images)) {
+                images = property.images.map(img => img.url || img).filter(Boolean);
+            } else if (property.gallery && Array.isArray(property.gallery)) {
+                images = property.gallery.map(img => img.url || img).filter(Boolean);
+            } else if (property.photos && Array.isArray(property.photos)) {
+                images = property.photos.map(img => img.url || img).filter(Boolean);
+            } else if (property.image_urls && Array.isArray(property.image_urls)) {
+                images = property.image_urls.filter(Boolean);
+            } else if (property.main_image) {
+                images = [property.main_image];
+            } else if (property.image) {
+                images = [property.image];
+            }
+            
+            return images.filter(img => img && typeof img === 'string');
+        }
+        
+        function showPropertyDetail(property) {
+            const modal = document.getElementById('property-modal');
+            const images = getPropertyImages(property);
+            
+            // Set title and location
+            document.getElementById('modal-title').textContent = property.title || property.name || 'Propiedad sin título';
+            document.getElementById('modal-location').textContent = property.location || property.address || 'Ubicación no especificada';
+            
+            // Set main image
+            const mainImage = document.getElementById('modal-main-image');
+            mainImage.src = images[0] || '/api/placeholder/800/400';
+            mainImage.onerror = () => mainImage.src = '/api/placeholder/800/400';
+            
+            // Set property info
+            const info = document.getElementById('modal-info');
+            info.innerHTML = `
+                <div><strong>ID:</strong> ${property.id || property.code || 'N/A'}</div>
+                <div><strong>Precio:</strong> ${property.price || property.sale_price || 'No especificado'}</div>
+                <div><strong>Habitaciones:</strong> ${property.bedrooms || 'N/A'}</div>
+                <div><strong>Baños:</strong> ${property.bathrooms || 'N/A'}</div>
+                <div><strong>Área:</strong> ${property.area || property.size || 'N/A'}</div>
+                <div><strong>Tipo:</strong> ${property.type || property.category || 'N/A'}</div>
+                <div><strong>Estado:</strong> ${property.status || 'N/A'}</div>
+            `;
+            
+            // Set image analysis
+            const analysis = document.getElementById('modal-image-analysis');
+            const imageCount = images.length;
+            const status = imageCount === 0 ? '❌ Sin imágenes' : 
+                          imageCount === 1 ? '⚠️ Solo 1 imagen' : 
+                          '✅ Múltiples imágenes';
+            
+            analysis.innerHTML = `
+                <div><strong>Total de imágenes:</strong> ${imageCount}</div>
+                <div><strong>Estado:</strong> ${status}</div>
+                <div><strong>Calidad:</strong> ${imageCount >= 5 ? 'Excelente' : imageCount >= 3 ? 'Buena' : imageCount >= 1 ? 'Regular' : 'Mala'}</div>
+                <div><strong>Recomendación:</strong> ${imageCount < 3 ? 'Agregar más fotos' : 'Cantidad adecuada'}</div>
+            `;
+            
+            // Set gallery
+            const gallery = document.getElementById('modal-gallery');
+            gallery.innerHTML = '';
+            
+            if (images.length === 0) {
+                gallery.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">No hay imágenes disponibles</p>';
+            } else {
+                images.forEach((imageUrl, index) => {
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = `Imagen ${index + 1}`;
+                    img.className = 'gallery-image rounded-lg border border-gray-200';
+                    img.onerror = () => img.src = '/api/placeholder/200/200';
+                    img.onclick = () => {
+                        mainImage.src = imageUrl;
+                        mainImage.scrollIntoView({ behavior: 'smooth' });
+                    };
+                    gallery.appendChild(img);
+                });
+            }
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeModal() {
+            document.getElementById('property-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function updateStats(properties) {
+            const total = properties.length;
+            let multiPhotos = 0;
+            let singlePhoto = 0;
+            let noPhotos = 0;
+            
+            properties.forEach(property => {
+                const imageCount = getPropertyImages(property).length;
+                if (imageCount === 0) noPhotos++;
+                else if (imageCount === 1) singlePhoto++;
+                else multiPhotos++;
+            });
+            
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('multi-photos-count').textContent = multiPhotos;
+            document.getElementById('single-photo-count').textContent = singlePhoto;
+            document.getElementById('no-photos-count').textContent = noPhotos;
+            
+            console.log('📊 Stats:', { total, multiPhotos, singlePhoto, noPhotos });
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('properties-grid').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error').classList.remove('hidden');
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

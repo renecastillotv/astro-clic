@@ -1,0 +1,543 @@
+---
+// src/layouts/ArticlesCategoryLayout.astro - Layout para categorías de artículos
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+const categorySlug = data?.category || data?.categorySlug;
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let categoryData = data;
+
+// Si no hay datos, usar fallback estático
+if (!categoryData || !categoryData.articles) {
+  console.log('📋 ArticlesCategoryLayout: Usando datos estáticos de fallback');
+  
+  // Configurar datos según la categoría
+  const categoryConfigs = {
+    'guias-de-compra': {
+      title: language === 'es' ? 'Guías de Compra' :
+             language === 'en' ? 'Buying Guides' :
+             'Guides d\'Achat',
+      description: language === 'es' ? 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana. Desde el proceso legal hasta consejos prácticos de negociación.' :
+                   language === 'en' ? 'Everything you need to know to buy your ideal property in Dominican Republic. From legal process to practical negotiation tips.' :
+                   'Tout ce que vous devez savoir pour acheter votre propriété idéale en République dominicaine. Du processus juridique aux conseils pratiques de négociation.',
+      icon: '📚'
+    },
+    'inversion-inmobiliaria': {
+      title: language === 'es' ? 'Inversión Inmobiliaria' :
+             language === 'en' ? 'Real Estate Investment' :
+             'Investissement Immobilier',
+      description: language === 'es' ? 'Estrategias, análisis y casos de éxito para maximizar tu retorno de inversión en el mercado inmobiliario dominicano.' :
+                   language === 'en' ? 'Strategies, analysis and success cases to maximize your return on investment in the Dominican real estate market.' :
+                   'Stratégies, analyses et cas de succès pour maximiser votre retour sur investissement sur le marché immobilier dominicain.',
+      icon: '📈'
+    },
+    'mercado-inmobiliario': {
+      title: language === 'es' ? 'Mercado Inmobiliario' :
+             language === 'en' ? 'Real Estate Market' :
+             'Marché Immobilier',
+      description: language === 'es' ? 'Análisis de tendencias, precios y oportunidades en el mercado dominicano' :
+                   language === 'en' ? 'Analysis of trends, prices and opportunities in the Dominican market' :
+                   'Analyse des tendances, prix et opportunités sur le marché dominicain',
+      icon: '🏘️'
+    }
+  };
+
+  const currentConfig = categoryConfigs[categorySlug] || categoryConfigs['guias-de-compra'];
+  
+  categoryData = {
+    language: language,
+    category: categorySlug,
+    categorySlug: categorySlug,
+    title: currentConfig.title,
+    description: currentConfig.description,
+    icon: currentConfig.icon,
+    articles: [
+      {
+        slug: 'guia-completa-comprar-villa-punta-cana',
+        title: language === 'es' ? 'Guía Completa para Comprar una Villa en Punta Cana' :
+                language === 'en' ? 'Complete Guide to Buying a Villa in Punta Cana' :
+                'Guide Complet pour Acheter une Villa à Punta Cana',
+        excerpt: language === 'es' ? 'Descubre paso a paso cómo adquirir tu villa soñada en el paraíso caribeño. Incluye análisis de zonas, precios y documentación necesaria.' :
+                 language === 'en' ? 'Discover step by step how to acquire your dream villa in the Caribbean paradise. Includes area analysis, prices and required documentation.' :
+                 'Découvrez étape par étape comment acquérir votre villa de rêve dans le paradis caribéen. Comprend l\'analyse des zones, les prix et la documentation requise.',
+        featuredImage: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=450&fit=crop',
+        author: {
+          name: 'María Rodríguez',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          title: language === 'es' ? 'Especialista en Punta Cana' :
+                 language === 'en' ? 'Punta Cana Specialist' :
+                 'Spécialiste de Punta Cana'
+        },
+        publishedAt: '2024-03-20',
+        readTime: 15,
+        views: '12.5K',
+        featured: true,
+        tags: ['Punta Cana', 'Villas', language === 'es' ? 'Proceso de Compra' : language === 'en' ? 'Buying Process' : 'Processus d\'Achat']
+      },
+      {
+        slug: 'documentos-extranjeros-comprar-rd',
+        title: language === 'es' ? 'Documentos Necesarios para Extranjeros que Compran en RD' :
+                language === 'en' ? 'Required Documents for Foreigners Buying in DR' :
+                'Documents Nécessaires pour les Étrangers Achetant en RD',
+        excerpt: language === 'es' ? 'Lista completa y actualizada de todos los documentos que necesitas como extranjero para comprar propiedades en República Dominicana.' :
+                 language === 'en' ? 'Complete and updated list of all documents you need as a foreigner to buy properties in Dominican Republic.' :
+                 'Liste complète et mise à jour de tous les documents dont vous avez besoin en tant qu\'étranger pour acheter des propriétés en République dominicaine.',
+        featuredImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=450&fit=crop',
+        author: {
+          name: 'Carlos Mejía',
+          avatar: 'https://i.pravatar.cc/150?img=8',
+          title: language === 'es' ? 'Asesor Legal' :
+                 language === 'en' ? 'Legal Advisor' :
+                 'Conseiller Juridique'
+        },
+        publishedAt: '2024-03-18',
+        readTime: 10,
+        views: '8.3K',
+        featured: true,
+        tags: ['Legal', language === 'es' ? 'Extranjeros' : language === 'en' ? 'Foreigners' : 'Étrangers', 'Documentación']
+      },
+      {
+        slug: 'como-negociar-precio-propiedad',
+        title: language === 'es' ? 'Cómo Negociar el Precio de una Propiedad: Estrategias Efectivas' :
+                language === 'en' ? 'How to Negotiate Property Price: Effective Strategies' :
+                'Comment Négocier le Prix d\'une Propriété : Stratégies Efficaces',
+        excerpt: language === 'es' ? 'Técnicas profesionales para obtener el mejor precio en tu próxima compra inmobiliaria.' :
+                 language === 'en' ? 'Professional techniques to get the best price on your next real estate purchase.' :
+                 'Techniques professionnelles pour obtenir le meilleur prix lors de votre prochain achat immobilier.',
+        featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
+        author: {
+          name: 'Pedro Santos',
+          avatar: 'https://i.pravatar.cc/150?img=6',
+          title: language === 'es' ? 'Director Comercial' :
+                 language === 'en' ? 'Commercial Director' :
+                 'Directeur Commercial'
+        },
+        publishedAt: '2024-03-15',
+        readTime: 8,
+        views: '6.7K',
+        tags: [language === 'es' ? 'Negociación' : language === 'en' ? 'Negotiation' : 'Négociation', 'Precios', 'Tips']
+      }
+    ],
+    relatedProperties: [
+      {
+        slug: 'villa-punta-cana-lista-mudarse',
+        titulo: language === 'es' ? 'Villa en Punta Cana Lista para Mudarse' :
+                language === 'en' ? 'Villa in Punta Cana Ready to Move' :
+                'Villa à Punta Cana Prête à Emménager',
+        precio: '$385,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 3,
+        banos: 3,
+        metros: 220,
+        tipo: language === 'es' ? 'Villa' : 'Villa',
+        destacado: true,
+        descuento: language === 'es' ? 'Precio Negociable' : language === 'en' ? 'Negotiable Price' : 'Prix Négociable'
+      },
+      {
+        slug: 'apartamento-naco-extranjeros',
+        titulo: language === 'es' ? 'Apartamento Ideal para Extranjeros en Naco' :
+                language === 'en' ? 'Ideal Apartment for Foreigners in Naco' :
+                'Appartement Idéal pour les Étrangers à Naco',
+        precio: '$225,000',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 2,
+        banos: 2,
+        metros: 140,
+        tipo: language === 'es' ? 'Apartamento' : language === 'en' ? 'Apartment' : 'Appartement',
+        nuevo: true
+      }
+    ],
+    seo: {
+      title: `${currentConfig.title} - Blog CLIC`,
+      description: currentConfig.description
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const articles = categoryData.articles || [];
+const featuredArticles = articles.filter(a => a.featured);
+const regularArticles = articles.filter(a => !a.featured);
+const relatedProperties = categoryData.relatedProperties || [];
+
+// Artículos más populares de la categoría
+const popularArticles = [...articles]
+  .sort((a, b) => parseInt(b.views.replace('K', '000').replace('.', '')) - parseInt(a.views.replace('K', '000').replace('.', '')))
+  .slice(0, 5);
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    breadcrumbArticles: 'Artículos',
+    featuredTitle: 'Artículos Destacados',
+    allTitle: 'Todos los Artículos',
+    popularTitle: '🔥 Más populares en',
+    newsletterTitle: '📧 No te pierdas ningún artículo',
+    newsletterSubtitle: 'Recibe nuestros mejores contenidos directo a tu correo',
+    newsletterButton: 'Suscribirse',
+    propertiesTitle: 'Propiedades recomendadas para',
+    propertiesSubtitle: 'Basadas en los artículos más leídos de esta categoría',
+    ctaTitle: '¿Tienes preguntas sobre',
+    ctaSubtitle: 'Nuestros asesores expertos están listos para ayudarte',
+    ctaButton: 'Hablar con un asesor',
+    readMore: 'Leer más',
+    minRead: 'min de lectura',
+    views: 'vistas',
+    author: 'Por',
+    articles: 'artículos',
+    recentArticles: 'Artículos recientes:'
+  },
+  en: {
+    breadcrumbArticles: 'Articles',
+    featuredTitle: 'Featured Articles',
+    allTitle: 'All Articles',
+    popularTitle: '🔥 Most popular in',
+    newsletterTitle: '📧 Don\'t miss any article',
+    newsletterSubtitle: 'Get our best content straight to your inbox',
+    newsletterButton: 'Subscribe',
+    propertiesTitle: 'Recommended properties for',
+    propertiesSubtitle: 'Based on the most read articles in this category',
+    ctaTitle: 'Do you have questions about',
+    ctaSubtitle: 'Our expert advisors are ready to help you',
+    ctaButton: 'Talk to an advisor',
+    readMore: 'Read more',
+    minRead: 'min read',
+    views: 'views',
+    author: 'By',
+    articles: 'articles',
+    recentArticles: 'Recent articles:'
+  },
+  fr: {
+    breadcrumbArticles: 'Articles',
+    featuredTitle: 'Articles en Vedette',
+    allTitle: 'Tous les Articles',
+    popularTitle: '🔥 Les plus populaires dans',
+    newsletterTitle: '📧 Ne manquez aucun article',
+    newsletterSubtitle: 'Recevez notre meilleur contenu directement dans votre boîte mail',
+    newsletterButton: 'S\'abonner',
+    propertiesTitle: 'Propriétés recommandées pour',
+    propertiesSubtitle: 'Basées sur les articles les plus lus de cette catégorie',
+    ctaTitle: 'Avez-vous des questions sur',
+    ctaSubtitle: 'Nos conseillers experts sont prêts à vous aider',
+    ctaButton: 'Parler à un conseiller',
+    readMore: 'Lire plus',
+    minRead: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    articles: 'articles',
+    recentArticles: 'Articles récents:'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    properties: '/comprar',
+    articlesBase: '/articulos'
+  },
+  en: {
+    contact: '/en/contact',
+    properties: '/en/buy',
+    articlesBase: '/en/articles'
+  },
+  fr: {
+    contact: '/fr/contact',
+    properties: '/fr/acheter',
+    articlesBase: '/fr/articles'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = {
+    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+  };
+  
+  const monthNames = months[language] || months.es;
+  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+console.log('✅ ArticlesCategoryLayout preparado:', {
+  language,
+  category: categorySlug,
+  title: categoryData.title,
+  articlesCount: articles.length,
+  featuredCount: featuredArticles.length
+});
+---
+
+<Layout 
+  title={categoryData.seo?.title || `${categoryData.title} - Blog CLIC`}
+  description={categoryData.seo?.description || categoryData.description}
+  language={language}
+>
+  <!-- Breadcrumbs -->
+  <section class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600">
+        <a href={currentRoutes.articlesBase} class="hover:text-[#f04e00]">{text.breadcrumbArticles}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{categoryData.title}</span>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-12">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl">
+        <div class="flex items-center gap-4 mb-4">
+          <span class="text-5xl">{categoryData.icon}</span>
+          <h1 class="text-4xl md:text-5xl font-bold text-gray-900">
+            {categoryData.title}
+          </h1>
+        </div>
+        <p class="text-xl text-gray-600">
+          {categoryData.description}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Grid -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Articles Column - 2/3 width -->
+        <div class="lg:col-span-2">
+          
+          <!-- Featured Articles -->
+          {featuredArticles.length > 0 && (
+            <div class="mb-12">
+              <h2 class="text-2xl font-bold text-gray-900 mb-6">{text.featuredTitle}</h2>
+              
+              <div class="space-y-8">
+                {featuredArticles.map((article) => (
+                  <article class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+                    <a 
+                      href={`${currentRoutes.articlesBase}/${categorySlug}/${article.slug}`}
+                      class="flex flex-col md:flex-row"
+                    >
+                      <div class="md:w-2/5">
+                        <div class="aspect-[16/9] md:aspect-[4/3] h-full">
+                          <img 
+                            src={article.featuredImage} 
+                            alt={article.title}
+                            class="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div class="flex-1 p-6">
+                        <div class="flex items-center gap-2 mb-3">
+                          {article.tags.map(tag => (
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 hover:text-[#f04e00] transition-colors">
+                          {article.title}
+                        </h3>
+                        
+                        <p class="text-gray-600 mb-4 line-clamp-2">
+                          {article.excerpt}
+                        </p>
+                        
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <img 
+                              src={article.author.avatar} 
+                              alt={article.author.name}
+                              class="w-10 h-10 rounded-full"
+                            />
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
+                              <p class="text-xs text-gray-500">{article.author.title}</p>
+                            </div>
+                          </div>
+                          
+                          <div class="text-sm text-gray-500">
+                            {article.readTime} {text.minRead} • {article.views} {text.views}
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <!-- Regular Articles Grid -->
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{text.allTitle}</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {regularArticles.map((article) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                  <a href={`${currentRoutes.articlesBase}/${categorySlug}/${article.slug}`}>
+                    <div class="aspect-[16/9] overflow-hidden rounded-t-lg">
+                      <img 
+                        src={article.featuredImage} 
+                        alt={article.title}
+                        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    
+                    <div class="p-5">
+                      <div class="flex items-center gap-2 mb-2">
+                        {article.tags.slice(0, 2).map(tag => (
+                          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      <h3 class="font-semibold text-gray-900 mb-2 hover:text-[#f04e00] transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                      
+                      <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {article.excerpt}
+                      </p>
+                      
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>{formatDate(article.publishedAt)}</span>
+                        <span>{article.readTime} {text.minRead}</span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- Sidebar - 1/3 width -->
+        <aside class="lg:col-span-1">
+          
+          <!-- Popular Articles -->
+          <div class="bg-white rounded-lg shadow-md p-6 mb-8 sticky top-24">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">
+              {text.popularTitle} {categoryData.title}
+            </h3>
+            
+            <div class="space-y-4">
+              {popularArticles.map((article, index) => (
+                <a 
+                  href={`${currentRoutes.articlesBase}/${categorySlug}/${article.slug}`}
+                  class="flex gap-3 group"
+                >
+                  <span class="text-2xl font-bold text-gray-200 group-hover:text-[#f04e00]/20 transition-colors">
+                    {index + 1}
+                  </span>
+                  <div class="flex-1">
+                    <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm line-clamp-2">
+                      {article.title}
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">
+                      {article.views} {text.views}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+            
+            <!-- Newsletter CTA -->
+            <div class="mt-8 pt-8 border-t">
+              <h4 class="font-semibold text-gray-900 mb-3">
+                {text.newsletterTitle}
+              </h4>
+              <p class="text-sm text-gray-600 mb-4">
+                {text.newsletterSubtitle}
+              </p>
+              <form class="space-y-3">
+                <input 
+                  type="email" 
+                  placeholder="tu@email.com"
+                  class="w-full px-3 py-2 border rounded-md text-sm"
+                />
+                <button 
+                  type="submit"
+                  class="w-full bg-[#f04e00] text-white py-2 rounded-md hover:bg-[#d94400] transition-colors text-sm font-medium"
+                >
+                  {text.newsletterButton}
+                </button>
+              </form>
+            </div>
+          </div>
+          
+        </aside>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  {relatedProperties.length > 0 && (
+    <PropertyCarousel 
+      title={`${text.propertiesTitle} ${categoryData.title.toLowerCase()}`}
+      subtitle={text.propertiesSubtitle}
+      properties={relatedProperties}
+      viewAllLink={`${currentRoutes.properties}?fuente=${categorySlug}`}
+      language={language}
+    />
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">
+        {text.ctaTitle} {categoryData.title.toLowerCase()}?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        {text.ctaSubtitle}
+      </p>
+      <a 
+        href={currentRoutes.contact} 
+        class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+      >
+        {text.ctaButton}
+      </a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

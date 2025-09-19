@@ -1,0 +1,1191 @@
+---
+// src/layouts/SinglePropertyLayout.astro - CORRECTED VERSION
+import Layout from './Layout.astro';
+
+// Importar todos los componentes modulares
+import PropertyHero from '../components/property/PropertyHero.astro';
+import PropertyDetails from '../components/property/PropertyDetails.astro';
+import PropertyDescription from '../components/property/PropertyDescription.astro';
+import PropertyAmenities from '../components/property/PropertyAmenities.astro';
+import PropertySimilar from '../components/property/PropertySimilar.astro';
+import PropertyLocation from '../components/property/PropertyLocation.astro';
+import PropertyVideos from '../components/property/PropertyVideos.astro';
+import PropertyFAQs from '../components/property/PropertyFAQs.astro';
+import AgentPropertiesCarousel from '../components/property/AgentPropertiesCarousel.astro';
+
+// Sidebar widgets
+import AgentWidget from '../components/property/sidebar/AgentWidget.astro';
+import ProjectWidget from '../components/property/sidebar/ProjectWidget.astro';
+import ShareWidget from '../components/property/sidebar/ShareWidget.astro';
+import TestimonialsWidget from '../components/property/sidebar/TestimonialsWidget.astro';
+import CalculatorWidget from '../components/property/sidebar/CalculatorWidget.astro';
+import ArticlesWidget from '../components/property/sidebar/ArticlesWidget.astro';
+
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+// ===== SOLO FUNCIONES ESENCIALES =====
+
+// Función para formatear precio
+function formatPrice(price, currency) {
+  if (!price) return 'Consultar precio';
+  const symbol = currency === 'USD' ? 'US$' : 'RD$';
+  return `${symbol}${price.toLocaleString()}`;
+}
+
+// Función para procesar imágenes
+function processGalleryImages(galleryImagesUrl) {
+  let galleryImages = [];
+  if (!galleryImagesUrl) return galleryImages;
+  
+  if (Array.isArray(galleryImagesUrl)) {
+    galleryImages = galleryImagesUrl.filter((img)=>img && typeof img === 'string' && img.trim() !== '');
+  } else if (typeof galleryImagesUrl === 'string') {
+    galleryImages = galleryImagesUrl.split(',').map((img)=>img.trim()).filter((img)=>img.length > 0);
+  } else {
+    try {
+      const parsed = JSON.parse(galleryImagesUrl);
+      if (Array.isArray(parsed)) {
+        galleryImages = parsed.filter((img)=>img && typeof img === 'string' && img.trim() !== '');
+      }
+    } catch (e) {
+      galleryImages = [];
+    }
+  }
+  return galleryImages;
+}
+
+function buildFinalImagesArray(mainImageUrl, galleryImages) {
+  const fallbackImage = 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';
+  const mainImage = mainImageUrl?.trim() || fallbackImage;
+  const finalImages = [
+    mainImage,
+    ...galleryImages.filter((img)=>img !== mainImage)
+  ];
+  
+  return {
+    mainImage,
+    finalImages
+  };
+}
+
+// Función para procesar amenidades
+function processAmenities(property) {
+  if (!property?.property_amenities || !Array.isArray(property.property_amenities)) {
+    return [];
+  }
+  
+  return property.property_amenities.map(item => ({
+    name: item.amenities?.name || item.name || 'Amenidad',
+    icon: item.amenities?.icon || item.icon || 'fas fa-star',
+    category: item.amenities?.category || 'General',
+    name_en: item.amenities?.name_en,
+    name_fr: item.amenities?.name_fr
+  }));
+}
+
+// Función para procesar ubicación
+function processLocation(property) {
+  const parts = [];
+  
+  if (property?.sectors?.name) {
+    parts.push(property.sectors.name);
+  }
+  
+  if (property?.cities?.name) {
+    parts.push(property.cities.name);
+  }
+  
+  return parts.length > 0 ? parts.join(', ') : 'Ubicación no disponible';
+}
+
+// Función para procesar coordenadas
+function processCoordinates(property) {
+  // Primero intentar coordenadas exactas
+  if (property?.exact_coordinates) {
+    try {
+      const coordsString = property.exact_coordinates.replace(/[()]/g, '').trim();
+      const coords = coordsString.split(',');
+      
+      if (coords.length === 2) {
+        const lat = parseFloat(coords[0].trim());
+        const lng = parseFloat(coords[1].trim());
+        
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing exact_coordinates:', e);
+    }
+  }
+  
+  // Luego intentar coordenadas de la ciudad
+  if (property?.cities?.coordinates) {
+    try {
+      const coordsString = property.cities.coordinates.replace(/[()]/g, '').trim();
+      const coords = coordsString.split(',');
+      
+      if (coords.length === 2) {
+        const lng = parseFloat(coords[0].trim());
+        const lat = parseFloat(coords[1].trim());
+        
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing city coordinates:', e);
+    }
+  }
+  
+  return null;
+}
+
+// Función para determinar precio y operación de una propiedad
+function getPropertyPriceAndOperation(prop) {
+  const operations = [];
+  
+  // Recopilar todas las operaciones disponibles con prioridad lógica
+  if (prop.sale_price) {
+    operations.push({
+      type: 'Venta',
+      price: prop.sale_price,
+      currency: prop.sale_currency,
+      priority: 1
+    });
+  }
+  
+  if (prop.furnished_sale_price) {
+    operations.push({
+      type: 'Venta Amueblada',
+      price: prop.furnished_sale_price,
+      currency: prop.furnished_sale_currency,
+      priority: 2
+    });
+  }
+  
+  if (prop.rental_price) {
+    operations.push({
+      type: 'Alquiler',
+      price: prop.rental_price,
+      currency: prop.rental_currency,
+      priority: 3
+    });
+  }
+  
+  if (prop.furnished_rental_price) {
+    operations.push({
+      type: 'Alquiler Amueblado',
+      price: prop.furnished_rental_price,
+      currency: prop.furnished_rental_currency,
+      priority: 4
+    });
+  }
+  
+  if (prop.temp_rental_price) {
+    operations.push({
+      type: 'Temporal',
+      price: prop.temp_rental_price,
+      currency: prop.temp_rental_currency,
+      priority: 5
+    });
+  }
+  
+  // Si no hay operaciones disponibles
+  if (operations.length === 0) {
+    return {
+      precio: 'Consultar precio',
+      operacion: 'Consultar',
+      allOperations: []
+    };
+  }
+  
+  // Priorizar: venta -> venta amueblada -> alquiler -> alquiler amueblado -> temporal
+  const primaryOperation = operations.sort((a, b) => a.priority - b.priority)[0];
+  
+  return {
+    precio: formatPrice(primaryOperation.price, primaryOperation.currency),
+    operacion: primaryOperation.type,
+    allOperations: operations.map(op => ({
+      type: op.type,
+      price: formatPrice(op.price, op.currency)
+    }))
+  };
+}
+
+// Función para procesar datos del agente - MANTENER ESTRUCTURA ORIGINAL
+function processAgentData(rawAgent) {
+  if (!rawAgent) return null;
+  
+  // PRIORIZAR referral si existe, sino usar original
+  const agent = rawAgent.referral || rawAgent.original;
+  
+  if (!agent) return null;
+  
+  return {
+    id: agent.id,
+    name: agent.first_name && agent.last_name ? 
+      `${agent.first_name} ${agent.last_name}` : 
+      agent.slug?.replace(/[-_]/g, ' ') || 'Asesor CLIC',
+    first_name: agent.first_name,
+    last_name: agent.last_name,
+    position: agent.position || 'Agente Inmobiliario',
+    profile_photo_url: agent.profile_photo_url || null, // MANTENER NOMBRE ORIGINAL
+    specialty_description: agent.specialty_description || null,
+    years_experience: agent.years_experience || 0,
+    languages: agent.languages || ['Español'],
+    phone: agent.phone || '+18295550100',
+    email: agent.email || null,
+    whatsapp: `https://wa.me/${agent.phone?.replace(/[^0-9]/g, '') || '18295550100'}`,
+    url: agent.url || null, // URL YA PROCESADA POR LA API
+    social: {
+      facebook: agent.facebook_url,
+      instagram: agent.instagram_url,
+      linkedin: agent.linkedin_url,
+      twitter: agent.twitter_url,
+      youtube: agent.youtube_url
+    },
+    // Información adicional para diferenciar si es referral
+    isReferral: !!rawAgent.referral,
+    originalAgentId: rawAgent.original?.id || null,
+    description: agent.description || agent.bio || null
+  };
+}
+
+// ===== PROCESAMIENTO DE DATOS =====
+
+const rawProperty = data.property || {};
+const rawAgent = data.agent || {};
+const language = data.language || 'es';
+const trackingString = data.trackingString || '';
+
+// Procesar imágenes
+const propertyImages = processGalleryImages(rawProperty.gallery_images_url);
+const { mainImage, finalImages } = buildFinalImagesArray(rawProperty?.main_image_url, propertyImages);
+
+// Procesar amenidades
+const processedAmenities = processAmenities(rawProperty);
+
+// Procesar ubicación
+const locationString = processLocation(rawProperty);
+
+// Procesar coordenadas para el mapa
+const propertyCoordinates = processCoordinates(rawProperty);
+
+// Procesar datos del agente - MANTIENE ESTRUCTURA ORIGINAL
+const processedAgent = processAgentData(rawAgent);
+
+// Extraer datos para SEO y Layout
+const seoData = data.seo || {};
+const title = seoData.title || rawProperty?.name || 'CLIC Inmobiliaria';
+const description = seoData.description || rawProperty?.description || 'Encuentra tu próxima propiedad en República Dominicana';
+const ogImage = seoData.open_graph?.image || rawProperty?.main_image_url || '/og-default.jpg';
+
+// Preparar datos para el Layout padre
+const layoutProps = {
+  title,
+  description,
+  ogImage,
+  hreflangData: seoData.hreflang || {},
+  globalConfig: data.globalConfig || {},
+  language: language,
+  trackingString: trackingString
+};
+
+// ===== DATOS ADAPTADOS PARA COMPONENTES =====
+
+// Datos para PropertyHero
+const heroData = {
+  ...data,
+  images: finalImages,
+  mainImage: rawProperty?.main_image_url,
+  isProject: rawProperty?.is_project || false,
+  language: language,
+  property: {
+    ...rawProperty,
+    title: rawProperty?.name,
+    subtitle: rawProperty?.private_name,
+    reference: rawProperty?.code,
+    price: formatPrice(rawProperty?.sale_price, rawProperty?.sale_currency),
+    reservation: (() => {
+      // Extraer reserva de project_payment_plans si es proyecto
+      if (rawProperty?.is_project && data.project_details?.project_payment_plans?.length > 0) {
+        const defaultPlan = data.project_details.project_payment_plans.find(plan => plan.is_default) || 
+                            data.project_details.project_payment_plans[0];
+        
+        if (defaultPlan?.reservation_amount) {
+          return formatPrice(defaultPlan.reservation_amount, defaultPlan.reservation_currency);
+        }
+      }
+      
+      // Fallback a separation_price si existe
+      if (rawProperty?.separation_price) {
+        return formatPrice(rawProperty.separation_price, rawProperty.separation_currency);
+      }
+      
+      return null;
+    })()
+  }
+};
+
+// Datos para PropertyDetails
+const detailsData = {
+  ...data,
+  language: language,
+  property: {
+    ...rawProperty,
+    location: locationString,
+    bedrooms: rawProperty?.bedrooms || 0,
+    bathrooms: rawProperty?.bathrooms || 0,
+    built_area: rawProperty?.built_area || 0,
+    parking_spots: rawProperty?.parking_spots || 0,
+    nivel: rawProperty?.nivel || null
+  }
+};
+
+// Datos para PropertyAmenities
+const amenitiesData = {
+  ...data,
+  language: language,
+  amenities: processedAmenities
+};
+
+// Datos para PropertyDescription
+const descriptionData = {
+  ...data,
+  language: language,
+  property: {
+    ...rawProperty,
+    description: rawProperty?.description || ''
+  }
+};
+
+// Datos para PropertySimilar - MANTENER ESTRUCTURA PERO USAR URLs DIRECTAS
+const similarData = {
+  ...data,
+  language: language,
+  hasSimilarProperties: !!(data.related_content?.similar_properties?.length),
+  similarProperties: (data.related_content?.similar_properties || []).map(prop => {
+    // Determinar operación y precio basándose en los datos disponibles
+    const priceInfo = getPropertyPriceAndOperation(prop);
+    
+    return {
+      url: prop.url || '#', // USA URL DIRECTA DE LA API
+      imagen: prop.main_image_url,
+      titulo: prop.name,
+      precio: priceInfo.precio,
+      content_en: prop.content_en,  // Pass through the English content
+    content_fr: prop.content_fr,  // Pass through the French content
+      operacion: priceInfo.operacion,
+      sector: prop.sectors?.name || prop.cities?.name,
+      habitaciones: prop.bedrooms || 0,
+      banos: prop.bathrooms || 0,
+      metros: prop.built_area || 0,
+      parking_spots: prop.parking_spots || 0,
+      tipo: prop.property_categories?.name || 'Propiedad',
+      
+      // Datos completos para todas las operaciones posibles
+      sale_price: prop.sale_price,
+      sale_currency: prop.sale_currency,
+      furnished_sale_price: prop.furnished_sale_price,
+      furnished_sale_currency: prop.furnished_sale_currency,
+      rental_price: prop.rental_price,
+      rental_currency: prop.rental_currency,
+      furnished_rental_price: prop.furnished_rental_price,
+      furnished_rental_currency: prop.furnished_rental_currency,
+      temp_rental_price: prop.temp_rental_price,
+      temp_rental_currency: prop.temp_rental_currency,
+      
+      // Metadatos útiles para múltiples operaciones
+      hasMultipleOperations: [
+        prop.sale_price,
+        prop.furnished_sale_price,
+        prop.rental_price,
+        prop.furnished_rental_price,
+        prop.temp_rental_price
+      ].filter(Boolean).length > 1,
+      
+      availableOperations: [
+        prop.sale_price && 'venta',
+        prop.furnished_sale_price && 'venta_amueblada',
+        prop.rental_price && 'alquiler',
+        prop.furnished_rental_price && 'alquiler_amueblado',
+        prop.temp_rental_price && 'temporal'
+      ].filter(Boolean),
+      
+      allOperations: priceInfo.allOperations
+    };
+  })
+};
+
+// Datos para AgentPropertiesCarousel - USA URLs DIRECTAS
+const agentCarouselData = {
+  ...data,
+  language: language,
+  agentProperties: (rawAgent?.properties || []).map(prop => {
+    const priceData = getPropertyPriceAndOperation(prop);
+    return {
+      url: prop.url || '#', // USA URL DIRECTA DE LA API
+      imagen: prop.main_image_url,
+      titulo: prop.name,
+      content_en: prop.content_en,
+      content_fr: prop.content_fr,
+      ...priceData, // Incluye precio y operacion calculados correctamente
+      sector: prop.sectors?.name || prop.cities?.name,
+      habitaciones: prop.bedrooms || null,
+      banos: prop.bathrooms || null,
+      metros: prop.built_area || null,
+      parking_spots: prop.parking_spots || null,
+      nivel: prop.nivel || null,
+      tipo: prop.property_categories?.name || 'Propiedad',
+       property_categories: prop.property_categories,        // ← ADD THIS for category localization
+      // Incluir datos raw por si el componente los necesita
+      sale_price: prop.sale_price,
+      sale_currency: prop.sale_currency,
+      rental_price: prop.rental_price,
+      rental_currency: prop.rental_currency,
+      furnished_rental_price: prop.furnished_rental_price,
+      furnished_rental_currency: prop.furnished_rental_currency,
+      temp_rental_price: prop.temp_rental_price,
+      temp_rental_currency: prop.temp_rental_currency
+    };
+  }),
+  agentPropertiesInfo: {
+    has_agent_properties: !!(rawAgent?.properties?.length),
+    total_found: rawAgent?.properties?.length || 0,
+    agent_id: rawAgent?.final_id
+  },
+  agent: {
+    name: processedAgent?.name || 'Asesor CLIC',
+    id: rawAgent?.final_id,
+    isReferral: processedAgent?.isReferral || false,
+    slug: data.property?.users?.slug
+  },
+  trackingString: trackingString
+};
+
+// Datos para AgentWidget - USA ESTRUCTURA PROCESADA
+const agentWidgetData = {
+  ...data,
+  language: language,
+  agent: processedAgent, // USA AGENTE PROCESADO CON ESTRUCTURA ORIGINAL
+  property: {
+    ...rawProperty,
+    id: rawProperty?.id,
+    title: rawProperty?.name,
+    userSlug: data.property?.users?.slug
+  },
+  trackingString: trackingString,
+  // Información adicional sobre el tipo de agente
+  agentContext: {
+    isReferral: processedAgent?.isReferral || false,
+    originalAgentId: processedAgent?.originalAgentId || null,
+    referralAgentId: rawAgent?.referral?.id || null
+  }
+};
+
+// Datos para ProjectWidget
+const projectData = {
+  ...data,
+  language: language,
+  isProject: rawProperty?.is_project || false,
+  project: data.project_details ? {
+    name: rawProperty?.name,
+    typologies: data.project_details.project_typologies?.map(typo => ({
+      bedrooms: typo.bedrooms,
+      bathrooms: typo.bathrooms,
+      area: typo.built_area,
+      priceFrom: typo.sale_price_from,
+      priceTo: typo.sale_price_to,
+      currency: typo.sale_currency === 'USD' ? 'US$' : 'RD$',
+      availableUnits: typo.available_units
+    })) || [],
+    paymentPlans: data.project_details.project_payment_plans?.map(plan => ({
+      reservation: plan.reservation_amount,
+      reservationCurrency: plan.reservation_currency === 'USD' ? 'US$' : 'RD$',
+      separationPercentage: plan.separation_percentage,
+      constructionPercentage: plan.construction_percentage,
+      deliveryPercentage: plan.delivery_percentage
+    })) || [],
+    phases: data.project_details.project_phases?.map(phase => ({
+      name: phase.phase_name,
+      estimatedDelivery: phase.estimated_delivery,
+      completionPercentage: phase.completion_percentage
+    })) || [],
+    developer: data.project_details.developers ? {
+      name: data.project_details.developers.name,
+      logo_url: data.project_details.developers.logo_url,
+      years_experience: data.project_details.developers.years_experience,
+      total_projects: data.project_details.developers.total_projects || 'Varios'
+    } : null
+  } : null,
+  property: {
+    ...rawProperty,
+    title: rawProperty?.name,
+    location: locationString,
+    price: formatPrice(rawProperty?.sale_price, rawProperty?.sale_currency)
+  }
+};
+
+// Datos para el mapa
+const locationDataForMap = {
+  ...data,
+  language: language,
+  property: {
+    ...rawProperty,
+    title: rawProperty?.name
+  },
+  location: {
+    coordinates: propertyCoordinates,
+    coordinatesSource: propertyCoordinates ? 
+      (rawProperty?.exact_coordinates ? 'exact' : 'city') : 'none',
+    showExactLocation: rawProperty?.show_exact_location || false,
+    hasExactCoordinates: !!(rawProperty?.exact_coordinates),
+    sector: rawProperty?.sectors?.name,
+    city: rawProperty?.cities?.name,
+    address: rawProperty?.exact_address || locationString,
+    mapConfig: {
+      zoom: propertyCoordinates ? 15 : 6,
+      showMarker: !!propertyCoordinates
+    }
+  },
+   location_context: data.location_context || null,  // <-- Todo el contexto
+  seo: data.seo
+};
+
+// Datos adaptados para contenido adicional - USA URLs DIRECTAS
+const contentData = {
+  ...data,
+  language: language,
+  content: {
+    articles: (data.related_content?.articles || []).map(article => ({
+      ...article,
+      url: article.url || '#', // USA URL DIRECTA DE LA API
+      title: article.title || 'Artículo sin título',
+      excerpt: article.excerpt || article.meta_description || '',
+      featured_image: article.featured_image || '/images/default-article.jpg',
+      published_at: article.published_at || article.created_at,
+      read_time: article.read_time || 5,
+      author: article.users ? {
+        name: `${article.users.first_name} ${article.users.last_name}`,
+        photo: article.users.profile_photo_url
+      } : null,
+      sort_order: article.sort_order || 0
+    })).sort((a, b) => {
+      // Primero los featured, luego por sort_order
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.sort_order - b.sort_order;
+    }),
+    
+    faqs: (data.related_content?.faqs || []).map(faq => ({
+      ...faq,
+      question: faq.question || 'Pregunta',
+      answer: faq.answer || 'Respuesta no disponible',
+      featured: faq.featured || false,
+      sort_order: faq.sort_order || 0
+    })).sort((a, b) => {
+      // Primero los featured, luego por sort_order
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.sort_order - b.sort_order;
+    }),
+    
+    videos: (data.related_content?.videos || []).map(video => ({
+      ...video,
+      url: video.url || '#', // USA URL DIRECTA DE LA API
+      title: video.title || 'Video',
+      description: video.description || '',
+      thumbnail: video.thumbnail || `https://img.youtube.com/vi/${video.video_id || video.id}/maxresdefault.jpg`,
+      duration: video.duration || '0:00',
+      video_id: video.video_id || video.id,
+      featured: video.featured || false,
+      sort_order: video.sort_order || 0
+    })).sort((a, b) => {
+      // Primero los featured, luego por sort_order
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.sort_order - b.sort_order;
+    }),
+    
+    testimonials: (data.related_content?.testimonials || []).map(testimonial => ({
+      ...testimonial,
+      url: testimonial.url || '#', // USA URL DIRECTA DE LA API
+      client_name: testimonial.client_name || 'Cliente CLIC',
+      excerpt: testimonial.excerpt || testimonial.full_testimonial || testimonial.title || 'Excelente experiencia',
+      rating: testimonial.rating || 5,
+      client_avatar: testimonial.client_avatar || null,
+      client_location: testimonial.client_location || null,
+      featured: testimonial.featured || false,
+      sort_order: testimonial.sort_order || 0
+    })).sort((a, b) => {
+      // Primero los featured, luego por sort_order
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.sort_order - b.sort_order;
+    })
+  }
+};
+
+// Verificar si es proyecto
+const isProject = rawProperty?.is_project || false;
+
+// Procesar breadcrumbs desde SEO (mantener disponible para otros componentes)
+const breadcrumbs = seoData?.breadcrumbs || [];
+
+// Procesar propiedades del agente
+const agentProperties = rawAgent?.properties || [];
+const showAgentProperties = agentProperties.length > 0;
+
+console.log('SinglePropertyLayout Data Processing CORREGIDO:', {
+  language: language,
+  trackingString: trackingString,
+  originalDataKeys: Object.keys(data),
+  propertyName: rawProperty?.name,
+  agentProcessing: {
+    hasReferral: !!rawAgent?.referral,
+    hasOriginal: !!rawAgent?.original,
+    selectedAgentId: processedAgent?.id,
+    selectedAgentName: processedAgent?.name,
+    isReferral: processedAgent?.isReferral,
+    originalAgentId: processedAgent?.originalAgentId,
+    agentUrl: processedAgent?.url // URL YA PROCESADA
+  },
+  imagesProcessing: {
+    mainImageUrl: rawProperty?.main_image_url,
+    propertyImagesArray: rawProperty?.property_images?.length || 0,
+    galleryImagesUrl: rawProperty?.gallery_images_url,
+    totalProcessedImages: finalImages.length
+  },
+  contentCounts: {
+    articles: data.related_content?.articles?.length || 0,
+    faqs: data.related_content?.faqs?.length || 0,
+    videos: data.related_content?.videos?.length || 0,
+    testimonials: data.related_content?.testimonials?.length || 0,
+    similarProperties: data.related_content?.similar_properties?.length || 0
+  },
+  urlsFromAPI: {
+    firstArticleUrl: data.related_content?.articles?.[0]?.url,
+    firstVideoUrl: data.related_content?.videos?.[0]?.url,
+    firstSimilarPropertyUrl: data.related_content?.similar_properties?.[0]?.url,
+    firstTestimonialUrl: data.related_content?.testimonials?.[0]?.url
+  }
+});
+---
+
+<Layout {...layoutProps}>
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Gallery Section -->
+    <PropertyHero data={heroData} />
+
+    <!-- Property Details Bar -->
+    <PropertyDetails data={detailsData} />
+
+    <!-- Main Content Layout -->
+    <div class="container mx-auto px-3 py-8 max-w-none">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Main Content (Left Column) -->
+        <main class="lg:col-span-2 space-y-8">
+
+          <!-- Description Section -->
+          <PropertyDescription data={descriptionData} />
+
+          <!-- FAQs Section -->
+          <PropertyFAQs data={contentData} />
+
+          <!-- Building Amenities -->
+          <PropertyAmenities data={amenitiesData} />
+
+          <!-- Propiedades Similares -->
+          <PropertySimilar data={similarData} />
+
+          <!-- Mapa y Lugares Cercanos -->
+        <PropertyLocation data={locationDataForMap} language={language} />
+
+          <!-- Tour Virtual y Videos -->
+          <PropertyVideos data={contentData} />
+
+          <!-- Mas propiedades del Asesor -->
+          {showAgentProperties && (
+            <section 
+              id="agent-properties-carousel-section"
+              class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 transition-all duration-300"
+            >
+              <AgentPropertiesCarousel data={agentCarouselData} />
+            </section>
+          )}
+
+        </main>
+
+        <!-- Sidebar (Right Column) -->
+        <aside class="space-y-6">
+          
+          <!-- Agent Widget -->
+          <AgentWidget data={agentWidgetData} language={language} />
+
+          <!-- Project Information Widget -->
+          {isProject && <ProjectWidget data={projectData} language={language} />}
+
+          <!-- Testimonials Widget -->
+          <TestimonialsWidget data={contentData} language={language} />
+
+          <!-- Calculadora de Prestamos -->
+          <CalculatorWidget data={projectData} language={language} />
+
+          <!-- Articles Widget -->
+          <ArticlesWidget data={contentData} language={language} />
+
+          <!-- Share Property Widget -->
+          <ShareWidget data={detailsData} language={language} />
+
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {})}></script>
+</Layout>
+
+<!-- Estilos -->
+<style>
+  .text-shadow {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  }
+  
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Estilos para margenes responsivos */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+</style>
+
+<!-- JavaScript Global -->
+<script>
+  // Gallery Lightbox Functionality (GLOBAL)
+  let currentImageIndex = 0;
+  const propertyImages = window.propertyImagesData || [];
+
+  function openLightbox(index) {
+    currentImageIndex = index;
+    
+    let modal = document.getElementById('lightbox-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'lightbox-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <img id="lightbox-image" style="max-width: 95%; max-height: 95%; width: auto; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
+            
+            <button onclick="closeLightbox()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.95); border: none; color: #333; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='scale(1)'">
+              x
+            </button>
+            
+            <button onclick="prevImage()" style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
+              &lt;
+            </button>
+            
+            <button onclick="nextImage()" style="position: absolute; right: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
+              &gt;
+            </button>
+            
+            <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: white; font-size: 16px; font-weight: 600; background: rgba(0,0,0,0.8); padding: 12px 24px; border-radius: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); z-index: 10001;">
+              <span id="lightbox-counter"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    updateLightboxImage();
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+  }
+
+  function prevImage() {
+    currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : propertyImages.length - 1;
+    updateLightboxImage();
+  }
+
+  function nextImage() {
+    currentImageIndex = currentImageIndex < propertyImages.length - 1 ? currentImageIndex + 1 : 0;
+    updateLightboxImage();
+  }
+
+  function updateLightboxImage() {
+    const image = document.getElementById('lightbox-image');
+    const counter = document.getElementById('lightbox-counter');
+    
+    if (image && counter && propertyImages.length > 0) {
+      image.src = propertyImages[currentImageIndex];
+      counter.textContent = `${currentImageIndex + 1} / ${propertyImages.length}`;
+    }
+  }
+
+  // Copy property link function
+  window.copyPropertyLink = function() {
+    const url = window.location.href;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        showCopyFeedback('Enlace copiado!');
+      }).catch(() => {
+        fallbackCopyTextToClipboard(url);
+      });
+    } else {
+      fallbackCopyTextToClipboard(url);
+    }
+  };
+
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopyFeedback('Enlace copiado!');
+    } catch (err) {
+      showCopyFeedback('Error al copiar');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Función para solicitar visita a la propiedad
+  window.requestPropertyVisit = function() {
+    const propertyTitle = document.querySelector('h1')?.textContent || 'Propiedad de interés';
+    const message = `Hola! Me interesa agendar una visita para: ${propertyTitle}. ¿Cuándo podríamos coordinar una cita?`;
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback
+    showCopyFeedback('Perfecto! Te contactaremos para coordinar la visita.');
+  };
+
+  // Abrir modal de video
+  window.openVideoModal = function(videoId, title) {
+    // Crear modal si no existe
+    let modal = document.getElementById('video-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'video-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; max-width: 900px; aspect-ratio: 16/9;">
+            <iframe id="video-iframe" style="width: 100%; height: 100%; border: none; border-radius: 12px;" allowfullscreen></iframe>
+            <button onclick="closeVideoModal()" style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.9); border: none; color: #333; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">x</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    // Configurar iframe
+    const iframe = document.getElementById('video-iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+    
+    // Mostrar modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Cerrar modal de video
+  window.closeVideoModal = function() {
+    const modal = document.getElementById('video-modal');
+    const iframe = document.getElementById('video-iframe');
+    
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+    
+    if (iframe) {
+      iframe.src = '';
+    }
+  };
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    window.propertyImagesData = window.propertyImagesData || [];
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeLightbox();
+        closeVideoModal();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      }
+    });
+
+    // Close on backdrop click
+    document.addEventListener('click', function(e) {
+      const lightboxModal = document.getElementById('lightbox-modal');
+      const videoModal = document.getElementById('video-modal');
+      
+      if (lightboxModal && e.target === lightboxModal.firstElementChild) {
+        closeLightbox();
+      }
+      
+      if (videoModal && e.target === videoModal.firstElementChild) {
+        closeVideoModal();
+      }
+    });
+
+    // Inicializar formulario de leads
+    const leadForm = document.getElementById('property-contact-form');
+    if (leadForm) {
+      // Obtener UTM parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = document.getElementById('lead-utm-source');
+      const utmMedium = document.getElementById('lead-utm-medium');
+      const utmCampaign = document.getElementById('lead-utm-campaign');
+      const referidor = document.getElementById('lead-referidor');
+      const userAgent = document.getElementById('lead-user-agent');
+      const ipOrigen = document.getElementById('lead-ip-origen');
+      
+      if (utmSource) utmSource.value = urlParams.get('utm_source') || '';
+      if (utmMedium) utmMedium.value = urlParams.get('utm_medium') || '';
+      if (utmCampaign) utmCampaign.value = urlParams.get('utm_campaign') || '';
+      
+      // Información del navegador
+      if (userAgent) userAgent.value = navigator.userAgent;
+      
+      // Referidor
+      if (referidor && document.referrer) {
+        referidor.value = document.referrer;
+      }
+    }
+  });
+
+  // Make functions globally available
+  window.openLightbox = openLightbox;
+  window.closeLightbox = closeLightbox;
+  window.prevImage = prevImage;
+  window.nextImage = nextImage;
+</script>
+
+<!-- Scripts de Google Maps -->
+<script async defer 
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initPropertyMap&libraries=geometry"
+  onerror="handleMapError()">
+</script>
+
+<script>
+  window.handleMapError = function() {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-orange-50 via-gray-50 to-orange-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+            <p class="text-gray-800 font-semibold mb-1">Mapa no disponible</p>
+            <p class="text-sm text-gray-600">${window.propertyData?.title || 'Propiedad'}</p>
+            <p class="text-xs text-gray-500 mt-2">Ver ubicación exacta</p>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  // Inicializar Google Maps cuando esté disponible
+  window.initPropertyMap = function() {
+    const mapElement = document.getElementById('google-map');
+    if (!mapElement) {
+      console.log('Elemento del mapa no encontrado');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('Google Maps API no disponible');
+      window.handleMapError();
+      return;
+    }
+
+    try {
+      const propertyLocation = {
+        lat: window.propertyData?.coordinates?.lat || 18.4682,
+        lng: window.propertyData?.coordinates?.lng || -69.9279
+      };
+
+      const map = new google.maps.Map(mapElement, {
+        zoom: 15,
+        center: propertyLocation,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{"visibility": "simplified"}]
+          }
+        ]
+      });
+
+      const propertyMarker = new google.maps.Marker({
+        position: propertyLocation,
+        map: map,
+        title: window.propertyData?.title || 'Propiedad',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#f04e00',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        zIndex: 999
+      });
+
+      if (window.propertyData?.nearbyPoints && window.propertyData.nearbyPoints.length > 0) {
+        window.propertyData.nearbyPoints.forEach((place, index) => {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: place.address }, (results, status) => {
+            if (status === 'OK' && results && results.length > 0) {
+              const placeMarker = new google.maps.Marker({
+                position: results[0].geometry.location,
+                map: map,
+                title: place.name,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 6,
+                  fillColor: place.description.includes('shopping') ? '#f04e00' :
+                            place.description.includes('hospital') ? '#dc2626' :
+                            place.description.includes('bank') ? '#3b82f6' :
+                            place.description.includes('supermarket') ? '#f59e0b' : '#6b7280',
+                  fillOpacity: 0.8,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2
+                }
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div class="p-2">
+                    <h4 class="font-semibold text-sm">${place.name}</h4>
+                    <p class="text-xs text-gray-600 capitalize">${place.description.replace('_', ' ')}</p>
+                    <p class="text-xs text-gray-500 mt-1">${place.address}</p>
+                  </div>
+                `
+              });
+
+              placeMarker.addListener('click', () => {
+                infoWindow.open(map, placeMarker);
+              });
+            }
+          });
+        });
+      }
+
+      console.log('Mapa cargado exitosamente');
+    } catch (error) {
+      console.error('Error inicializando el mapa:', error);
+      window.handleMapError();
+    }
+  };
+</script>
+
+<!-- Datos para el mapa y lightbox -->
+<script define:vars={{ propertyCoordinates, rawProperty }}>
+  if (typeof window !== 'undefined') {
+    window.propertyData = {
+      coordinates: propertyCoordinates,
+      title: rawProperty?.name || 'Propiedad'
+    };
+  }
+</script>
+
+<script define:vars={{ finalImages }}>
+  if (typeof window !== 'undefined') {
+    window.propertyImagesData = finalImages;
+  }
+</script>

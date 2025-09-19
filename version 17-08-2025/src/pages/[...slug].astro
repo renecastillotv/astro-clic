@@ -1,0 +1,173 @@
+---
+// src/pages/[...slug].astro - VERSIÓN CORREGIDA PARA EVITAR BUCLES INFINITOS
+import PropertyListLayout from '../layouts/PropertyListLayout.astro';
+import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
+import Layout from '../layouts/Layout.astro';
+//import { getSingleProperty, getPropertyList } from '../data/hybridProvider';
+// ✅ DESPUÉS
+import { getSingleProperty, getPropertyList } from '../data/providers/propertyProvider.js';
+
+// Habilitar SSR para esta página
+export const prerender = false;
+
+export async function getStaticPaths() {
+  return [];
+}
+
+// =====================================================
+// FUNCIÓN PARA FILTRAR RUTAS VÁLIDAS
+// =====================================================
+function shouldProcessRoute(urlSegments: string[], pathname: string): boolean {
+  // Rutas que NO deben procesarse
+  const excludedPaths = [
+    'images', 'img', 'assets', 'static', 'public',
+    'css', 'js', 'fonts', 'favicon.ico', 'robots.txt', 'sitemap.xml',
+    '_astro', 'api', 'admin', 'wp-admin', 'wp-content',
+    '.well-known', 'manifest.json', 'sw.js'
+  ];
+  
+  // Extensiones de archivos que NO deben procesarse
+  const excludedExtensions = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.ico',
+    '.css', '.js', '.json', '.xml', '.txt', '.pdf', '.zip',
+    '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mp3'
+  ];
+  
+  // Verificar si la ruta comienza con paths excluidos
+  if (urlSegments.length > 0 && excludedPaths.includes(urlSegments[0].toLowerCase())) {
+    return false;
+  }
+  
+  // Verificar extensiones de archivo
+  const lastSegment = urlSegments[urlSegments.length - 1] || '';
+  if (excludedExtensions.some(ext => lastSegment.toLowerCase().endsWith(ext))) {
+    return false;
+  }
+  
+  // Verificar si toda la ruta termina en extensión excluida
+  if (excludedExtensions.some(ext => pathname.toLowerCase().endsWith(ext))) {
+    return false;
+  }
+  
+  // Verificar rutas muy cortas que pueden ser problemáticas
+  if (urlSegments.length === 1 && urlSegments[0].length < 3) {
+    return false;
+  }
+  
+  return true;
+}
+
+// =====================================================
+// PROCESAMIENTO PRINCIPAL
+// =====================================================
+
+const { slug } = Astro.params;
+let urlSegments = slug ? slug.split('/').filter(Boolean) : [];
+const pathname = Astro.url.pathname;
+
+// Debug inicial
+console.log('🔍 Debug [...slug] página:', {
+  slug,
+  pathname,
+  segments: urlSegments
+});
+
+// FILTRO CRÍTICO: Verificar si la ruta debe procesarse
+if (!shouldProcessRoute(urlSegments, pathname)) {
+  console.log('❌ Ruta excluida del procesamiento:', pathname);
+  // Retornar 404 para rutas de archivos estáticos
+  return new Response(null, { status: 404 });
+}
+
+// Si no hay slug, extraer de la URL directamente
+if (!slug || urlSegments.length === 0) {
+  console.log('⚠️ No hay slug definido, usando segmentos de pathname');
+  const pathSegments = pathname.split('/').filter(Boolean);
+  urlSegments = [...pathSegments];
+  
+  // Verificar nuevamente después de extraer de pathname
+  if (!shouldProcessRoute(urlSegments, pathname)) {
+    console.log('❌ Ruta de pathname también excluida:', pathname);
+    return new Response(null, { status: 404 });
+  }
+}
+
+// Obtener parámetros de búsqueda
+const searchParams = Astro.url.searchParams;
+const page = parseInt(searchParams.get('page') || '1');
+const ref = searchParams.get('ref');
+
+let pageData = null;
+let pageType = 'unknown';
+
+try {
+  console.log('🏠 Procesando ruta válida:', urlSegments);
+  
+  // PASO 1: Intentar obtener propiedad individual
+  console.log('🏠 Intentando búsqueda de propiedad individual');
+  const singlePropertyResult = await getSingleProperty(urlSegments, searchParams);
+  
+  if (singlePropertyResult && singlePropertyResult.type === 'property') {
+    pageData = singlePropertyResult;
+    pageType = singlePropertyResult.isProject ? 'project' : 'property';
+    console.log('✅ Encontrada propiedad individual:', pageType);
+  } else {
+    // PASO 2: Buscar como listado de propiedades
+    console.log('📋 Buscando como listado de propiedades');
+    const propertyListResult = await getPropertyList(urlSegments, searchParams);
+    
+    console.log('📋 Resultado listado:', {
+      type: propertyListResult?.type,
+      propertiesCount: propertyListResult?.properties?.length || 0
+    });
+    
+    if (propertyListResult && propertyListResult.type === 'property-list') {
+      pageData = propertyListResult;
+      pageType = 'property-list';
+      console.log('✅ Encontrado listado de propiedades:', propertyListResult.properties?.length || 0);
+    } else {
+      // PASO 3: No se encontró contenido válido
+      console.log('❌ No se encontró contenido para:', slug);
+      
+      // Retornar 404 en lugar de página de debug para evitar bucles
+      return new Response(null, { status: 404 });
+    }
+  }
+} catch (error) {
+  console.error('❌ Error procesando página:', error);
+  
+  // En caso de error, retornar 404 en lugar de página de error
+  return new Response(null, { status: 404 });
+}
+
+// Preparar metadatos SEO
+const seoData = pageData?.seo || {};
+const title = seoData.title || 'CLIC Inmobiliaria';
+const description = seoData.description || 'Encuentra tu próxima propiedad en República Dominicana';
+const ogImage = seoData.og?.image || '/og-default.jpg';
+
+console.log('📄 Página preparada exitosamente:', {
+  type: pageType,
+  title: title.substring(0, 50) + '...',
+  hasContent: !!pageData
+});
+
+// Determinar qué layout mostrar
+let showPropertyList = false;
+let showSingleProperty = false;
+
+if (pageType === 'property-list') {
+  showPropertyList = true;
+} else if (pageType === 'property' || pageType === 'project') {
+  showSingleProperty = true;
+}
+---
+
+{showPropertyList && <PropertyListLayout data={pageData} />}
+
+{showSingleProperty && <SinglePropertyLayout data={pageData} />}
+
+<!-- 
+  NOTA: Se eliminaron las páginas de debug y error para evitar bucles infinitos.
+  En caso de rutas no válidas o errores, se retorna un 404 estándar.
+-->

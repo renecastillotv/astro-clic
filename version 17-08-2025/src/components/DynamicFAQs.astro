@@ -1,0 +1,135 @@
+---
+export interface Props {
+  faqs: Array<{
+    id: string;
+    question: string;
+    answer: string;
+    category?: string;
+    tags?: string[];
+  }>;
+  title?: string;
+  context?: {
+    location?: string;
+    propertyType?: string;
+    features?: string[];
+  };
+}
+
+const { faqs, title = "Preguntas Frecuentes", context } = Astro.props;
+
+if (!faqs || faqs.length === 0) return null;
+
+// ✅ FUNCIÓN PARA PLURALIZAR CORRECTAMENTE
+function makePlural(word) {
+  if (!word) return '';
+  
+  // Normalizar texto primero
+  const normalized = word
+    .replace(/apartamentoss/gi, 'apartamentos')
+    .replace(/apartamentoo/gi, 'apartamento')
+    .replace(/casass/gi, 'casas')
+    .replace(/casaa/gi, 'casa')
+    .replace(/villass/gi, 'villas')
+    .replace(/villaa/gi, 'villa')
+    .replace(/proyectoss/gi, 'proyectos')
+    .replace(/proyectoo/gi, 'proyecto')
+    .replace(/propiedadess/gi, 'propiedades')
+    .replace(/propiedadd/gi, 'propiedad')
+    .replace(/localess/gi, 'locales')
+    .replace(/locall/gi, 'local')
+    .replace(/terrenoss/gi, 'terrenos')
+    .replace(/terrenoo/gi, 'terreno')
+    .replace(/penthousess/gi, 'penthouses')
+    .replace(/penthousee/gi, 'penthouse')
+    .trim();
+
+  const lower = normalized.toLowerCase();
+  
+  // Si ya está en plural, devolverlo tal como está
+  if (lower.endsWith('s') || lower.endsWith('es')) {
+    return normalized;
+  }
+  
+  // Reglas de pluralización en español
+  if (lower.endsWith('z')) {
+    return normalized.slice(0, -1) + 'ces'; // luz → luces
+  } else if (lower.endsWith('ión')) {
+    return normalized.slice(0, -3) + 'iones'; // habitación → habitaciones
+  } else if (lower.endsWith('l') || lower.endsWith('r') || lower.endsWith('n')) {
+    return normalized + 'es'; // local → locales
+  } else {
+    return normalized + 's'; // apartamento → apartamentos
+  }
+}
+
+// Generar título contextual
+let contextualTitle = title;
+if (context) {
+  if (context.location && context.propertyType) {
+    // ✅ USAR makePlural() EN LUGAR DE AGREGAR 's' DIRECTAMENTE
+    const pluralType = makePlural(context.propertyType);
+    contextualTitle = `Preguntas sobre ${pluralType} en ${context.location}`;
+  } else if (context.location) {
+    contextualTitle = `Preguntas sobre invertir en ${context.location}`;
+  } else if (context.propertyType) {
+    const pluralType = makePlural(context.propertyType);
+    contextualTitle = `Preguntas sobre ${pluralType}`;
+  }
+  
+  if (context.features?.includes('airbnb')) {
+    contextualTitle += ' para Airbnb';
+  }
+}
+---
+
+<section class="py-12 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">{contextualTitle}</h2>
+      
+      <div class="space-y-4">
+        {faqs.map((faq, index) => (
+          <details class="group bg-gray-50 rounded-lg">
+            <summary class="flex items-center justify-between cursor-pointer p-6 hover:bg-gray-100 transition-colors">
+              <h3 class="text-lg font-medium text-gray-900 pr-4">{faq.question}</h3>
+              <svg 
+                class="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform flex-shrink-0" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </summary>
+            <div class="px-6 pb-6">
+              <p class="text-gray-700 leading-relaxed">{faq.answer}</p>
+              {faq.tags && faq.tags.length > 0 && (
+                <div class="flex flex-wrap gap-2 mt-4">
+                  {faq.tags.map(tag => (
+                    <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
+        ))}
+      </div>
+      
+      <!-- Schema.org FAQ Markup -->
+      <script type="application/ld+json" set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      })} />
+    </div>
+  </div>
+</section>

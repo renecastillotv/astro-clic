@@ -1,0 +1,616 @@
+---
+// src/components/property/sidebar/CalculatorWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+const project = data.project || null;
+
+console.log('🧮 CalculatorWidget loaded:', {
+  isProject: data.isProject,
+  propertyPrice: property.price,
+  projectPhases: project?.phases?.length || 0
+});
+---
+
+<!-- Calculadora de Préstamos / Financiamiento -->
+<div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+  <!-- Header de la calculadora -->
+  <div class="bg-gray-900 px-6 py-4">
+    <div class="flex items-center gap-3">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+      </svg>
+      <div>
+        <h3 class="text-lg font-semibold text-white">
+          {data.isProject ? 'Calculadora de Cuotas' : 'Calculadora de Financiamiento'}
+        </h3>
+        <p class="text-gray-300 text-sm">
+          {data.isProject ? 'Estima tus pagos durante construcción' : 'Calcula tu cuota mensual'}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cuerpo de la calculadora -->
+  <div class="p-6 space-y-6">
+    
+    <!-- Modo Proyecto -->
+    {data.isProject && (
+      <div id="project-calculator">
+        
+        <!-- Información del proyecto -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+          <div class="text-sm text-gray-700">
+            <div class="flex justify-between items-center mb-1">
+              <span>Precio base:</span>
+              <span class="font-semibold" id="project-base-price">{property.price}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Entrega estimada:</span>
+              <span class="font-semibold">
+                {project?.phases?.[0]?.estimatedDelivery ? 
+                  new Date(project.phases[0].estimatedDelivery).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' }) : 
+                  'Abril 2026'
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de entrada -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Precio seleccionado (USD)</label>
+            <input 
+              type="text" 
+              id="project-price"
+              value="150,000"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right"
+              placeholder="150,000"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Reserva (USD)</label>
+              <input 
+                type="text" 
+                id="project-reservation"
+                value="1,000"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% A la firma</label>
+              <input 
+                type="number" 
+                id="project-separation-percent"
+                value="5"
+                min="0" 
+                max="20"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Durante construcción</label>
+              <input 
+                type="number" 
+                id="project-construction-percent"
+                value="15"
+                min="10" 
+                max="30"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Contra entrega</label>
+              <input 
+                type="number" 
+                id="project-financing-percent"
+                value="80"
+                min="60" 
+                max="90"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Meses hasta entrega</label>
+              <input 
+                type="number" 
+                id="project-months"
+                value="18"
+                min="6" 
+                max="60"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tasa financiamiento (%)</label>
+              <input 
+                type="number" 
+                id="project-interest-rate"
+                value="15"
+                min="8" 
+                max="25"
+                step="0.5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+          </div>
+
+          <!-- Botón Aplicar Cambios -->
+          <button 
+            id="apply-project-changes"
+            class="w-full bg-gray-700 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Calcular
+            </span>
+          </button>
+        </div>
+
+        <!-- Resultados del proyecto -->
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-200">
+          <h4 class="font-semibold text-gray-900 mb-3">Plan de Pagos Estimado</h4>
+          
+          <div class="space-y-3 text-sm">
+            <!-- Fase de Construcción -->
+            <div class="bg-white rounded-lg p-3 border border-gray-300">
+              <h5 class="font-semibold text-gray-900 mb-2">Durante Construcción (sin interés)</h5>
+              <div class="space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Reserva inicial:</span>
+                  <span class="font-semibold" id="calc-reservation">US$1,000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Separación a la firma:</span>
+                  <span class="font-semibold text-gray-900" id="calc-separation">US$7,500</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Cuotas mensuales:</span>
+                  <span class="font-semibold text-gray-900" id="calc-construction-monthly">US$1,389</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Período:</span>
+                  <span class="font-semibold" id="calc-construction-period">18 meses</span>
+                </div>
+                <div class="border-t border-gray-200 pt-1 flex justify-between">
+                  <span class="font-medium text-gray-900">Total fase construcción:</span>
+                  <span class="font-bold text-gray-900" id="calc-construction-total">US$22,500</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fase de Financiamiento -->
+            <div class="bg-white rounded-lg p-3 border border-gray-300">
+              <h5 class="font-semibold text-gray-900 mb-2">Contra Entrega - Financiamiento (30 años)</h5>
+              <div class="space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Monto contra entrega (80%):</span>
+                  <span class="font-semibold" id="calc-financed-amount">US$120,000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Cuota mensual financiada:</span>
+                  <span class="font-semibold text-gray-900" id="calc-monthly-financing">US$1,519</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Tasa estimada:</span>
+                  <span class="font-semibold">15% anual</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Modo Propiedad Regular -->
+    {!data.isProject && (
+      <div id="regular-calculator">
+        
+        <!-- Información de la propiedad -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+          <div class="text-sm text-gray-700">
+            <div class="flex justify-between items-center mb-1">
+              <span>Precio de la propiedad:</span>
+              <span class="font-semibold" id="regular-property-price">{property.price}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Financiamiento típico:</span>
+              <span class="font-semibold text-gray-900">Hasta 80%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de entrada -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la propiedad (USD)</label>
+            <input 
+              type="text" 
+              id="regular-price"
+              value="200,000"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right"
+              placeholder="200,000"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Financiamiento</label>
+              <input 
+                type="number" 
+                id="regular-financing-percent"
+                value="80"
+                min="10" 
+                max="95"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tasa anual (%)</label>
+              <input 
+                type="number" 
+                id="regular-rate"
+                value="15"
+                min="5" 
+                max="30"
+                step="0.5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors text-right text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Plazo (años)</label>
+            <select 
+              id="regular-years"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors"
+            >
+              <option value="15">15 años</option>
+              <option value="20">20 años</option>
+              <option value="25">25 años</option>
+              <option value="30" selected>30 años</option>
+            </select>
+          </div>
+
+          <!-- Botón Aplicar Cambios -->
+          <button 
+            id="apply-regular-changes"
+            class="w-full bg-gray-700 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Calcular
+            </span>
+          </button>
+        </div>
+
+        <!-- Resultados de propiedad regular -->
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-200">
+          <h4 class="font-semibold text-gray-900 mb-3">Resumen del Financiamiento</h4>
+          
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Monto a financiar:</span>
+              <span class="font-semibold" id="calc-financed-amount-regular">US$160,000</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Inicial requerida:</span>
+              <span class="font-semibold" id="calc-down-payment">US$40,000</span>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-2">
+              <span class="text-gray-900 font-medium">Cuota mensual:</span>
+              <span class="font-bold text-gray-900 text-lg" id="calc-monthly-payment">US$2,027</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Disclaimer importante -->
+    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+        <div class="text-sm">
+          <p class="font-semibold text-gray-800 mb-1">Importante</p>
+          <p class="text-gray-700 leading-relaxed">
+            Estos son cálculos estimativos. Los valores reales, tasas de interés y condiciones específicas las obtienes consultando directamente con un asesor CLIC.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón CTA -->
+    <button 
+      id="consultation-btn"
+      class="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+      </svg>
+      Consultar con Asesor CLIC
+    </button>
+  </div>
+</div>
+
+<script>
+  // =====================================================
+  // CALCULADORA DE PRÉSTAMOS - FUNCIONALIDAD COMPLETA
+  // =====================================================
+
+  // Estado de la calculadora
+  let currentMode = 'regular';
+  let hasChanges = {
+    regular: false,
+    project: false
+  };
+
+  // Formatear números con comas
+  function formatNumber(num) {
+    return new Intl.NumberFormat('en-US').format(num);
+  }
+
+  // Formatear campos de moneda
+  function formatCurrency(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+      input.value = formatNumber(parseInt(value));
+    }
+  }
+
+  // Parsear valores de moneda
+  function parseCurrency(value) {
+    return parseInt(value.replace(/[^0-9]/g, '')) || 0;
+  }
+
+  // Marcar que hay cambios pendientes
+  function markCalculationChanged() {
+    // Detectar modo actual basado en elementos visibles
+    const projectCalc = document.getElementById('project-calculator');
+    const regularCalc = document.getElementById('regular-calculator');
+    
+    if (projectCalc && projectCalc.offsetParent !== null) {
+      currentMode = 'project';
+    } else if (regularCalc && regularCalc.offsetParent !== null) {
+      currentMode = 'regular';
+    }
+    
+    hasChanges[currentMode] = true;
+    const button = document.getElementById(`apply-${currentMode}-changes`);
+    if (button) {
+      button.disabled = false;
+      button.className = button.className.replace('opacity-50 cursor-not-allowed', '');
+      button.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Calcular cuota mensual de préstamo
+  function calculateMonthlyPayment(principal, annualRate, years) {
+    const monthlyRate = annualRate / 100 / 12;
+    const numberOfPayments = years * 12;
+    
+    if (monthlyRate === 0) {
+      return principal / numberOfPayments;
+    }
+    
+    return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+           (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+  }
+
+  // Aplicar cambios para propiedad regular
+  function applyRegularChanges() {
+    const priceField = document.getElementById('regular-price');
+    const financingField = document.getElementById('regular-financing-percent');
+    const rateField = document.getElementById('regular-rate');
+    const yearsField = document.getElementById('regular-years');
+    
+    if (!priceField) return;
+    
+    const price = parseCurrency(priceField.value);
+    const financingPercent = parseFloat(financingField?.value) || 80;
+    const rate = parseFloat(rateField?.value) || 15;
+    const years = parseInt(yearsField?.value) || 30;
+    
+    // Cálculos
+    const financedAmount = price * (financingPercent / 100);
+    const downPayment = price - financedAmount;
+    const monthlyPayment = calculateMonthlyPayment(financedAmount, rate, years);
+    
+    // Actualizar resultados
+    const financedEl = document.getElementById('calc-financed-amount-regular');
+    const downEl = document.getElementById('calc-down-payment');
+    const monthlyEl = document.getElementById('calc-monthly-payment');
+    
+    if (financedEl) financedEl.textContent = `US$${formatNumber(Math.round(financedAmount))}`;
+    if (downEl) downEl.textContent = `US$${formatNumber(Math.round(downPayment))}`;
+    if (monthlyEl) monthlyEl.textContent = `US$${formatNumber(Math.round(monthlyPayment))}`;
+    
+    // Marcar como aplicado
+    hasChanges.regular = false;
+    const button = document.getElementById('apply-regular-changes');
+    if (button) {
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Aplicar cambios para proyecto
+  function applyProjectChanges() {
+    const priceField = document.getElementById('project-price');
+    const reservationField = document.getElementById('project-reservation');
+    const separationField = document.getElementById('project-separation-percent');
+    const constructionField = document.getElementById('project-construction-percent');
+    const financingField = document.getElementById('project-financing-percent');
+    const monthsField = document.getElementById('project-months');
+    const rateField = document.getElementById('project-interest-rate');
+    
+    if (!priceField) return;
+    
+    const price = parseCurrency(priceField.value);
+    const reservation = parseCurrency(reservationField?.value || '1000');
+    const separationPercent = parseFloat(separationField?.value) || 5;
+    const constructionPercent = parseFloat(constructionField?.value) || 15;
+    const financingPercent = parseFloat(financingField?.value) || 80;
+    const months = parseInt(monthsField?.value) || 18;
+    const rate = parseFloat(rateField?.value) || 15;
+    
+    // Cálculos fase construcción
+    const separationAmount = price * (separationPercent / 100);
+    const constructionAmount = price * (constructionPercent / 100);
+    const monthlyConstruction = constructionAmount / months;
+    const totalConstructionPhase = reservation + separationAmount + constructionAmount;
+    
+    // Cálculos financiamiento
+    const financedAmount = price * (financingPercent / 100);
+    const monthlyFinancing = calculateMonthlyPayment(financedAmount, rate, 30);
+    
+    // Actualizar resultados
+    const reservationEl = document.getElementById('calc-reservation');
+    const separationEl = document.getElementById('calc-separation');
+    const monthlyConstructionEl = document.getElementById('calc-construction-monthly');
+    const periodEl = document.getElementById('calc-construction-period');
+    const totalConstructionEl = document.getElementById('calc-construction-total');
+    const financedEl = document.getElementById('calc-financed-amount');
+    const monthlyFinancingEl = document.getElementById('calc-monthly-financing');
+    
+    if (reservationEl) reservationEl.textContent = `US$${formatNumber(reservation)}`;
+    if (separationEl) separationEl.textContent = `US$${formatNumber(Math.round(separationAmount))}`;
+    if (monthlyConstructionEl) monthlyConstructionEl.textContent = `US$${formatNumber(Math.round(monthlyConstruction))}`;
+    if (periodEl) periodEl.textContent = `${months} meses`;
+    if (totalConstructionEl) totalConstructionEl.textContent = `US$${formatNumber(Math.round(totalConstructionPhase))}`;
+    if (financedEl) financedEl.textContent = `US$${formatNumber(Math.round(financedAmount))}`;
+    if (monthlyFinancingEl) monthlyFinancingEl.textContent = `US$${formatNumber(Math.round(monthlyFinancing))}`;
+    
+    // Marcar como aplicado
+    hasChanges.project = false;
+    const button = document.getElementById('apply-project-changes');
+    if (button) {
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Función para cargar datos de la propiedad
+  function initializePropertyData() {
+    // Obtener precio de la propiedad desde el DOM
+    const propertyPriceElement = document.getElementById('regular-property-price') || document.getElementById('project-base-price');
+    
+    let price = 200000; // fallback
+    if (propertyPriceElement) {
+      const priceText = propertyPriceElement.textContent;
+      const numericPrice = priceText.replace(/[^0-9]/g, '');
+      if (numericPrice) price = parseInt(numericPrice);
+    }
+    
+    // Actualizar campos con datos de la propiedad
+    const regularPriceField = document.getElementById('regular-price');
+    const projectPriceField = document.getElementById('project-price');
+    
+    if (regularPriceField) regularPriceField.value = formatNumber(price);
+    if (projectPriceField) projectPriceField.value = formatNumber(Math.min(price, 150000));
+  }
+
+  // Solicitar consulta
+  function requestCalculationConsultation() {
+    // Obtener datos del cálculo actual
+    let message = '¡Hola! Me interesa consultar sobre financiamiento. ';
+    
+    // Detectar modo activo
+    const projectCalc = document.getElementById('project-calculator');
+    const isProjectMode = projectCalc && projectCalc.offsetParent !== null;
+    
+    if (isProjectMode) {
+      const price = document.getElementById('project-price')?.value;
+      if (price) {
+        message += `Precio del proyecto: US$${price}. `;
+      }
+    } else {
+      const price = document.getElementById('regular-price')?.value;
+      if (price) {
+        message += `Precio de la propiedad: US$${price}. `;
+      }
+    }
+    
+    message += 'Me gustaría recibir información personalizada sobre las opciones de financiamiento disponibles.';
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback
+    if (window.showCopyFeedback) {
+      window.showCopyFeedback('¡Perfecto! Te contactaremos pronto.');
+    }
+  }
+
+  // Inicializar calculadora cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', function() {
+    // Detectar modo inicial según elemento visible
+    const projectCalc = document.getElementById('project-calculator');
+    const regularCalc = document.getElementById('regular-calculator');
+    
+    if (projectCalc && projectCalc.offsetParent !== null) {
+      currentMode = 'project';
+    } else {
+      currentMode = 'regular';
+    }
+    
+    // Cargar datos iniciales de la propiedad
+    initializePropertyData();
+    
+    // Calcular valores iniciales con un pequeño delay
+    setTimeout(() => {
+      if (currentMode === 'regular') {
+        applyRegularChanges();
+      } else {
+        applyProjectChanges();
+      }
+    }, 100);
+  });
+
+  // TRIGGER FINAL: Forzar cálculo después de que TODO esté cargado
+  window.addEventListener('load', function() {
+    console.log('🚀 CalculatorWidget: Página completamente cargada, forzando cálculos...');
+    
+    setTimeout(() => {
+      // Detectar qué calculadora está activa
+      const projectCalc = document.getElementById('project-calculator');
+      const regularCalc = document.getElementById('regular-calculator');
+      
+      if (projectCalc && projectCalc.offsetParent !== null) {
+        console.log('🔄 Ejecutando cálculo de proyecto...');
+        applyProjectChanges();
+      }
+      
+      if (regularCalc && regularCalc.offsetParent !== null) {
+        console.log('🔄 Ejecutando cálculo regular...');
+        applyRegularChanges();
+      }
+    }, 500);
+  });
+
+  // Hacer las funciones disponibles globalmente
+  window.formatCurrency = formatCurrency;
+  window.markCalculationChanged = markCalculationChanged;
+  window.applyRegularChanges = applyRegularChanges;
+  window.applyProjectChanges = applyProjectChanges;
+  window.requestCalculationConsultation = requestCalculationConsultation;
+</script>

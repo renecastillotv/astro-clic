@@ -1,0 +1,194 @@
+---
+// src/components/property/PropertySimilar.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Multilingual translations for UI elements
+const translations = {
+  es: {
+    title: 'Propiedades Similares'
+  },
+  en: {
+    title: 'Similar Properties'
+  },
+  fr: {
+    title: 'Propriétés Similaires'
+  }
+};
+
+// Operation translations
+const operationTranslations = {
+  es: {
+    'Venta': 'Venta',
+    'Venta Amueblada': 'Venta Amueblada',
+    'Alquiler': 'Alquiler', 
+    'Alquiler Amueblado': 'Alquiler Amueblado',
+    'Temporal': 'Temporal',
+    'Consultar': 'Consultar'
+  },
+  en: {
+    'Venta': 'Sale',
+    'Venta Amueblada': 'Furnished Sale',
+    'Alquiler': 'Rental',
+    'Alquiler Amueblado': 'Furnished Rental', 
+    'Temporal': 'Short-term',
+    'Consultar': 'Inquire'
+  },
+  fr: {
+    'Venta': 'Vente',
+    'Venta Amueblada': 'Vente Meublée',
+    'Alquiler': 'Location',
+    'Alquiler Amueblado': 'Location Meublée',
+    'Temporal': 'Temporaire', 
+    'Consultar': 'Consulter'
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+// Function to get localized property title
+function getLocalizedTitle(property, targetLang) {
+  // Try language-specific content first
+  if (targetLang === 'en' && property.content_en?.name) {
+    return property.content_en.name;
+  }
+  
+  if (targetLang === 'fr' && property.content_fr?.name) {
+    return property.content_fr.name;
+  }
+  
+  // Fallback to main title fields
+  return property.titulo || property.name || 'Propiedad';
+}
+
+// Function to get translated operation
+function getLocalizedOperation(operation, targetLang) {
+  const opTranslations = operationTranslations[targetLang] || operationTranslations.es;
+  return opTranslations[operation] || operation;
+}
+
+// Process similar properties with localized titles and operations
+const processedSimilarProperties = (data.similarProperties || []).map(similar => ({
+  ...similar,
+  localizedTitle: getLocalizedTitle(similar, currentLanguage),
+  localizedOperation: getLocalizedOperation(similar.operacion, currentLanguage)
+}));
+---
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    padding: 4px 12px 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom-left-radius: 2px;
+  }
+</style>
+
+<!-- Propiedades Similares -->
+{data.hasSimilarProperties && processedSimilarProperties && processedSimilarProperties.length > 0 && (
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+        {t.title}
+      </h2>
+    </div>
+    
+    <!-- Grid 2 columnas compacto -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {processedSimilarProperties.slice(0, 6).map((similar) => (
+        <a 
+          href={similar.url.startsWith('/') ? similar.url : `/${similar.url}`}
+          class="group bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#f04e00]/40 hover:shadow-[#f04e00]/10 flex h-28"
+        >
+          <!-- Imagen compacta -->
+          <div class="relative w-32 flex-shrink-0 overflow-hidden">
+            <img 
+              src={similar.imagen || '/images/placeholder-property.jpg'}
+              alt={similar.localizedTitle}
+              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              onerror="this.src='/images/placeholder-property.jpg'"
+            />
+            <!-- Overlay de imagen con gradiente sutil -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+          
+          <!-- Contenido ultra compacto -->
+          <div class="flex-1 p-3 flex flex-col justify-between min-w-0 relative">
+            <!-- Badge ribbon integrado -->
+            <div class="ribbon">
+              {similar.localizedOperation}
+            </div>
+            
+            <!-- Precio -->
+            <div class="mb-1">
+              <span class="text-lg font-bold text-[#f04e00] leading-none group-hover:text-[#e03400] transition-colors duration-300">
+                {similar.precio}
+              </span>
+            </div>
+            
+            <!-- Título con 2 líneas máximo -->
+            <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2 group-hover:text-[#f04e00] transition-colors duration-300 leading-tight">
+              {similar.localizedTitle}
+            </h3>
+            
+            <!-- Ubicación con pin -->
+            {similar.sector && (
+              <div class="flex items-center gap-1 mb-1">
+                <i class="fas fa-map-marker-alt text-gray-500 text-xs"></i>
+                <span class="text-xs text-gray-600 truncate">{similar.sector}</span>
+              </div>
+            )}
+            
+            <!-- Características en línea horizontal con iconos consistentes con PropertyHero -->
+            <div class="flex items-center gap-3 text-xs text-gray-600">
+              <div class="flex items-center gap-1">
+                <i class="fas fa-bed text-gray-500 text-xs"></i>
+                <span class="font-medium text-gray-700">{similar.habitaciones}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-bath text-gray-500 text-xs"></i>
+                <span class="font-medium text-gray-700">{similar.banos}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-car text-gray-500 text-xs"></i>
+                <span class="font-medium text-gray-700">{similar.parking_spots || 1}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-th-large text-gray-500 text-xs"></i>
+                <span class="font-medium text-gray-700">{similar.metros}m²</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+)}

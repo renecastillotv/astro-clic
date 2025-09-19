@@ -1,0 +1,107 @@
+---
+// src/components/property/PropertyDetails.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+
+console.log('🏠 PropertyDetails loaded:', {
+  location: property.location,
+  bedrooms: property.bedrooms,
+  bathrooms: property.bathrooms,
+  built_area: property.built_area,
+  parking_spots: property.parking_spots
+});
+---
+
+<!-- Sección de ubicación y detalles -->
+<div class="bg-white border-b border-gray-100 py-6">
+  <div class="container mx-auto px-3 max-w-none">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      
+      <!-- Ubicación (izquierda) -->
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm border border-gray-200">
+          <i class="fas fa-map-marker-alt text-gray-700 text-lg"></i>
+        </div>
+        <span class="text-xl font-bold text-gray-900 tracking-tight">{property.location}</span>
+      </div>
+
+      <!-- Detalles de la propiedad (derecha) - ICONOS FONT AWESOME -->
+      <div class="flex items-center gap-6 lg:gap-8 flex-wrap">
+        
+        <!-- Habitaciones - Icono de cama -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm border border-gray-200">
+            <i class="fas fa-bed text-gray-700 text-lg"></i>
+          </div>
+          <div class="text-left">
+            <div class="text-lg font-semibold text-gray-900">{property.bedrooms || 'N/A'}</div>
+            <div class="text-xs text-gray-500 font-medium">habitaciones</div>
+          </div>
+        </div>
+        
+        <!-- Baños - Icono de baño/ducha -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm border border-gray-200">
+            <i class="fas fa-shower text-gray-700 text-lg"></i>
+          </div>
+          <div class="text-left">
+            <div class="text-lg font-semibold text-gray-900">{property.bathrooms || 'N/A'}</div>
+            <div class="text-xs text-gray-500 font-medium">baños</div>
+          </div>
+        </div>
+        
+        <!-- Área - Icono de regla/área -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm border border-gray-200">
+            <i class="fas fa-ruler-combined text-gray-700 text-lg"></i>
+          </div>
+          <div class="text-left">
+            <div class="text-lg font-semibold text-gray-900">{property.built_area ? `${property.built_area}` : 'N/A'}</div>
+            <div class="text-xs text-gray-500 font-medium">metros²</div>
+          </div>
+        </div>
+        
+        <!-- Parqueos - Icono de carro -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-gray-50 rounded-xl flex items-center justify-center shadow-sm border border-gray-200">
+            <i class="fas fa-car text-gray-700 text-lg"></i>
+          </div>
+          <div class="text-left">
+            <div class="text-lg font-semibold text-gray-900">{property.parking_spots || 'N/A'}</div>
+            <div class="text-xs text-gray-500 font-medium">parqueos</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Estilos responsivos adicionales para PropertyDetails */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+</style>

@@ -1,0 +1,780 @@
+---
+// src/layouts/SinglePropertyLayout.astro - ENSAMBLADOR MODULAR COMPLETO
+import Layout from './Layout.astro';
+
+// Importar todos los componentes modulares
+import PropertyHero from '../components/property/PropertyHero.astro';
+import PropertyDetails from '../components/property/PropertyDetails.astro';
+import PropertyDescription from '../components/property/PropertyDescription.astro';
+import PropertyAmenities from '../components/property/PropertyAmenities.astro';
+import PropertySimilar from '../components/property/PropertySimilar.astro';
+import PropertyLocation from '../components/property/PropertyLocation.astro';
+import PropertyVideos from '../components/property/PropertyVideos.astro';
+import PropertyFAQs from '../components/property/PropertyFAQs.astro';
+import PropertySEOContent from '../components/property/PropertySEOContent.astro';
+import AgentPropertiesCarousel from '../components/property/AgentPropertiesCarousel.astro';
+
+// Sidebar widgets
+import AgentWidget from '../components/property/sidebar/AgentWidget.astro';
+import ProjectWidget from '../components/property/sidebar/ProjectWidget.astro';
+import ShareWidget from '../components/property/sidebar/ShareWidget.astro';
+import TestimonialsWidget from '../components/property/sidebar/TestimonialsWidget.astro';
+import CalculatorWidget from '../components/property/sidebar/CalculatorWidget.astro';
+import ArticlesWidget from '../components/property/sidebar/ArticlesWidget.astro';
+
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+// Extraer datos para SEO (se mantiene igual)
+const seoData = data.seo || {};
+const title = seoData.title || 'CLIC Inmobiliaria';
+const description = seoData.description || 'Encuentra tu próxima propiedad en República Dominicana';
+const ogImage = seoData.og?.image || data.mainImage || '/og-default.jpg';
+
+const property = data.property || {};
+const pricing = data.pricing || {};
+const images = data.images || [];
+const agent = data.agent || {};
+const project = data.project || null;
+
+// Verificar si hay propiedades del asesor para mostrar la sección
+const agentPropertiesInfo = data.agentPropertiesInfo || {};
+const agentProperties = data.agentProperties || [];
+const showAgentProperties = agentPropertiesInfo.has_agent_properties && agentProperties.length > 0;
+---
+
+<Layout title={title} description={description} ogImage={ogImage}>
+  <div class="min-h-screen bg-white">
+    
+    <!-- ✅ Breadcrumbs mejorados con contenedor -->
+    {data.breadcrumbs && data.breadcrumbs.length > 1 && (
+      <nav class="breadcrumb bg-gray-50 border-b border-gray-200 py-3">
+        <div class="container mx-auto px-3 max-w-none">
+          <ol class="flex items-center space-x-2 text-sm">
+            {data.breadcrumbs.map((crumb, index) => (
+              <li class="flex items-center">
+                {index > 0 && (
+                  <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                )}
+                {index === data.breadcrumbs.length - 1 ? (
+                  <span class="text-gray-900 font-semibold">{crumb.name}</span>
+                ) : (
+                  <a 
+                    href={crumb.url} 
+                    class="text-gray-600 hover:text-[#f04e00] transition-colors font-medium hover:underline"
+                  >
+                    {crumb.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </nav>
+    )}
+
+    <!-- 🔄 Hero Gallery Section - COMPONENTE MODULAR -->
+    <PropertyHero {data} />
+
+    <!-- 🔄 Property Details Bar - COMPONENTE MODULAR -->
+    <PropertyDetails {data} />
+
+    <!-- ✅ Main Content Layout - ESTRUCTURA MEJORADA CON MÁRGENES -->
+    <div class="container mx-auto px-3 py-8 max-w-none">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- ✅ Main Content (Left Column) -->
+        <main class="lg:col-span-2 space-y-8">
+
+          <!-- 🔄 Description Section - COMPONENTE MODULAR -->
+          <PropertyDescription {data} />
+
+          <!-- 🔄 FAQs Section - MOVIDO AQUÍ DESDE ABAJO -->
+          <PropertyFAQs {data} />
+
+          <!-- 🔄 Building Amenities - COMPONENTE MODULAR -->
+          <PropertyAmenities {data} />
+
+          <!-- 🔄 Propiedades Similares - COMPONENTE MODULAR -->
+          <PropertySimilar {data} />
+
+          <!-- 🔄 Mapa y Lugares Cercanos - COMPONENTE MODULAR -->
+          <PropertyLocation {data} />
+
+          <!-- 🔄 Tour Virtual y Videos - COMPONENTE MODULAR -->
+          <PropertyVideos {data} />
+
+          <!-- 🆕 Más propiedades del Asesor - COMPONENTE MODULAR -->
+          {showAgentProperties && (
+            <section 
+              id="agent-properties-carousel-section"
+              class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 transition-all duration-300"
+            >
+              <AgentPropertiesCarousel {data} />
+            </section>
+          )}
+
+        </main>
+
+        <!-- ✅ Sidebar (Right Column) -->
+        <aside class="space-y-6">
+          
+          <!-- 🔄 Agent Widget - COMPONENTE MODULAR -->
+          <AgentWidget {data} />
+
+          <!-- 🔄 Project Information Widget - COMPONENTE MODULAR -->
+          {data.isProject && <ProjectWidget {data} />}
+
+          <!-- 🔄 Testimonials Widget - COMPONENTE MODULAR -->
+          <TestimonialsWidget {data} />
+
+          <!-- 🔄 Calculadora de Préstamos - COMPONENTE MODULAR -->
+          <CalculatorWidget {data} />
+
+          <!-- 🔄 Articles Widget - COMPONENTE MODULAR -->
+          <ArticlesWidget {data} />
+
+          <!-- 🔄 Share Property Widget - COMPONENTE MODULAR -->
+          <ShareWidget {data} />
+
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ JSON-LD Structured Data - SE MANTIENE -->
+  <script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {})}></script>
+</Layout>
+
+<!-- ✅ ESTILOS ORIGINALES - SE MANTIENEN EXACTOS -->
+<style>
+  .text-shadow {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  }
+  
+  .breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+  }
+  
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ✅ NUEVOS ESTILOS PARA MÁRGENES RESPONSIVOS */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  /* 🆕 ESTILOS PARA CARRUSEL CENTRADO SIMPLE */
+  .carousel-centered {
+    /* Salir del grid parent completamente */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    /* Ancho controlado y centrado */
+    width: 90vw;
+    max-width: 1200px;
+    
+    /* Z-index para estar encima */
+    z-index: 10;
+    
+    /* Fondo mejorado para destacar */
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    
+    /* Padding interno */
+    padding: 2rem;
+    
+    /* Margen superior para separar del contenido */
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 1024px) {
+    .carousel-centered {
+      width: 95vw;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .carousel-centered {
+      width: 98vw;
+      padding: 1rem;
+      margin-top: 1.5rem;
+    }
+  }
+</style>
+
+<!-- ✅ JAVASCRIPT GLOBAL - CORREGIDO PARA EDGE FUNCTION -->
+<script>
+  // Gallery Lightbox Functionality (GLOBAL)
+  let currentImageIndex = 0;
+  const propertyImages = window.propertyImagesData || [];
+
+  function openLightbox(index) {
+    currentImageIndex = index;
+    
+    let modal = document.getElementById('lightbox-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'lightbox-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <img id="lightbox-image" style="max-width: 95%; max-height: 95%; width: auto; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
+            
+            <button onclick="closeLightbox()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.95); border: none; color: #333; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='scale(1)'">
+              ×
+            </button>
+            
+            <button onclick="prevImage()" style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
+              ‹
+            </button>
+            
+            <button onclick="nextImage()" style="position: absolute; right: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-justify: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
+              ›
+            </button>
+            
+            <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: white; font-size: 16px; font-weight: 600; background: rgba(0,0,0,0.8); padding: 12px 24px; border-radius: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); z-index: 10001;">
+              <span id="lightbox-counter"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    updateLightboxImage();
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+  }
+
+  function prevImage() {
+    currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : propertyImages.length - 1;
+    updateLightboxImage();
+  }
+
+  function nextImage() {
+    currentImageIndex = currentImageIndex < propertyImages.length - 1 ? currentImageIndex + 1 : 0;
+    updateLightboxImage();
+  }
+
+  function updateLightboxImage() {
+    const image = document.getElementById('lightbox-image');
+    const counter = document.getElementById('lightbox-counter');
+    
+    if (image && counter && propertyImages.length > 0) {
+      image.src = propertyImages[currentImageIndex];
+      counter.textContent = `${currentImageIndex + 1} / ${propertyImages.length}`;
+    }
+  }
+
+  // Copy property link function
+  window.copyPropertyLink = function() {
+    const url = window.location.href;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        showCopyFeedback('¡Enlace copiado!');
+      }).catch(() => {
+        fallbackCopyTextToClipboard(url);
+      });
+    } else {
+      fallbackCopyTextToClipboard(url);
+    }
+  };
+
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopyFeedback('¡Enlace copiado!');
+    } catch (err) {
+      showCopyFeedback('Error al copiar');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Función para solicitar visita a la propiedad
+  window.requestPropertyVisit = function() {
+    const propertyTitle = document.querySelector('h1')?.textContent || 'Propiedad de interés';
+    const message = `¡Hola! Me interesa agendar una visita para: ${propertyTitle}. ¿Cuándo podríamos coordinar una cita?`;
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback
+    showCopyFeedback('¡Perfecto! Te contactaremos para coordinar la visita.');
+  };
+
+  // Abrir modal de video
+  window.openVideoModal = function(videoId, title) {
+    // Crear modal si no existe
+    let modal = document.getElementById('video-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'video-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; max-width: 900px; aspect-ratio: 16/9;">
+            <iframe id="video-iframe" style="width: 100%; height: 100%; border: none; border-radius: 12px;" allowfullscreen></iframe>
+            <button onclick="closeVideoModal()" style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.9); border: none; color: #333; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">×</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    // Configurar iframe
+    const iframe = document.getElementById('video-iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+    
+    // Mostrar modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Cerrar modal de video
+  window.closeVideoModal = function() {
+    const modal = document.getElementById('video-modal');
+    const iframe = document.getElementById('video-iframe');
+    
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+    
+    if (iframe) {
+      iframe.src = '';
+    }
+  };
+
+  // ✅ FUNCIONES PARA ENVÍO DE LEADS - YA ESTÁN EN LAYOUT.ASTRO
+  // La función submitPropertyLead ya está definida globalmente
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    window.propertyImagesData = window.propertyImagesData || [];
+    
+    // Función para calcular si el carrusel puede usar todo el ancho
+    function calculateCarouselWidth() {
+      const mainContent = document.querySelector('main');
+      const sidebar = document.querySelector('aside');
+      const carouselSection = document.getElementById('agent-properties-carousel-section');
+      
+      if (!mainContent || !sidebar || !carouselSection) {
+        console.log('🎠 Elementos no encontrados para cálculo de ancho');
+        return;
+      }
+      
+      // Esperar a que las imágenes se carguen Y el carrusel se renderice
+      setTimeout(() => {
+        // Segundo timeout para asegurar que el carrusel esté renderizado
+        setTimeout(() => {
+          const mainRect = mainContent.getBoundingClientRect();
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const carouselRect = carouselSection.getBoundingClientRect();
+        
+        // 🎯 ENFOQUE 2: Sumatoria progresiva de alturas de widgets del sidebar
+        console.log('🧮 Iniciando Enfoque 2: Sumatoria de alturas de widgets');
+        
+        let sidebarContentHeight = 0;
+        const sidebarWidgets = Array.from(sidebar.children);
+        const widgetHeights = [];
+        
+        sidebarWidgets.forEach((widget, index) => {
+          const height = widget.offsetHeight;
+          const gaps = index > 0 ? 24 : 0; // gap-6 = 24px entre widgets
+          sidebarContentHeight += height + gaps;
+          
+          widgetHeights.push({
+            index: index,
+            tagName: widget.tagName,
+            className: widget.className.substring(0, 40) + '...',
+            height: height,
+            cumulativeHeight: sidebarContentHeight
+          });
+        });
+        
+        // Añadir la posición inicial del sidebar
+        const sidebarTop = sidebarRect.top + window.scrollY;
+        const calculatedSidebarBottom = sidebarTop + sidebarContentHeight;
+        const carouselTop = carouselRect.top + window.scrollY;
+        const buffer = 50;
+        
+        console.log('🧮 Enfoque 2 - Sumatoria de alturas:', {
+          sidebarTop: Math.round(sidebarTop),
+          sidebarContentHeight: Math.round(sidebarContentHeight),
+          calculatedSidebarBottom: Math.round(calculatedSidebarBottom),
+          carouselTop: Math.round(carouselTop),
+          difference: Math.round(carouselTop - calculatedSidebarBottom),
+          buffer: buffer,
+          shouldExpand: carouselTop > calculatedSidebarBottom + buffer,
+          calculation: `${Math.round(carouselTop)} > ${Math.round(calculatedSidebarBottom)} + ${buffer} = ${carouselTop > calculatedSidebarBottom + buffer}`,
+          widgetBreakdown: widgetHeights
+        });
+        
+        // 🎯 SOLUCIÓN SIMPLE: Solo centrar el carrusel cuando hay espacio libre
+        const differenceThreshold = 1500;
+        const hasSpaceAvailable = Math.abs(carouselTop - calculatedSidebarBottom) > differenceThreshold;
+        
+        console.log('🎯 Verificando si centrar carrusel:', {
+          hasSpaceAvailable: hasSpaceAvailable,
+          differenceThreshold: differenceThreshold,
+          actualDifference: Math.abs(carouselTop - calculatedSidebarBottom),
+          decision: hasSpaceAvailable ? 'CENTRAR carrusel' : 'MANTENER en grid'
+        });
+        
+        if (hasSpaceAvailable) {
+          console.log('✅ Centrando carrusel - hay espacio libre');
+          carouselSection.classList.add('carousel-centered');
+        } else {
+          console.log('⚠️ Manteniendo carrusel en grid - sidebar ocupa espacio');
+          carouselSection.classList.remove('carousel-centered');
+        }
+      }, 1000); // Primer timeout: esperar imágenes
+      }, 500); // Segundo timeout: esperar renderizado del carrusel
+    }
+    
+    // Función para mostrar feedback del cálculo (opcional)
+    function showCarouselWidthFeedback(message) {
+      if (window.location.search.includes('debug=true')) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          bottom: 20px;
+          left: 20px;
+          background: #3b82f6;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 12px;
+          z-index: 1000;
+          opacity: 0.9;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+    
+    // Función de recálculo en resize
+    function handleCarouselResize() {
+      // Solo recalcular en cambios significativos de tamaño
+      clearTimeout(window.carouselResizeTimeout);
+      window.carouselResizeTimeout = setTimeout(() => {
+        calculateCarouselWidth();
+      }, 250);
+    }
+    
+    // Ejecutar cálculo inicial
+    if (document.getElementById('agent-properties-carousel-section')) {
+      calculateCarouselWidth();
+      
+      // Recalcular en resize de ventana
+      window.addEventListener('resize', handleCarouselResize);
+      
+      // Recalcular cuando se carguen imágenes (fallback)
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          setTimeout(calculateCarouselWidth, 300);
+        }, 500);
+      });
+      
+      console.log('🎠 Sistema de cálculo de ancho del carrusel inicializado');
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeLightbox();
+        closeVideoModal();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      }
+    });
+
+    // Close on backdrop click
+    document.addEventListener('click', function(e) {
+      const lightboxModal = document.getElementById('lightbox-modal');
+      const videoModal = document.getElementById('video-modal');
+      
+      if (lightboxModal && e.target === lightboxModal.firstElementChild) {
+        closeLightbox();
+      }
+      
+      if (videoModal && e.target === videoModal.firstElementChild) {
+        closeVideoModal();
+      }
+    });
+
+    // Inicializar formulario de leads
+    const leadForm = document.getElementById('property-contact-form');
+    if (leadForm) {
+      // Obtener UTM parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = document.getElementById('lead-utm-source');
+      const utmMedium = document.getElementById('lead-utm-medium');
+      const utmCampaign = document.getElementById('lead-utm-campaign');
+      const referidor = document.getElementById('lead-referidor');
+      const userAgent = document.getElementById('lead-user-agent');
+      const ipOrigen = document.getElementById('lead-ip-origen');
+      
+      if (utmSource) utmSource.value = urlParams.get('utm_source') || '';
+      if (utmMedium) utmMedium.value = urlParams.get('utm_medium') || '';
+      if (utmCampaign) utmCampaign.value = urlParams.get('utm_campaign') || '';
+      
+      // Información del navegador
+      if (userAgent) userAgent.value = navigator.userAgent;
+      
+      // Referidor
+      if (referidor && document.referrer) {
+        referidor.value = document.referrer;
+      }
+      
+      // IP del cliente (opcional) - Ya no es necesario, la edge function lo maneja
+      // La edge function obtiene la IP automáticamente
+    }
+  });
+
+  // Make functions globally available
+  window.openLightbox = openLightbox;
+  window.closeLightbox = closeLightbox;
+  window.prevImage = prevImage;
+  window.nextImage = nextImage;
+</script>
+
+<!-- ✅ SCRIPTS DE GOOGLE MAPS Y DATA - SE MANTIENEN -->
+<script async defer 
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initPropertyMap&libraries=geometry"
+  onerror="handleMapError()">
+</script>
+
+<script>
+  window.handleMapError = function() {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-orange-50 via-gray-50 to-orange-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+            <p class="text-gray-800 font-semibold mb-1">Mapa no disponible</p>
+            <p class="text-sm text-gray-600">${window.propertyData?.title || 'Propiedad'}</p>
+            <p class="text-xs text-gray-500 mt-2">📍 Ver ubicación exacta</p>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  // Inicializar Google Maps cuando esté disponible
+  window.initPropertyMap = function() {
+    const mapElement = document.getElementById('google-map');
+    if (!mapElement) {
+      console.log('Elemento del mapa no encontrado');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('Google Maps API no disponible');
+      window.handleMapError();
+      return;
+    }
+
+    try {
+      const propertyLocation = {
+        lat: window.propertyData?.coordinates?.lat || 18.4682,
+        lng: window.propertyData?.coordinates?.lng || -69.9279
+      };
+
+      const map = new google.maps.Map(mapElement, {
+        zoom: 15,
+        center: propertyLocation,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{"visibility": "simplified"}]
+          }
+        ]
+      });
+
+      const propertyMarker = new google.maps.Marker({
+        position: propertyLocation,
+        map: map,
+        title: window.propertyData?.title || 'Propiedad',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#f04e00',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        zIndex: 999
+      });
+
+      if (window.propertyData?.nearbyPoints && window.propertyData.nearbyPoints.length > 0) {
+        window.propertyData.nearbyPoints.forEach((place, index) => {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: place.address }, (results, status) => {
+            if (status === 'OK' && results && results.length > 0) {
+              const placeMarker = new google.maps.Marker({
+                position: results[0].geometry.location,
+                map: map,
+                title: place.name,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 6,
+                  fillColor: place.description.includes('shopping') ? '#f04e00' :
+                            place.description.includes('hospital') ? '#dc2626' :
+                            place.description.includes('bank') ? '#3b82f6' :
+                            place.description.includes('supermarket') ? '#f59e0b' : '#6b7280',
+                  fillOpacity: 0.8,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2
+                }
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div class="p-2">
+                    <h4 class="font-semibold text-sm">${place.name}</h4>
+                    <p class="text-xs text-gray-600 capitalize">${place.description.replace('_', ' ')}</p>
+                    <p class="text-xs text-gray-500 mt-1">${place.address}</p>
+                  </div>
+                `
+              });
+
+              placeMarker.addListener('click', () => {
+                infoWindow.open(map, placeMarker);
+              });
+            }
+          });
+        });
+      }
+
+      console.log('Mapa cargado exitosamente');
+    } catch (error) {
+      console.error('Error inicializando el mapa:', error);
+      window.handleMapError();
+    }
+  };
+</script>
+
+<!-- ✅ DATOS PARA EL MAPA Y LIGHTBOX - SE MANTIENEN -->
+<script define:vars={{ 
+  propertyData: {
+    title: property.title,
+    coordinates: data.location?.coordinates,
+    nearbyPoints: data.seo?.structuredData?.nearbyPoints
+  }
+}}>
+  if (typeof window !== 'undefined') {
+    window.propertyData = propertyData;
+  }
+</script>
+
+<script define:vars={{ images }}>
+  if (typeof window !== 'undefined') {
+    window.propertyImagesData = images && images.length > 0 ? images : [
+      '/images/placeholder-property.jpg'
+    ];
+  }
+</script>

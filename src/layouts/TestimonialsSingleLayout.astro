@@ -1,0 +1,955 @@
+---
+// src/layouts/TestimonialsSingleLayout.astro - Layout para testimonio individual
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+const category = data?.category || 'compradores';
+const testimonioSlug = data?.testimonioSlug || Astro.url.pathname.split('/').pop();
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK PARA TESTIMONIO ESPECÍFICO
+// ===================================================================
+
+let testimonioData = data;
+
+// Si no hay datos, usar fallback estático
+if (!testimonioData || !testimonioData.testimonial) {
+  console.log('👤 TestimonialsSingleLayout: Usando datos estáticos de fallback para', testimonioSlug);
+  
+  const testimoniosDataMap = {
+    'juan-luis-guerra-casa-de-campo': {
+      title: language === 'es' ? 'Mi experiencia comprando en Casa de Campo' :
+             language === 'en' ? 'My experience buying in Casa de Campo' :
+             'Mon expérience d\'achat à Casa de Campo',
+      subtitle: language === 'es' ? 'El proceso completo de compra de mi villa de ensueño' :
+                language === 'en' ? 'The complete process of buying my dream villa' :
+                'Le processus complet d\'achat de ma villa de rêve',
+      author: {
+        name: 'Juan Luis Guerra',
+        avatar: 'https://i.pravatar.cc/150?img=8',
+        location: 'Casa de Campo',
+        verified: true,
+        isCelebrity: true,
+        profession: language === 'es' ? 'Músico y Compositor' :
+                    language === 'en' ? 'Musician and Composer' :
+                    'Musicien et Compositeur',
+        socialMedia: {
+          instagram: '@juanluisguerra',
+          followers: '2.3M'
+        }
+      },
+      rating: 5,
+      featuredImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop',
+      propertyType: language === 'es' ? 'Villa de Lujo' :
+                    language === 'en' ? 'Luxury Villa' :
+                    'Villa de Luxe',
+      location: 'Casa de Campo',
+      publishedAt: '2024-02-28',
+      category: language === 'es' ? 'Compradores Exitosos' :
+                language === 'en' ? 'Successful Buyers' :
+                'Acheteurs Réussis',
+      categorySlug: 'compradores',
+      readTime: language === 'es' ? '4 min' :
+                language === 'en' ? '4 min' :
+                '4 min',
+      views: '15,234',
+      
+      fullTestimonial: language === 'es' ? 
+        `Mi búsqueda de la propiedad perfecta en Casa de Campo comenzó hace más de un año. Como músico, necesitaba un espacio que me inspirara y me permitiera crear, pero también quería un hogar donde mi familia pudiera disfrutar de la tranquilidad y belleza de República Dominicana.
+
+Cuando contacté a CLIC Inmobiliaria, desde el primer momento sentí que entendían exactamente lo que buscaba. María Rodríguez, mi asesora, se tomó el tiempo de conocer mis necesidades específicas: necesitaba un estudio de música aislado acústicamente, espacios amplios para recibir invitados, y por supuesto, esa vista al mar que tanto amo.
+
+**El proceso de búsqueda**
+
+Lo que más me impresionó fue la profesionalidad del equipo. En lugar de mostrarme 20 propiedades al azar, María seleccionó cuidadosamente solo 3 opciones que realmente cumplían con mis criterios. Cada visita estaba perfectamente organizada, con información detallada sobre la propiedad, el vecindario y las posibilidades de personalización.
+
+La villa que finalmente elegí superó todas mis expectativas. Los 650 metros cuadrados están distribuidos de manera perfecta: 6 habitaciones, cada una con su propio carácter, un estudio de música con aislamiento profesional, y esas vistas al campo de golf y al mar que me quitan el aliento cada mañana.
+
+**Negociación y cierre**
+
+El proceso de negociación fue transparente y profesional. CLIC no solo me ayudó a conseguir un precio justo, sino que también me asesoró en todos los aspectos legales. Como no vivo permanentemente en República Dominicana, necesitaba estar seguro de que todos los documentos estuvieran en orden.
+
+El equipo legal de CLIC fue excepcional. Me explicaron cada paso del proceso, desde la verificación de títulos hasta los permisos de construcción para las modificaciones que quería hacer al estudio. Todo el proceso tomó solo 45 días, mucho menos de lo que esperaba.
+
+**La mudanza y más allá**
+
+Lo que realmente distingue a CLIC es el servicio post-venta. Después de la compra, me ayudaron a coordinar las renovaciones del estudio, me conectaron con los mejores arquitectos y contratistas de la zona, e incluso me recomendaron servicios locales de confianza.
+
+Hoy, más de 6 meses después, puedo decir que esta villa se ha convertido en mi refugio creativo. He compuesto algunas de mis mejores canciones aquí, y mi familia considera este lugar nuestro verdadero hogar en el Caribe.
+
+**Mi recomendación**
+
+Si estás considerando comprar una propiedad en República Dominicana, especialmente en Casa de Campo, no busques más. CLIC tiene el conocimiento local, la profesionalidad internacional y, sobre todo, la pasión por ayudarte a encontrar no solo una propiedad, sino tu hogar ideal.
+
+La inversión de $2.5 millones no solo me dio una villa espectacular, sino también la tranquilidad de saber que todo el proceso fue manejado por verdaderos expertos. Mi recomendación es total y absoluta.` :
+        
+        language === 'en' ? 
+        `My search for the perfect property in Casa de Campo began over a year ago. As a musician, I needed a space that would inspire me and allow me to create, but I also wanted a home where my family could enjoy the tranquility and beauty of the Dominican Republic.
+
+When I contacted CLIC Real Estate, from the first moment I felt they understood exactly what I was looking for. María Rodríguez, my advisor, took the time to understand my specific needs: I needed an acoustically isolated music studio, spacious areas to receive guests, and of course, that ocean view that I love so much.
+
+**The search process**
+
+What impressed me most was the team's professionalism. Instead of showing me 20 random properties, María carefully selected only 3 options that really met my criteria. Each visit was perfectly organized, with detailed information about the property, the neighborhood and customization possibilities.
+
+The villa I finally chose exceeded all my expectations. The 650 square meters are perfectly distributed: 6 bedrooms, each with its own character, a music studio with professional isolation, and those views of the golf course and the sea that take my breath away every morning.
+
+**Negotiation and closing**
+
+The negotiation process was transparent and professional. CLIC not only helped me get a fair price, but also advised me on all legal aspects. Since I don't live permanently in the Dominican Republic, I needed to make sure all documents were in order.
+
+CLIC's legal team was exceptional. They explained every step of the process to me, from title verification to construction permits for the modifications I wanted to make to the studio. The entire process took only 45 days, much less than I expected.
+
+**The move and beyond**
+
+What really distinguishes CLIC is the after-sales service. After the purchase, they helped me coordinate the studio renovations, connected me with the best architects and contractors in the area, and even recommended trusted local services.
+
+Today, more than 6 months later, I can say that this villa has become my creative refuge. I have composed some of my best songs here, and my family considers this place our true home in the Caribbean.
+
+**My recommendation**
+
+If you are considering buying a property in the Dominican Republic, especially in Casa de Campo, look no further. CLIC has the local knowledge, international professionalism and, above all, the passion to help you find not just a property, but your ideal home.
+
+The $2.5 million investment not only gave me a spectacular villa, but also the peace of mind of knowing that the entire process was handled by true experts. My recommendation is total and absolute.` :
+        
+        `Ma recherche de la propriété parfaite à Casa de Campo a commencé il y a plus d'un an. En tant que musicien, j'avais besoin d'un espace qui m'inspirerait et me permettrait de créer, mais je voulais aussi une maison où ma famille pourrait profiter de la tranquillité et de la beauté de la République dominicaine.
+
+Quand j'ai contacté CLIC Immobilier, dès le premier moment j'ai senti qu'ils comprenaient exactement ce que je cherchais. María Rodríguez, ma conseillère, a pris le temps de comprendre mes besoins spécifiques : j'avais besoin d'un studio de musique isolé acoustiquement, d'espaces spacieux pour recevoir des invités, et bien sûr, cette vue sur l'océan que j'aime tant.
+
+**Le processus de recherche**
+
+Ce qui m'a le plus impressionné, c'est le professionnalisme de l'équipe. Au lieu de me montrer 20 propriétés au hasard, María a soigneusement sélectionné seulement 3 options qui répondaient vraiment à mes critères. Chaque visite était parfaitement organisée, avec des informations détaillées sur la propriété, le quartier et les possibilités de personnalisation.
+
+La villa que j'ai finalement choisie a dépassé toutes mes attentes. Les 650 mètres carrés sont parfaitement distribués : 6 chambres, chacune avec son propre caractère, un studio de musique avec isolation professionnelle, et ces vues sur le terrain de golf et la mer qui me coupent le souffle chaque matin.
+
+**Négociation et clôture**
+
+Le processus de négociation était transparent et professionnel. CLIC ne m'a pas seulement aidé à obtenir un prix équitable, mais m'a aussi conseillé sur tous les aspects juridiques. Comme je ne vis pas en permanence en République dominicaine, j'avais besoin d'être sûr que tous les documents étaient en ordre.
+
+L'équipe juridique de CLIC était exceptionnelle. Ils m'ont expliqué chaque étape du processus, de la vérification des titres aux permis de construction pour les modifications que je voulais apporter au studio. Tout le processus n'a pris que 45 jours, beaucoup moins que ce que j'attendais.
+
+**Le déménagement et au-delà**
+
+Ce qui distingue vraiment CLIC, c'est le service après-vente. Après l'achat, ils m'ont aidé à coordonner les rénovations du studio, m'ont mis en contact avec les meilleurs architectes et entrepreneurs de la région, et ont même recommandé des services locaux de confiance.
+
+Aujourd'hui, plus de 6 mois plus tard, je peux dire que cette villa est devenue mon refuge créatif. J'ai composé quelques-unes de mes meilleures chansons ici, et ma famille considère cet endroit comme notre vraie maison dans les Caraïbes.
+
+**Ma recommandation**
+
+Si vous envisagez d'acheter une propriété en République dominicaine, surtout à Casa de Campo, ne cherchez plus. CLIC a la connaissance locale, le professionnalisme international et, surtout, la passion pour vous aider à trouver non seulement une propriété, mais votre maison idéale.
+
+L'investissement de 2,5 millions de dollars ne m'a pas seulement donné une villa spectaculaire, mais aussi la tranquillité d'esprit de savoir que tout le processus était géré par de vrais experts. Ma recommandation est totale et absolue.`,
+
+      purchaseDetails: {
+        purchaseValue: '$2,500,000',
+        processTime: language === 'es' ? '45 días' :
+                     language === 'en' ? '45 days' :
+                     '45 jours',
+        propertySize: '650 m²',
+        bedrooms: 6,
+        bathrooms: 7,
+        lotSize: '1,200 m²',
+        yearBuilt: '2019',
+        features: language === 'es' ? [
+          'Estudio de música profesional',
+          'Vista al campo de golf',
+          'Vista parcial al mar', 
+          'Piscina infinita',
+          'Gazebo y área BBQ',
+          'Gimnasio privado',
+          'Garaje para 3 vehículos',
+          'Sistema domótica completo'
+        ] : language === 'en' ? [
+          'Professional music studio',
+          'Golf course view',
+          'Partial ocean view',
+          'Infinity pool',
+          'Gazebo and BBQ area',
+          'Private gym',
+          'Garage for 3 vehicles',
+          'Complete home automation system'
+        ] : [
+          'Studio de musique professionnel',
+          'Vue sur le terrain de golf',
+          'Vue partielle sur l\'océan',
+          'Piscine à débordement',
+          'Gazebo et espace BBQ',
+          'Gym privé',
+          'Garage pour 3 véhicules',
+          'Système domotique complet'
+        ]
+      },
+
+      timeline: [
+        {
+          date: '2024-01-15',
+          title: language === 'es' ? 'Primer contacto' :
+                  language === 'en' ? 'First contact' :
+                  'Premier contact',
+          description: language === 'es' ? 'Consulta inicial con María Rodríguez para definir criterios de búsqueda' :
+                       language === 'en' ? 'Initial consultation with María Rodríguez to define search criteria' :
+                       'Consultation initiale avec María Rodríguez pour définir les critères de recherche'
+        },
+        {
+          date: '2024-01-22',
+          title: language === 'es' ? 'Visitas programadas' :
+                  language === 'en' ? 'Scheduled visits' :
+                  'Visites programmées',
+          description: language === 'es' ? 'Tour por 3 propiedades pre-seleccionadas en Casa de Campo' :
+                       language === 'en' ? 'Tour of 3 pre-selected properties in Casa de Campo' :
+                       'Visite de 3 propriétés présélectionnées à Casa de Campo'
+        },
+        {
+          date: '2024-01-28',
+          title: language === 'es' ? 'Oferta presentada' :
+                  language === 'en' ? 'Offer presented' :
+                  'Offre présentée',
+          description: language === 'es' ? 'Presentación de oferta formal después de segunda visita' :
+                       language === 'en' ? 'Formal offer presentation after second visit' :
+                       'Présentation d\'offre formelle après la deuxième visite'
+        },
+        {
+          date: '2024-02-05',
+          title: language === 'es' ? 'Negociación exitosa' :
+                  language === 'en' ? 'Successful negotiation' :
+                  'Négociation réussie',
+          description: language === 'es' ? 'Acuerdo final de precio y términos de compra' :
+                       language === 'en' ? 'Final agreement on price and purchase terms' :
+                       'Accord final sur le prix et les conditions d\'achat'
+        },
+        {
+          date: '2024-02-12',
+          title: language === 'es' ? 'Due diligence' :
+                  language === 'en' ? 'Due diligence' :
+                  'Due diligence',
+          description: language === 'es' ? 'Revisión legal completa y verificación de documentos' :
+                       language === 'en' ? 'Complete legal review and document verification' :
+                       'Révision juridique complète et vérification des documents'
+        },
+        {
+          date: '2024-02-28',
+          title: language === 'es' ? 'Cierre exitoso' :
+                  language === 'en' ? 'Successful closing' :
+                  'Clôture réussie',
+          description: language === 'es' ? 'Firma de escrituras y entrega oficial de la propiedad' :
+                       language === 'en' ? 'Deed signing and official property delivery' :
+                       'Signature des actes et livraison officielle de la propriété'
+        }
+      ],
+
+      photoGallery: [
+        {
+          url: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Fachada principal de la villa con vista al campo de golf' :
+                   language === 'en' ? 'Main facade of the villa with golf course view' :
+                   'Façade principale de la villa avec vue sur le terrain de golf'
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Sala principal con doble altura y vista panorámica' :
+                   language === 'en' ? 'Main living room with double height and panoramic view' :
+                   'Salon principal avec double hauteur et vue panoramique'
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Estudio de música con aislamiento acústico profesional' :
+                   language === 'en' ? 'Music studio with professional acoustic isolation' :
+                   'Studio de musique avec isolation acoustique professionnelle'
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Master suite con terraza privada y vista al mar' :
+                   language === 'en' ? 'Master suite with private terrace and ocean view' :
+                   'Suite principale avec terrasse privée et vue sur l\'océan'
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Área de piscina infinita con gazebo' :
+                   language === 'en' ? 'Infinity pool area with gazebo' :
+                   'Zone piscine à débordement avec gazebo'
+        },
+        {
+          url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
+          caption: language === 'es' ? 'Comedor exterior con vista al campo de golf' :
+                   language === 'en' ? 'Outdoor dining area with golf course view' :
+                   'Salle à manger extérieure avec vue sur le terrain de golf'
+        }
+      ],
+
+      similarProperties: [
+        {
+          slug: 'villa-casa-de-campo-premium',
+          titulo: language === 'es' ? 'Villa Premium en Casa de Campo' :
+                  language === 'en' ? 'Premium Villa in Casa de Campo' :
+                  'Villa Premium à Casa de Campo',
+          precio: '$2,800,000',
+          imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+          sector: 'Casa de Campo',
+          habitaciones: 6,
+          banos: 6,
+          metros: 580,
+          tipo: language === 'es' ? 'Villa de Lujo' :
+                language === 'en' ? 'Luxury Villa' :
+                'Villa de Luxe',
+          destacado: true,
+          descuento: language === 'es' ? 'Estilo Juan Luis Guerra' :
+                     language === 'en' ? 'Juan Luis Guerra Style' :
+                     'Style Juan Luis Guerra'
+        },
+        {
+          slug: 'villa-artista-casa-de-campo',
+          titulo: language === 'es' ? 'Villa perfecta para artistas' :
+                  language === 'en' ? 'Perfect villa for artists' :
+                  'Villa parfaite pour les artistes',
+          precio: '$1,950,000',
+          imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+          sector: 'Casa de Campo',
+          habitaciones: 5,
+          banos: 5,
+          metros: 520,
+          tipo: language === 'es' ? 'Villa' :
+                language === 'en' ? 'Villa' :
+                'Villa',
+          nuevo: true
+        },
+        {
+          slug: 'casa-moderna-casa-de-campo',
+          titulo: language === 'es' ? 'Casa moderna vista al golf' :
+                  language === 'en' ? 'Modern house with golf view' :
+                  'Maison moderne avec vue sur le golf',
+          precio: '$1,650,000',
+          imagen: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+          sector: 'Casa de Campo',
+          habitaciones: 4,
+          banos: 4,
+          metros: 450,
+          tipo: language === 'es' ? 'Casa de Lujo' :
+                language === 'en' ? 'Luxury House' :
+                'Maison de Luxe'
+        }
+      ],
+
+      relatedTestimonials: [
+        {
+          id: '1',
+          title: language === 'es' ? 'Nuestra villa de ensueño en Punta Cana' :
+                 language === 'en' ? 'Our dream villa in Punta Cana' :
+                 'Notre villa de rêve à Punta Cana',
+          author: 'Familia Martínez',
+          thumbnail: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop',
+          category: 'compradores',
+          slug: 'familia-martinez-punta-cana',
+          excerpt: language === 'es' ? 'Después de años buscando, CLIC nos ayudó a encontrar nuestra villa perfecta' :
+                   language === 'en' ? 'After years of searching, CLIC helped us find our perfect villa' :
+                   'Après des années de recherche, CLIC nous a aidés à trouver notre villa parfaite',
+          rating: 5
+        },
+        {
+          id: '2',
+          title: language === 'es' ? 'Mi primer apartamento: una experiencia increíble' :
+                 language === 'en' ? 'My first apartment: an incredible experience' :
+                 'Mon premier appartement : une expérience incroyable',
+          author: 'Carlos Rodríguez',
+          thumbnail: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
+          category: 'compradores',
+          slug: 'carlos-rodriguez-primer-apartamento',
+          excerpt: language === 'es' ? 'Como primer comprador, CLIC me guió en todo el proceso' :
+                   language === 'en' ? 'As a first-time buyer, CLIC guided me through the entire process' :
+                   'En tant qu\'acheteur débutant, CLIC m\'a guidé tout au long du processus',
+          rating: 5
+        },
+        {
+          id: '3',
+          title: language === 'es' ? 'Inversión exitosa en el Caribe' :
+                 language === 'en' ? 'Successful investment in the Caribbean' :
+                 'Investissement réussi dans les Caraïbes',
+          author: 'Mikhail Petrov',
+          thumbnail: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=400&h=300&fit=crop',
+          category: 'compradores',
+          slug: 'mikhail-petrov-inversion-exitosa',
+          excerpt: language === 'es' ? 'Mi portafolio de propiedades en RD ha superado expectativas' :
+                   language === 'en' ? 'My property portfolio in DR has exceeded expectations' :
+                   'Mon portefeuille immobilier en RD a dépassé les attentes',
+          rating: 5
+        }
+      ],
+
+      teamMembers: [
+        {
+          slug: 'maria-rodriguez',
+          name: 'María Rodríguez',
+          title: language === 'es' ? 'Asesora Principal - Propiedades de Lujo' :
+                 language === 'en' ? 'Principal Advisor - Luxury Properties' :
+                 'Conseillère Principale - Propriétés de Luxe',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          specialties: ['Casa de Campo', 'Cap Cana', language === 'es' ? 'Propiedades Premium' : language === 'en' ? 'Premium Properties' : 'Propriétés Premium'],
+          experience: language === 'es' ? '8 años' :
+                      language === 'en' ? '8 years' :
+                      '8 ans',
+          languages: language === 'es' ? ['Español', 'Inglés', 'Francés'] :
+                     language === 'en' ? ['Spanish', 'English', 'French'] :
+                     ['Espagnol', 'Anglais', 'Français'],
+          phone: '+1 809 555 0101',
+          whatsapp: '18095550101',
+          rating: 4.9,
+          reviewCount: 127,
+          testimonialQuote: language === 'es' ? 'Trabajar con Juan Luis fue un honor. Su visión clara y pasión por la música hicieron que fuera fácil encontrar la propiedad perfecta para él.' :
+                            language === 'en' ? 'Working with Juan Luis was an honor. His clear vision and passion for music made it easy to find the perfect property for him.' :
+                            'Travailler avec Juan Luis était un honneur. Sa vision claire et sa passion pour la musique ont rendu facile de trouver la propriété parfaite pour lui.'
+        },
+        {
+          slug: 'carlos-legal',
+          name: 'Carlos Santana',
+          title: language === 'es' ? 'Director Legal' :
+                 language === 'en' ? 'Legal Director' :
+                 'Directeur Juridique',
+          avatar: 'https://i.pravatar.cc/150?img=8',
+          specialties: [
+            language === 'es' ? 'Transacciones de Lujo' : language === 'en' ? 'Luxury Transactions' : 'Transactions de Luxe',
+            language === 'es' ? 'Derecho Inmobiliario' : language === 'en' ? 'Real Estate Law' : 'Droit Immobilier'
+          ],
+          experience: language === 'es' ? '12 años' :
+                      language === 'en' ? '12 years' :
+                      '12 ans',
+          languages: language === 'es' ? ['Español', 'Inglés'] :
+                     language === 'en' ? ['Spanish', 'English'] :
+                     ['Espagnol', 'Anglais'],
+          phone: '+1 809 555 0108',
+          whatsapp: '18095550108',
+          rating: 4.8,
+          reviewCount: 89,
+          testimonialQuote: language === 'es' ? 'La compra de Juan Luis requería atención especial a los detalles legales. Nos aseguramos de que todo estuviera perfecto.' :
+                            language === 'en' ? 'Juan Luis\'s purchase required special attention to legal details. We made sure everything was perfect.' :
+                            'L\'achat de Juan Luis nécessitait une attention particulière aux détails juridiques. Nous nous sommes assurés que tout était parfait.'
+        }
+      ]
+    }
+  };
+
+  testimonioData = {
+    language: language,
+    category: category,
+    testimonioSlug: testimonioSlug,
+    testimonial: testimoniosDataMap[testimonioSlug] || testimoniosDataMap['juan-luis-guerra-casa-de-campo'],
+    seo: {
+      title: `${testimoniosDataMap[testimonioSlug]?.title || 'Testimonio'} - ${testimoniosDataMap[testimonioSlug]?.author?.name || 'Cliente'} | Testimonios CLIC`,
+      description: `${testimoniosDataMap[testimonioSlug]?.subtitle || 'Historia completa'} - ${language === 'es' ? 'Historia completa de' : language === 'en' ? 'Complete story of' : 'Histoire complète de'} ${testimoniosDataMap[testimonioSlug]?.author?.name || 'cliente'} ${language === 'es' ? 'comprando con CLIC Inmobiliaria' : language === 'en' ? 'buying with CLIC Real Estate' : 'achetant avec CLIC Immobilier'}`
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const currentTestimonio = testimonioData.testimonial;
+const seo = testimonioData.seo || {};
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = {
+    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+  };
+  
+  const monthNames = months[language] || months.es;
+  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// Función para formatear fecha corta
+function formatDateShort(dateString) {
+  const date = new Date(dateString);
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    breadcrumbTestimonials: 'Testimonios',
+    purchaseDetailsTitle: 'Detalles de la Compra',
+    timelineTitle: 'Timeline del Proceso',
+    photoGalleryTitle: 'Galería de la Propiedad',
+    teamTitle: 'Equipo CLIC que participó',
+    similarPropertiesTitle: 'Propiedades similares disponibles',
+    similarPropertiesSubtitle: 'Encuentra tu hogar ideal en la misma zona donde Juan Luis encontró el suyo',
+    relatedTestimonialsTitle: 'Otros testimonios que te pueden interesar',
+    ctaTitle: '¿Quieres vivir tu propia historia de éxito?',
+    ctaSubtitle: 'Como Juan Luis, tú también puedes encontrar la propiedad perfecta con nuestro equipo de expertos',
+    ctaButton1: 'Quiero empezar mi proceso',
+    ctaButton2: 'Ver propiedades en',
+    purchaseValue: 'Valor de compra',
+    processTime: 'Tiempo de proceso',
+    construction: 'Construcción',
+    bedrooms: 'Habitaciones',
+    mainFeatures: 'Características Principales',
+    readings: 'lecturas',
+    readTime: 'de lectura',
+    rating: 'Calificación:',
+    verified: 'Verificado',
+    celebrity: '⭐ Celebridad',
+    callNow: 'Llamar',
+    whatsapp: 'WhatsApp',
+    years: 'años',
+    reviews: 'reseñas'
+  },
+  en: {
+    breadcrumbTestimonials: 'Testimonials',
+    purchaseDetailsTitle: 'Purchase Details',
+    timelineTitle: 'Process Timeline',
+    photoGalleryTitle: 'Property Gallery',
+    teamTitle: 'CLIC Team that participated',
+    similarPropertiesTitle: 'Similar properties available',
+    similarPropertiesSubtitle: 'Find your ideal home in the same area where Juan Luis found his',
+    relatedTestimonialsTitle: 'Other testimonials that may interest you',
+    ctaTitle: 'Want to live your own success story?',
+    ctaSubtitle: 'Like Juan Luis, you too can find the perfect property with our team of experts',
+    ctaButton1: 'I want to start my process',
+    ctaButton2: 'View properties in',
+    purchaseValue: 'Purchase value',
+    processTime: 'Process time',
+    construction: 'Construction',
+    bedrooms: 'Bedrooms',
+    mainFeatures: 'Main Features',
+    readings: 'readings',
+    readTime: 'read',
+    rating: 'Rating:',
+    verified: 'Verified',
+    celebrity: '⭐ Celebrity',
+    callNow: 'Call',
+    whatsapp: 'WhatsApp',
+    years: 'years',
+    reviews: 'reviews'
+  },
+  fr: {
+    breadcrumbTestimonials: 'Témoignages',
+    purchaseDetailsTitle: 'Détails de l\'Achat',
+    timelineTitle: 'Chronologie du Processus',
+    photoGalleryTitle: 'Galerie de la Propriété',
+    teamTitle: 'Équipe CLIC qui a participé',
+    similarPropertiesTitle: 'Propriétés similaires disponibles',
+    similarPropertiesSubtitle: 'Trouvez votre maison idéale dans la même zone où Juan Luis a trouvé la sienne',
+    relatedTestimonialsTitle: 'Autres témoignages qui peuvent vous intéresser',
+    ctaTitle: 'Vous voulez vivre votre propre histoire de succès?',
+    ctaSubtitle: 'Comme Juan Luis, vous aussi pouvez trouver la propriété parfaite avec notre équipe d\'experts',
+    ctaButton1: 'Je veux commencer mon processus',
+    ctaButton2: 'Voir les propriétés à',
+    purchaseValue: 'Valeur d\'achat',
+    processTime: 'Temps de processus',
+    construction: 'Construction',
+    bedrooms: 'Chambres',
+    mainFeatures: 'Caractéristiques Principales',
+    readings: 'lectures',
+    readTime: 'de lecture',
+    rating: 'Note:',
+    verified: 'Vérifié',
+    celebrity: '⭐ Célébrité',
+    callNow: 'Appeler',
+    whatsapp: 'WhatsApp',
+    years: 'ans',
+    reviews: 'avis'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    testimonials: '/testimonios',
+    properties: '/comprar'
+  },
+  en: {
+    testimonials: '/en/testimonials',
+    properties: '/en/buy'
+  },
+  fr: {
+    testimonials: '/fr/temoignages',
+    properties: '/fr/acheter'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ TestimonialsSingleLayout preparado:', {
+  language,
+  category,
+  testimonioSlug,
+  testimonialTitle: currentTestimonio.title,
+  hasTimeline: currentTestimonio.timeline?.length > 0,
+  hasGallery: currentTestimonio.photoGallery?.length > 0,
+  hasTeam: currentTestimonio.teamMembers?.length > 0
+});
+---
+
+<Layout 
+  title={seo.title}
+  description={seo.description}
+  language={language}
+>
+  <!-- Breadcrumbs -->
+  <section class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600">
+        <a href={currentRoutes.testimonials} class="hover:text-[#f04e00]">{text.breadcrumbTestimonials}</a>
+        <span class="mx-2">/</span>
+        <a href={`${currentRoutes.testimonials}/${currentTestimonio.categorySlug}`} class="hover:text-[#f04e00]">
+          {currentTestimonio.category}
+        </a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{currentTestimonio.title}</span>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Header Section -->
+  <section class="py-8">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <!-- Author info -->
+        <div class="flex items-center gap-4 mb-6">
+          <img 
+            src={currentTestimonio.author.avatar} 
+            alt={currentTestimonio.author.name}
+            class="w-16 h-16 rounded-full border-4 border-white shadow-lg"
+          />
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-1">
+              <h2 class="text-xl font-bold text-gray-900">{currentTestimonio.author.name}</h2>
+              {currentTestimonio.author.verified && (
+                <span class="bg-green-500 text-white p-1 rounded-full">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </span>
+              )}
+              {currentTestimonio.author.isCelebrity && (
+                <span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
+                  {text.celebrity}
+                </span>
+              )}
+            </div>
+            <p class="text-gray-600">{currentTestimonio.author.profession}</p>
+            <p class="text-sm text-gray-500">{currentTestimonio.author.location}</p>
+          </div>
+          <div class="text-right">
+            <div class="flex justify-end mb-1">
+              {Array.from({length: currentTestimonio.rating}, (_, i) => (
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
+            </div>
+            <p class="text-sm text-gray-500">{text.rating} {currentTestimonio.rating}/5</p>
+          </div>
+        </div>
+
+        <!-- Title and metadata -->
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          {currentTestimonio.title}
+        </h1>
+        <p class="text-xl text-gray-600 mb-6">{currentTestimonio.subtitle}</p>
+        
+        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-8">
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+            {currentTestimonio.views} {text.readings}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {currentTestimonio.readTime} {text.readTime}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            {formatDate(currentTestimonio.publishedAt)}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            {currentTestimonio.location}
+          </span>
+        </div>
+
+        <!-- Featured Image -->
+        <div class="aspect-video bg-gray-200 rounded-xl overflow-hidden shadow-lg mb-8">
+          <img 
+            src={currentTestimonio.featuredImage} 
+            alt={currentTestimonio.title}
+            class="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Purchase Details Cards -->
+  <section class="py-8 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">{text.purchaseDetailsTitle}</h2>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-white rounded-lg p-4 text-center shadow-md">
+            <div class="text-2xl font-bold text-[#f04e00]">{currentTestimonio.purchaseDetails.purchaseValue}</div>
+            <div class="text-sm text-gray-600">{text.purchaseValue}</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 text-center shadow-md">
+            <div class="text-2xl font-bold text-[#f04e00]">{currentTestimonio.purchaseDetails.processTime}</div>
+            <div class="text-sm text-gray-600">{text.processTime}</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 text-center shadow-md">
+            <div class="text-2xl font-bold text-[#f04e00]">{currentTestimonio.purchaseDetails.propertySize}</div>
+            <div class="text-sm text-gray-600">{text.construction}</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 text-center shadow-md">
+            <div class="text-2xl font-bold text-[#f04e00]">{currentTestimonio.purchaseDetails.bedrooms}</div>
+            <div class="text-sm text-gray-600">{text.bedrooms}</div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg p-6 shadow-md">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.mainFeatures}</h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {currentTestimonio.purchaseDetails.features.map(feature => (
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-sm text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full Testimonial -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="prose prose-lg max-w-none">
+          <div class="whitespace-pre-line text-gray-700 leading-relaxed">
+            {currentTestimonio.fullTestimonial}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  {currentTestimonio.timeline && currentTestimonio.timeline.length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.timelineTitle}</h2>
+          
+          <div class="space-y-6">
+            {currentTestimonio.timeline.map((event, index) => (
+              <div class="flex gap-4">
+                <div class="flex flex-col items-center">
+                  <div class="w-4 h-4 bg-[#f04e00] rounded-full"></div>
+                  {index < currentTestimonio.timeline.length - 1 && (
+                    <div class="w-0.5 h-16 bg-gray-300 mt-2"></div>
+                  )}
+                </div>
+                <div class="flex-1 pb-8">
+                  <div class="text-sm text-gray-500 mb-1">{formatDateShort(event.date)}</div>
+                  <h3 class="font-semibold text-gray-900 mb-2">{event.title}</h3>
+                  <p class="text-gray-600">{event.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Photo Gallery -->
+  {currentTestimonio.photoGallery && currentTestimonio.photoGallery.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.photoGalleryTitle}</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentTestimonio.photoGallery.map((photo, index) => (
+              <div class="group cursor-pointer">
+                <div class="aspect-[4/3] overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-shadow">
+                  <img 
+                    src={photo.url} 
+                    alt={photo.caption}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <p class="mt-2 text-sm text-gray-600">{photo.caption}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Team Members -->
+  {currentTestimonio.teamMembers && currentTestimonio.teamMembers.length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.teamTitle}</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {currentTestimonio.teamMembers.map((member) => (
+              <div class="bg-white rounded-lg p-6 shadow-md">
+                <div class="flex items-start gap-4">
+                  <img 
+                    src={member.avatar} 
+                    alt={member.name}
+                    class="w-16 h-16 rounded-full"
+                  />
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">{member.name}</h3>
+                    <p class="text-sm text-gray-600 mb-2">{member.title}</p>
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="flex">
+                        {Array.from({length: 5}, (_, i) => (
+                          <svg class={`w-4 h-4 ${i < Math.floor(member.rating) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                        ))}
+                      </div>
+                      <span class="text-sm text-gray-600">({member.reviewCount} {text.reviews})</span>
+                    </div>
+                    <blockquote class="text-sm text-gray-700 italic mb-4">
+                      "{member.testimonialQuote}"
+                    </blockquote>
+                    <div class="flex gap-2">
+                      <a 
+                        href={`tel:${member.phone}`}
+                        class="inline-flex items-center gap-1 px-3 py-1 bg-[#f04e00] text-white rounded text-xs hover:bg-[#d94400] transition-colors"
+                      >
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                        {text.callNow}
+                      </a>
+                      <a 
+                        href={`https://wa.me/${member.whatsapp}`}
+                        target="_blank"
+                        class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
+                      >
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                        {text.whatsapp}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Similar Properties -->
+  {currentTestimonio.similarProperties && currentTestimonio.similarProperties.length > 0 && (
+    <PropertyCarousel 
+      title={text.similarPropertiesTitle}
+      subtitle={text.similarPropertiesSubtitle}
+      properties={currentTestimonio.similarProperties}
+      viewAllLink={`${currentRoutes.properties}/villa/${currentTestimonio.location.toLowerCase().replace(/\s+/g, '-')}`}
+      language={language}
+    />
+  )}
+
+  <!-- Related Testimonials -->
+  {currentTestimonio.relatedTestimonials && currentTestimonio.relatedTestimonials.length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.relatedTestimonialsTitle}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {currentTestimonio.relatedTestimonials.map((testimonial) => (
+            <a 
+              href={`${currentRoutes.testimonials}/${testimonial.category}/${testimonial.slug}`}
+              class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div class="aspect-video overflow-hidden rounded-t-lg">
+                <img 
+                  src={testimonial.thumbnail} 
+                  alt={testimonial.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-4">
+                <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors mb-2">
+                  {testimonial.title}
+                </h3>
+                <p class="text-sm text-gray-600 mb-3">{testimonial.excerpt}</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500">Por {testimonial.author}</span>
+                  <div class="flex">
+                    {Array.from({length: testimonial.rating}, (_, i) => (
+                      <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        {text.ctaTitle}
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        {text.ctaSubtitle}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href="/contacto" 
+          class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+        >
+          {text.ctaButton1}
+        </a>
+        <a 
+          href={`${currentRoutes.properties}/villa/${currentTestimonio.location.toLowerCase().replace(/\s+/g, '-')}`}
+          class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+        >
+          {text.ctaButton2} {currentTestimonio.location}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

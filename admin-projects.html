@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Gestión de Proyectos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+    <div x-data="projectAdminPanel()" x-init="init()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">Admin Panel - Gestión de Proyectos</h1>
+                    <div class="flex space-x-4">
+                        <button @click="activeTab = 'properties'" 
+                                :class="activeTab === 'properties' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-4 py-2 rounded-lg font-medium">
+                            Propiedades
+                        </button>
+                        <button @click="activeTab = 'projects'" 
+                                :class="activeTab === 'projects' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-4 py-2 rounded-lg font-medium">
+                            Proyectos
+                        </button>
+                        <button @click="activeTab = 'developers'" 
+                                :class="activeTab === 'developers' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-4 py-2 rounded-lg font-medium">
+                            Desarrolladores
+                        </button>
+                        <button @click="activeTab = 'benefits'" 
+                                :class="activeTab === 'benefits' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-4 py-2 rounded-lg font-medium">
+                            Beneficios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading -->
+        <div x-show="loading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Properties Tab -->
+        <div x-show="activeTab === 'properties'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Search and Filters -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input x-model="propertySearch" @input="searchProperties()" 
+                           placeholder="Buscar propiedades..." 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    
+                    <select x-model="projectFilter" @change="searchProperties()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos</option>
+                        <option value="project">Solo Proyectos</option>
+                        <option value="normal">Solo Propiedades Normales</option>
+                    </select>
+
+                    <select x-model="statusFilter" @change="searchProperties()" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Todos los estados</option>
+                        <option value="Publicada">Publicada</option>
+                        <option value="Borrador">Borrador</option>
+                        <option value="Pausada">Pausada</option>
+                    </select>
+
+                    <button @click="refreshProperties()" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Properties List -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-semibold">Propiedades (<span x-text="filteredProperties.length"></span>)</h2>
+                </div>
+                
+                <div class="divide-y">
+                    <template x-for="property in paginatedProperties" :key="property.id">
+                        <div class="p-6 hover:bg-gray-50">
+                            <div class="flex justify-between items-start">
+                                <!-- Property Info -->
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-4 mb-2">
+                                        <h3 class="font-semibold text-lg" x-text="property.name || property.private_name"></h3>
+                                        <span class="text-sm text-gray-500" x-text="'#' + property.code"></span>
+                                        <span x-show="property.is_project" class="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded-full">
+                                            PROYECTO
+                                        </span>
+                                        <span :class="property.property_status === 'Publicada' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                                              class="px-2 py-1 text-xs rounded-full" x-text="property.property_status"></span>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
+                                        <div>💰 <span x-text="formatPrice(property)"></span></div>
+                                        <div>🏠 <span x-text="property.property_categories?.name || 'Sin categoría'"></span></div>
+                                        <div>📍 <span x-text="property.cities?.name || 'Sin ciudad'"></span></div>
+                                        <div>🏘️ <span x-text="property.sectors?.name || 'Sin sector'"></span></div>
+                                    </div>
+
+                                    <!-- Project Actions -->
+                                    <div class="flex items-center space-x-3">
+                                        <button x-show="!property.is_project" 
+                                                @click="convertToProject(property.id)"
+                                                class="bg-purple-500 text-white px-3 py-1 text-sm rounded hover:bg-purple-600">
+                                            Convertir a Proyecto
+                                        </button>
+                                        
+                                        <button x-show="property.is_project" 
+                                                @click="editProject(property)"
+                                                class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                            Gestionar Proyecto
+                                        </button>
+                                        
+                                        <button x-show="property.is_project" 
+                                                @click="convertToNormalProperty(property.id)"
+                                                class="bg-gray-500 text-white px-3 py-1 text-sm rounded hover:bg-gray-600">
+                                            Convertir a Normal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-6 py-4 border-t bg-gray-50 flex justify-between items-center">
+                    <div class="text-sm text-gray-600">
+                        Mostrando <span x-text="(currentPage - 1) * pageSize + 1"></span> - 
+                        <span x-text="Math.min(currentPage * pageSize, filteredProperties.length)"></span> 
+                        de <span x-text="filteredProperties.length"></span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button @click="currentPage = Math.max(1, currentPage - 1)" 
+                                :disabled="currentPage === 1"
+                                class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50">
+                            Anterior
+                        </button>
+                        <span class="px-3 py-1 bg-blue-500 text-white rounded" x-text="currentPage"></span>
+                        <button @click="currentPage = Math.min(totalPages, currentPage + 1)" 
+                                :disabled="currentPage === totalPages"
+                                class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50">
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Tab -->
+        <div x-show="activeTab === 'projects'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <template x-for="project in projects" :key="project.id">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="font-semibold text-lg" x-text="project.property_name"></h3>
+                            <button @click="editProject(project)" class="text-blue-500 hover:text-blue-700">
+                                ✏️
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div>Desarrollador: <span x-text="project.developer_name || 'No asignado'"></span></div>
+                            <div>Estado: <span x-text="project.construction_status || 'planning'"></span></div>
+                            <div>Tipologías: <span x-text="project.typologies_count || 0"></span></div>
+                            <div>Beneficios: <span x-text="project.benefits_count || 0"></span></div>
+                            <div>Planes: <span x-text="project.payment_plans_count || 0"></span></div>
+                            <div>Fases: <span x-text="project.phases_count || 0"></span></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Developers Tab -->
+        <div x-show="activeTab === 'developers'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Create Developer Form -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h2 class="text-lg font-semibold mb-4">Crear Nuevo Desarrollador</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input x-model="newDeveloper.name" placeholder="Nombre del desarrollador" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input x-model="newDeveloper.email" placeholder="Email" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button @click="createDeveloper()" :disabled="!newDeveloper.name"
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                        Crear Desarrollador
+                    </button>
+                </div>
+            </div>
+
+            <!-- Developers List -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-semibold">Desarrolladores Registrados</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                    <template x-for="developer in developers" :key="developer.id">
+                        <div class="border rounded-lg p-4 hover:bg-gray-50">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-semibold" x-text="developer.name"></h3>
+                                    <p class="text-sm text-gray-600" x-text="developer.email"></p>
+                                </div>
+                                <button @click="deleteDeveloper(developer.id)" 
+                                        class="text-red-500 hover:text-red-700 text-sm">
+                                    Eliminar
+                                </button>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                <span x-text="`${developer.total_projects || 0} proyectos`"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benefits Tab -->
+        <div x-show="activeTab === 'benefits'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Create Benefit Form -->
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h2 class="text-lg font-semibold mb-4">Crear Nuevo Beneficio</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input x-model="newBenefit.name" placeholder="Nombre del beneficio" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select x-model="newBenefit.benefit_type" 
+                            class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Tipo de beneficio</option>
+                        <option value="government_incentive">Incentivo Gubernamental</option>
+                        <option value="developer_offer">Oferta del Desarrollador</option>
+                        <option value="financing_option">Opción de Financiamiento</option>
+                    </select>
+                    <input x-model="newBenefit.typical_description" placeholder="Descripción típica" 
+                           class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button @click="createBenefit()" :disabled="!newBenefit.name || !newBenefit.benefit_type"
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                        Crear Beneficio
+                    </button>
+                </div>
+            </div>
+
+            <!-- Benefits List -->
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b">
+                    <h2 class="text-lg font-semibold">Beneficios Disponibles</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                    <template x-for="benefit in benefits" :key="benefit.id">
+                        <div class="border rounded-lg p-4 hover:bg-gray-50">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-semibold" x-text="benefit.name"></h3>
+                                    <p class="text-sm text-gray-600" x-text="benefit.typical_description"></p>
+                                </div>
+                                <button @click="deleteBenefit(benefit.id)" 
+                                        class="text-red-500 hover:text-red-700 text-sm">
+                                    Eliminar
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full" x-text="benefit.benefit_type"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Management Modal -->
+        <div x-show="showProjectModal" x-transition class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg max-w-6xl w-full mx-4 max-h-[95vh] overflow-y-auto">
+                <div class="px-6 py-4 border-b bg-gray-50 sticky top-0 z-10">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-semibold" x-text="currentProject ? 'Gestionar Proyecto: ' + currentProject.property_name : 'Crear Proyecto'"></h2>
+                        <button @click="closeProjectModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="flex space-x-4 mt-4">
+                        <button @click="projectModalTab = 'basic'" 
+                                :class="projectModalTab === 'basic' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-1 text-sm rounded">
+                            Información Básica
+                        </button>
+                        <button @click="projectModalTab = 'typologies'" 
+                                :class="projectModalTab === 'typologies' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-1 text-sm rounded">
+                            Tipologías
+                        </button>
+                        <button @click="projectModalTab = 'benefits'" 
+                                :class="projectModalTab === 'benefits' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-1 text-sm rounded">
+                            Beneficios
+                        </button>
+                        <button @click="projectModalTab = 'payment-plans'" 
+                                :class="projectModalTab === 'payment-plans' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-1 text-sm rounded">
+                            Planes de Pago
+                        </button>
+                        <button @click="projectModalTab = 'phases'" 
+                                :class="projectModalTab === 'phases' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'"
+                                class="px-3 py-1 text-sm rounded">
+                            Fases
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Basic Project Info Tab -->
+                    <div x-show="projectModalTab === 'basic'" class="space-y-6">
+                        <h3 class="text-lg font-semibold mb-4">Información Básica del Proyecto</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Desarrollador</label>
+                                <select x-model="projectForm.developer_id" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Seleccionar desarrollador</option>
+                                    <template x-for="developer in developers" :key="developer.id">
+                                        <option :value="developer.id" x-text="developer.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Construcción</label>
+                                <select x-model="projectForm.construction_status" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="planning">Planificación</option>
+                                    <option value="construction">En Construcción</option>
+                                    <option value="completed">Completado</option>
+                                    <option value="delivered">Entregado</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado de Ventas</label>
+                                <select x-model="projectForm.sales_status" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="pre_sale">Pre-venta</option>
+                                    <option value="active">Activa</option>
+                                    <option value="sold_out">Agotado</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Total de Unidades</label>
+                                <input x-model="projectForm.total_units" type="number" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Inicio de Construcción</label>
+                                <input x-model="projectForm.construction_start_date" type="date" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Estimada de Entrega</label>
+                                <input x-model="projectForm.estimated_completion_date" type="date" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-4 pt-4 border-t">
+                            <button @click="saveProject()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                Guardar Información Básica
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Typologies Tab -->
+                    <div x-show="projectModalTab === 'typologies'" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Tipologías del Proyecto</h3>
+                            <button @click="showTypologyForm = true" class="bg-green-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-green-600">
+                                + Agregar Tipología
+                            </button>
+                        </div>
+
+                        <!-- Typology Form -->
+                        <div x-show="showTypologyForm" class="bg-gray-50 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-3">Nueva Tipología</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input x-model="typologyForm.name" placeholder="Nombre (ej: 1 Habitación)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.bedrooms" type="number" placeholder="Habitaciones" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.bathrooms" step="0.5" placeholder="Baños (ej: 2.5)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.built_area" step="0.01" placeholder="Área construida (m²)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.sale_price_from" step="0.01" placeholder="Precio desde" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.sale_price_to" step="0.01" placeholder="Precio hasta" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="typologyForm.total_units" type="number" placeholder="Total unidades" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select x-model="typologyForm.sale_currency" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="USD">USD</option>
+                                    <option value="DOP">DOP</option>
+                                </select>
+                            </div>
+                            <div class="mt-3">
+                                <textarea x-model="typologyForm.description" placeholder="Descripción de la tipología" 
+                                          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button @click="saveTypology()" class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                    Guardar
+                                </button>
+                                <button @click="cancelTypologyForm()" class="bg-gray-500 text-white px-3 py-1 text-sm rounded hover:bg-gray-600">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Typologies List -->
+                        <div class="space-y-3">
+                            <template x-for="typology in projectTypologies" :key="typology.id">
+                                <div class="border rounded-lg p-4 bg-white">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold" x-text="typology.name"></h4>
+                                            <p class="text-sm text-gray-600" x-text="typology.description"></p>
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
+                                                <div>🏠 <span x-text="typology.bedrooms + ' hab, ' + typology.bathrooms + ' baños'"></span></div>
+                                                <div>📐 <span x-text="typology.built_area + ' m²'"></span></div>
+                                                <div>💰 <span x-text="formatTypologyPrice(typology)"></span></div>
+                                                <div>📊 <span x-text="typology.total_units + ' unidades'"></span></div>
+                                            </div>
+                                        </div>
+                                        <button @click="deleteTypology(typology.id)" class="text-red-500 hover:text-red-700 ml-4">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Project Benefits Tab -->
+                    <div x-show="projectModalTab === 'benefits'" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Beneficios del Proyecto</h3>
+                            <button @click="showBenefitForm = true" class="bg-green-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-green-600">
+                                + Agregar Beneficio
+                            </button>
+                        </div>
+
+                        <!-- Benefit Selection Form -->
+                        <div x-show="showBenefitForm" class="bg-gray-50 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-3">Agregar Beneficio al Proyecto</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select x-model="projectBenefitForm.benefit_id" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Seleccionar beneficio</option>
+                                    <template x-for="benefit in benefits" :key="benefit.id">
+                                        <option :value="benefit.id" x-text="benefit.name + ' (' + benefit.benefit_type + ')'"></option>
+                                    </template>
+                                </select>
+                                <input x-model="projectBenefitForm.custom_description" placeholder="Descripción personalizada (opcional)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button @click="saveProjectBenefit()" class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                    Agregar
+                                </button>
+                                <button @click="cancelBenefitForm()" class="bg-gray-500 text-white px-3 py-1 text-sm rounded hover:bg-gray-600">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Project Benefits List -->
+                        <div class="space-y-3">
+                            <template x-for="benefit in projectBenefits" :key="benefit.id">
+                                <div class="border rounded-lg p-4 bg-white">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold" x-text="benefit.benefit_name"></h4>
+                                            <p class="text-sm text-gray-600" x-text="benefit.custom_description || benefit.typical_description"></p>
+                                            <span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full mt-2" x-text="benefit.benefit_type"></span>
+                                        </div>
+                                        <button @click="deleteProjectBenefit(benefit.id)" class="text-red-500 hover:text-red-700 ml-4">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Payment Plans Tab -->
+                    <div x-show="projectModalTab === 'payment-plans'" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Planes de Pago</h3>
+                            <button @click="showPaymentPlanForm = true" class="bg-green-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-green-600">
+                                + Agregar Plan de Pago
+                            </button>
+                        </div>
+
+                        <!-- Payment Plan Form -->
+                        <div x-show="showPaymentPlanForm" class="bg-gray-50 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-3">Nuevo Plan de Pago</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input x-model="paymentPlanForm.plan_name" placeholder="Nombre del plan (ej: Plan Estándar)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="paymentPlanForm.reservation_amount" type="number" step="0.01" placeholder="Monto de reserva (USD)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="paymentPlanForm.separation_percentage" type="number" step="0.01" max="100" placeholder="% Separación" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="paymentPlanForm.construction_percentage" type="number" step="0.01" max="100" placeholder="% Durante construcción" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="paymentPlanForm.delivery_percentage" type="number" step="0.01" max="100" placeholder="% Contra entrega" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select x-model="paymentPlanForm.construction_frequency" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Frecuencia durante construcción</option>
+                                    <option value="monthly">Mensual</option>
+                                    <option value="quarterly">Trimestral</option>
+                                    <option value="by_milestone">Por hitos</option>
+                                </select>
+                            </div>
+                            <div class="mt-3">
+                                <textarea x-model="paymentPlanForm.description" placeholder="Descripción del plan y beneficios" 
+                                          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button @click="savePaymentPlan()" class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                    Guardar
+                                </button>
+                                <button @click="cancelPaymentPlanForm()" class="bg-gray-500 text-white px-3 py-1 text-sm rounded hover:bg-gray-600">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Payment Plans List -->
+                        <div class="space-y-3">
+                            <template x-for="plan in projectPaymentPlans" :key="plan.id">
+                                <div class="border rounded-lg p-4 bg-white">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold" x-text="plan.plan_name"></h4>
+                                            <p class="text-sm text-gray-600" x-text="plan.description"></p>
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
+                                                <div>💵 Reserva: $<span x-text="plan.reservation_amount"></span> USD</div>
+                                                <div>📋 Separación: <span x-text="plan.separation_percentage"></span>%</div>
+                                                <div>🏗️ Construcción: <span x-text="plan.construction_percentage"></span>%</div>
+                                                <div>🔑 Entrega: <span x-text="plan.delivery_percentage"></span>%</div>
+                                            </div>
+                                        </div>
+                                        <button @click="deletePaymentPlan(plan.id)" class="text-red-500 hover:text-red-700 ml-4">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Phases Tab -->
+                    <div x-show="projectModalTab === 'phases'" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">Fases del Proyecto</h3>
+                            <button @click="showPhaseForm = true" class="bg-green-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-green-600">
+                                + Agregar Fase
+                            </button>
+                        </div>
+
+                        <!-- Phase Form -->
+                        <div x-show="showPhaseForm" class="bg-gray-50 p-4 rounded-lg border">
+                            <h4 class="font-semibold mb-3">Nueva Fase</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input x-model="phaseForm.phase_name" placeholder="Nombre de la fase (ej: Torre A, Fase 1)" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="phaseForm.total_units" type="number" placeholder="Total de unidades" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="phaseForm.construction_start" type="date" placeholder="Inicio construcción" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input x-model="phaseForm.estimated_delivery" type="date" placeholder="Entrega estimada" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select x-model="phaseForm.status" class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="planning">Planificación</option>
+                                    <option value="construction">En Construcción</option>
+                                    <option value="completed">Completada</option>
+                                    <option value="delivered">Entregada</option>
+                                </select>
+                                <input x-model="phaseForm.completion_percentage" type="number" min="0" max="100" placeholder="% Completado" 
+                                       class="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="mt-3">
+                                <textarea x-model="phaseForm.description" placeholder="Descripción de la fase" 
+                                          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
+                            </div>
+                            <div class="flex space-x-2 mt-3">
+                                <button @click="savePhase()" class="bg-blue-500 text-white px-3 py-1 text-sm rounded hover:bg-blue-600">
+                                    Guardar
+                                </button>
+                                <button @click="cancelPhaseForm()" class="bg-gray-500 text-white px-3 py-1 text-sm rounded hover:bg-gray-600">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Phases List -->
+                        <div class="space-y-3">
+                            <template x-for="phase in projectPhases" :key="phase.id">
+                                <div class="border rounded-lg p-4 bg-white">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold" x-text="phase.phase_name"></h4>
+                                            <p class="text-sm text-gray-600" x-text="phase.description"></p>
+                                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
+                                                <div>🏗️ Estado: <span x-text="phase.status"></span></div>
+                                                <div>📊 Progreso: <span x-text="phase.completion_percentage"></span>%</div>
+                                                <div>🏠 Unidades: <span x-text="phase.total_units"></span></div>
+                                                <div>📅 Entrega: <span x-text="phase.estimated_delivery"></span></div>
+                                            </div>
+                                        </div>
+                                        <button @click="deletePhase(phase.id)" class="text-red-500 hover:text-red-700 ml-4">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div x-show="toast.show" x-transition 
+             :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+             class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+            <p x-text="toast.message"></p>
+        </div>
+    </div>
+
+    <script>
+        function projectAdminPanel() {
+            return {
+                // Configuration
+                supabaseUrl: 'https://pacewqgypevfgjmdsorz.supabase.co',
+                supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs',
+                supabase: null,
+
+                // State
+                activeTab: 'properties',
+                loading: false,
+                
+                // Properties
+                properties: [],
+                filteredProperties: [],
+                paginatedProperties: [],
+                propertySearch: '',
+                projectFilter: '',
+                statusFilter: '',
+                currentPage: 1,
+                pageSize: 10,
+                
+                // Projects
+                projects: [],
+                currentProject: null,
+                showProjectModal: false,
+                projectModalTab: 'basic',
+                projectForm: {
+                    developer_id: '',
+                    construction_status: 'planning',
+                    sales_status: 'pre_sale',
+                    total_units: '',
+                    construction_start_date: '',
+                    estimated_completion_date: ''
+                },
+                
+                // Project components
+                projectTypologies: [],
+                projectBenefits: [],
+                projectPaymentPlans: [],
+                projectPhases: [],
+                
+                // Forms for project components
+                showTypologyForm: false,
+                typologyForm: {
+                    name: '',
+                    description: '',
+                    bedrooms: '',
+                    bathrooms: '',
+                    built_area: '',
+                    sale_price_from: '',
+                    sale_price_to: '',
+                    sale_currency: 'USD',
+                    total_units: ''
+                },
+                
+                showBenefitForm: false,
+                projectBenefitForm: {
+                    benefit_id: '',
+                    custom_description: ''
+                },
+                
+                showPaymentPlanForm: false,
+                paymentPlanForm: {
+                    plan_name: '',
+                    description: '',
+                    reservation_amount: '',
+                    separation_percentage: '',
+                    construction_percentage: '',
+                    delivery_percentage: '',
+                    construction_frequency: ''
+                },
+                
+                showPhaseForm: false,
+                phaseForm: {
+                    phase_name: '',
+                    description: '',
+                    total_units: '',
+                    construction_start: '',
+                    estimated_delivery: '',
+                    status: 'planning',
+                    completion_percentage: 0
+                },
+                
+                // Developers
+                developers: [],
+                newDeveloper: {
+                    name: '',
+                    email: ''
+                },
+                
+                // Benefits
+                benefits: [],
+                newBenefit: {
+                    name: '',
+                    benefit_type: '',
+                    typical_description: ''
+                },
+
+                // Toast
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'success'
+                },
+
+                // Computed
+                get totalPages() {
+                    return Math.ceil(this.filteredProperties.length / this.pageSize);
+                },
+
+                // Initialize
+                async init() {
+                    try {
+                        this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
+                        await this.loadData();
+                    } catch (error) {
+                        this.showToast('Error conectando con Supabase: ' + error.message, 'error');
+                    }
+                },
+
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        await Promise.all([
+                            this.loadProperties(),
+                            this.loadProjects(),
+                            this.loadDevelopers(),
+                            this.loadBenefits()
+                        ]);
+                    } catch (error) {
+                        this.showToast('Error cargando datos: ' + error.message, 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // Properties Methods
+                async loadProperties() {
+                    const { data, error } = await this.supabase
+                        .from('properties')
+                        .select(`
+                            id, code, name, private_name, property_status, availability, is_project, project_detail_id,
+                            sale_price, sale_currency, rental_price, rental_currency,
+                            property_categories(name),
+                            cities(name),
+                            sectors(name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(200);
+
+                    if (error) throw error;
+                    
+                    this.properties = data || [];
+                    this.searchProperties();
+                },
+
+                async convertToProject(propertyId) {
+                    try {
+                        const { error: updateError } = await this.supabase
+                            .from('properties')
+                            .update({ is_project: true })
+                            .eq('id', propertyId);
+
+                        if (updateError) throw updateError;
+
+                        const property = this.properties.find(p => p.id === propertyId);
+                        this.currentProject = { 
+                            property_id: propertyId, 
+                            property_name: property.name || property.private_name 
+                        };
+                        this.resetProjectForm();
+                        this.showProjectModal = true;
+
+                        this.showToast('Propiedad marcada como proyecto. Complete la información adicional.');
+                        await this.loadProperties();
+                    } catch (error) {
+                        this.showToast('Error convirtiendo a proyecto: ' + error.message, 'error');
+                    }
+                },
+
+                async convertToNormalProperty(propertyId) {
+                    if (!confirm('¿Está seguro de convertir este proyecto a propiedad normal? Se perderán todos los datos del proyecto.')) return;
+
+                    try {
+                        const property = this.properties.find(p => p.id === propertyId);
+                        
+                        if (property.project_detail_id) {
+                            const { error: deleteError } = await this.supabase
+                                .from('project_details')
+                                .delete()
+                                .eq('id', property.project_detail_id);
+
+                            if (deleteError) throw deleteError;
+                        }
+
+                        const { error: updateError } = await this.supabase
+                            .from('properties')
+                            .update({ 
+                                is_project: false,
+                                project_detail_id: null 
+                            })
+                            .eq('id', propertyId);
+
+                        if (updateError) throw updateError;
+
+                        this.showToast('Proyecto convertido a propiedad normal exitosamente');
+                        await this.loadData();
+                    } catch (error) {
+                        this.showToast('Error convirtiendo a propiedad normal: ' + error.message, 'error');
+                    }
+                },
+
+                searchProperties() {
+                    let filtered = this.properties;
+
+                    if (this.propertySearch) {
+                        const search = this.propertySearch.toLowerCase();
+                        filtered = filtered.filter(p => 
+                            (p.name || '').toLowerCase().includes(search) ||
+                            (p.private_name || '').toLowerCase().includes(search) ||
+                            (p.code || '').toString().includes(search)
+                        );
+                    }
+
+                    if (this.projectFilter) {
+                        if (this.projectFilter === 'project') {
+                            filtered = filtered.filter(p => p.is_project);
+                        } else if (this.projectFilter === 'normal') {
+                            filtered = filtered.filter(p => !p.is_project);
+                        }
+                    }
+
+                    if (this.statusFilter) {
+                        filtered = filtered.filter(p => p.property_status === this.statusFilter);
+                    }
+
+                    this.filteredProperties = filtered;
+                    this.currentPage = 1;
+                    this.updatePagination();
+                },
+
+                updatePagination() {
+                    const start = (this.currentPage - 1) * this.pageSize;
+                    const end = start + this.pageSize;
+                    this.paginatedProperties = this.filteredProperties.slice(start, end);
+                },
+
+                async refreshProperties() {
+                    await this.loadProperties();
+                    this.showToast('Propiedades actualizadas');
+                },
+
+                // Projects Methods
+                async loadProjects() {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_details')
+                            .select(`
+                                id,
+                                property_id,
+                                developer_id,
+                                construction_status,
+                                sales_status,
+                                total_units,
+                                available_units,
+                                construction_start_date,
+                                estimated_completion_date
+                            `)
+                            .order('created_at', { ascending: false });
+
+                        if (error) throw error;
+
+                        for (let project of (data || [])) {
+                            const { data: propertyData } = await this.supabase
+                                .from('properties')
+                                .select('name, private_name')
+                                .eq('id', project.property_id)
+                                .single();
+                            
+                            project.property_name = propertyData?.name || propertyData?.private_name || 'Sin nombre';
+
+                            if (project.developer_id) {
+                                const { data: developerData } = await this.supabase
+                                    .from('developers')
+                                    .select('name')
+                                    .eq('id', project.developer_id)
+                                    .single();
+                                
+                                project.developer_name = developerData?.name || 'Sin desarrollador';
+                            } else {
+                                project.developer_name = 'Sin desarrollador';
+                            }
+
+                            // Count components
+                            const { count: typologiesCount } = await this.supabase
+                                .from('project_typologies')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('project_id', project.id);
+                            project.typologies_count = typologiesCount || 0;
+
+                            const { count: benefitsCount } = await this.supabase
+                                .from('project_benefits')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('project_id', project.id);
+                            project.benefits_count = benefitsCount || 0;
+
+                            const { count: paymentPlansCount } = await this.supabase
+                                .from('project_payment_plans')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('project_id', project.id);
+                            project.payment_plans_count = paymentPlansCount || 0;
+
+                            const { count: phasesCount } = await this.supabase
+                                .from('project_phases')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('project_id', project.id);
+                            project.phases_count = phasesCount || 0;
+                        }
+
+                        this.projects = data || [];
+                    } catch (error) {
+                        console.error('Error loading projects:', error);
+                        this.showToast('Error cargando proyectos: ' + error.message, 'error');
+                        this.projects = [];
+                    }
+                },
+
+                editProject(property) {
+                    this.currentProject = {
+                        property_id: property.id,
+                        property_name: property.name || property.private_name,
+                        project_detail_id: property.project_detail_id
+                    };
+                    this.loadProjectDetails(property.project_detail_id);
+                    this.projectModalTab = 'basic';
+                    this.showProjectModal = true;
+                },
+
+                async loadProjectDetails(projectDetailId) {
+                    if (!projectDetailId) {
+                        this.resetProjectForm();
+                        return;
+                    }
+
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_details')
+                            .select('*')
+                            .eq('id', projectDetailId)
+                            .single();
+
+                        if (error) throw error;
+
+                        if (data) {
+                            this.projectForm = {
+                                developer_id: data.developer_id || '',
+                                construction_status: data.construction_status || 'planning',
+                                sales_status: data.sales_status || 'pre_sale',
+                                total_units: data.total_units || '',
+                                construction_start_date: data.construction_start_date || '',
+                                estimated_completion_date: data.estimated_completion_date || ''
+                            };
+                            
+                            // Load project components
+                            await this.loadProjectComponents(projectDetailId);
+                        }
+                    } catch (error) {
+                        this.showToast('Error cargando detalles del proyecto: ' + error.message, 'error');
+                        this.resetProjectForm();
+                    }
+                },
+
+                async loadProjectComponents(projectId) {
+                    await Promise.all([
+                        this.loadProjectTypologies(projectId),
+                        this.loadProjectBenefits(projectId),
+                        this.loadProjectPaymentPlans(projectId),
+                        this.loadProjectPhases(projectId)
+                    ]);
+                },
+
+                resetProjectForm() {
+                    this.projectForm = {
+                        developer_id: '',
+                        construction_status: 'planning',
+                        sales_status: 'pre_sale',
+                        total_units: '',
+                        construction_start_date: '',
+                        estimated_completion_date: ''
+                    };
+                    this.projectTypologies = [];
+                    this.projectBenefits = [];
+                    this.projectPaymentPlans = [];
+                    this.projectPhases = [];
+                },
+
+                async saveProject() {
+                    try {
+                        const projectData = {
+                            property_id: this.currentProject.property_id,
+                            developer_id: this.projectForm.developer_id || null,
+                            construction_status: this.projectForm.construction_status,
+                            sales_status: this.projectForm.sales_status,
+                            total_units: this.projectForm.total_units ? parseInt(this.projectForm.total_units) : null,
+                            construction_start_date: this.projectForm.construction_start_date || null,
+                            estimated_completion_date: this.projectForm.estimated_completion_date || null
+                        };
+
+                        let projectDetailId;
+
+                        if (this.currentProject.project_detail_id) {
+                            const { error } = await this.supabase
+                                .from('project_details')
+                                .update(projectData)
+                                .eq('id', this.currentProject.project_detail_id);
+
+                            if (error) throw error;
+                            projectDetailId = this.currentProject.project_detail_id;
+                        } else {
+                            const { data, error } = await this.supabase
+                                .from('project_details')
+                                .insert(projectData)
+                                .select()
+                                .single();
+
+                            if (error) throw error;
+                            projectDetailId = data.id;
+
+                            const { error: updateError } = await this.supabase
+                                .from('properties')
+                                .update({ project_detail_id: projectDetailId })
+                                .eq('id', this.currentProject.property_id);
+
+                            if (updateError) throw updateError;
+
+                            this.currentProject.project_detail_id = projectDetailId;
+                        }
+
+                        this.showToast('Proyecto guardado exitosamente');
+                        await this.loadProjects();
+                    } catch (error) {
+                        this.showToast('Error guardando proyecto: ' + error.message, 'error');
+                    }
+                },
+
+                closeProjectModal() {
+                    this.showProjectModal = false;
+                    this.currentProject = null;
+                    this.resetProjectForm();
+                    this.resetAllForms();
+                },
+
+                resetAllForms() {
+                    this.showTypologyForm = false;
+                    this.showBenefitForm = false;
+                    this.showPaymentPlanForm = false;
+                    this.showPhaseForm = false;
+                },
+
+                // Typologies Methods
+                async loadProjectTypologies(projectId) {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_typologies')
+                            .select('*')
+                            .eq('project_id', projectId)
+                            .order('sort_order');
+
+                        if (error) throw error;
+                        this.projectTypologies = data || [];
+                    } catch (error) {
+                        console.error('Error loading typologies:', error);
+                    }
+                },
+
+                async saveTypology() {
+                    if (!this.typologyForm.name || !this.currentProject?.project_detail_id) return;
+
+                    try {
+                        const typologyData = {
+                            project_id: this.currentProject.project_detail_id,
+                            name: this.typologyForm.name,
+                            description: this.typologyForm.description,
+                            bedrooms: this.typologyForm.bedrooms ? parseInt(this.typologyForm.bedrooms) : null,
+                            bathrooms: this.typologyForm.bathrooms ? parseFloat(this.typologyForm.bathrooms) : null,
+                            built_area: this.typologyForm.built_area ? parseFloat(this.typologyForm.built_area) : null,
+                            sale_price_from: this.typologyForm.sale_price_from ? parseFloat(this.typologyForm.sale_price_from) : null,
+                            sale_price_to: this.typologyForm.sale_price_to ? parseFloat(this.typologyForm.sale_price_to) : null,
+                            sale_currency: this.typologyForm.sale_currency,
+                            total_units: this.typologyForm.total_units ? parseInt(this.typologyForm.total_units) : null,
+                            available_units: this.typologyForm.total_units ? parseInt(this.typologyForm.total_units) : null
+                        };
+
+                        const { error } = await this.supabase
+                            .from('project_typologies')
+                            .insert(typologyData);
+
+                        if (error) throw error;
+
+                        this.showToast('Tipología agregada exitosamente');
+                        this.cancelTypologyForm();
+                        await this.loadProjectTypologies(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error guardando tipología: ' + error.message, 'error');
+                    }
+                },
+
+                cancelTypologyForm() {
+                    this.showTypologyForm = false;
+                    this.typologyForm = {
+                        name: '',
+                        description: '',
+                        bedrooms: '',
+                        bathrooms: '',
+                        built_area: '',
+                        sale_price_from: '',
+                        sale_price_to: '',
+                        sale_currency: 'USD',
+                        total_units: ''
+                    };
+                },
+
+                async deleteTypology(typologyId) {
+                    if (!confirm('¿Está seguro de eliminar esta tipología?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_typologies')
+                            .delete()
+                            .eq('id', typologyId);
+
+                        if (error) throw error;
+
+                        this.showToast('Tipología eliminada exitosamente');
+                        await this.loadProjectTypologies(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error eliminando tipología: ' + error.message, 'error');
+                    }
+                },
+
+                // Project Benefits Methods
+                async loadProjectBenefits(projectId) {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_benefits')
+                            .select(`
+                                id,
+                                custom_description,
+                                project_benefits_catalog(
+                                    id,
+                                    name,
+                                    benefit_type,
+                                    typical_description
+                                )
+                            `)
+                            .eq('project_id', projectId);
+
+                        if (error) throw error;
+                        
+                        // Flatten the structure for easier display
+                        this.projectBenefits = (data || []).map(benefit => ({
+                            id: benefit.id,
+                            benefit_id: benefit.project_benefits_catalog.id,
+                            benefit_name: benefit.project_benefits_catalog.name,
+                            benefit_type: benefit.project_benefits_catalog.benefit_type,
+                            typical_description: benefit.project_benefits_catalog.typical_description,
+                            custom_description: benefit.custom_description
+                        }));
+                    } catch (error) {
+                        console.error('Error loading project benefits:', error);
+                    }
+                },
+
+                async saveProjectBenefit() {
+                    if (!this.projectBenefitForm.benefit_id || !this.currentProject?.project_detail_id) return;
+
+                    try {
+                        const benefitData = {
+                            project_id: this.currentProject.project_detail_id,
+                            benefit_id: this.projectBenefitForm.benefit_id,
+                            custom_description: this.projectBenefitForm.custom_description || null
+                        };
+
+                        const { error } = await this.supabase
+                            .from('project_benefits')
+                            .insert(benefitData);
+
+                        if (error) throw error;
+
+                        this.showToast('Beneficio agregado exitosamente');
+                        this.cancelBenefitForm();
+                        await this.loadProjectBenefits(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error agregando beneficio: ' + error.message, 'error');
+                    }
+                },
+
+                cancelBenefitForm() {
+                    this.showBenefitForm = false;
+                    this.projectBenefitForm = {
+                        benefit_id: '',
+                        custom_description: ''
+                    };
+                },
+
+                async deleteProjectBenefit(projectBenefitId) {
+                    if (!confirm('¿Está seguro de eliminar este beneficio del proyecto?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_benefits')
+                            .delete()
+                            .eq('id', projectBenefitId);
+
+                        if (error) throw error;
+
+                        this.showToast('Beneficio eliminado exitosamente');
+                        await this.loadProjectBenefits(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error eliminando beneficio: ' + error.message, 'error');
+                    }
+                },
+
+                // Payment Plans Methods
+                async loadProjectPaymentPlans(projectId) {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_payment_plans')
+                            .select('*')
+                            .eq('project_id', projectId)
+                            .order('created_at');
+
+                        if (error) throw error;
+                        this.projectPaymentPlans = data || [];
+                    } catch (error) {
+                        console.error('Error loading payment plans:', error);
+                    }
+                },
+
+                async savePaymentPlan() {
+                    if (!this.paymentPlanForm.plan_name || !this.currentProject?.project_detail_id) return;
+
+                    try {
+                        const planData = {
+                            project_id: this.currentProject.project_detail_id,
+                            plan_name: this.paymentPlanForm.plan_name,
+                            description: this.paymentPlanForm.description,
+                            reservation_amount: this.paymentPlanForm.reservation_amount ? parseFloat(this.paymentPlanForm.reservation_amount) : null,
+                            separation_percentage: this.paymentPlanForm.separation_percentage ? parseFloat(this.paymentPlanForm.separation_percentage) : null,
+                            construction_percentage: this.paymentPlanForm.construction_percentage ? parseFloat(this.paymentPlanForm.construction_percentage) : null,
+                            delivery_percentage: this.paymentPlanForm.delivery_percentage ? parseFloat(this.paymentPlanForm.delivery_percentage) : null,
+                            construction_frequency: this.paymentPlanForm.construction_frequency || null
+                        };
+
+                        const { error } = await this.supabase
+                            .from('project_payment_plans')
+                            .insert(planData);
+
+                        if (error) throw error;
+
+                        this.showToast('Plan de pago agregado exitosamente');
+                        this.cancelPaymentPlanForm();
+                        await this.loadProjectPaymentPlans(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error guardando plan de pago: ' + error.message, 'error');
+                    }
+                },
+
+                cancelPaymentPlanForm() {
+                    this.showPaymentPlanForm = false;
+                    this.paymentPlanForm = {
+                        plan_name: '',
+                        description: '',
+                        reservation_amount: '',
+                        separation_percentage: '',
+                        construction_percentage: '',
+                        delivery_percentage: '',
+                        construction_frequency: ''
+                    };
+                },
+
+                async deletePaymentPlan(planId) {
+                    if (!confirm('¿Está seguro de eliminar este plan de pago?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_payment_plans')
+                            .delete()
+                            .eq('id', planId);
+
+                        if (error) throw error;
+
+                        this.showToast('Plan de pago eliminado exitosamente');
+                        await this.loadProjectPaymentPlans(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error eliminando plan de pago: ' + error.message, 'error');
+                    }
+                },
+
+                // Phases Methods
+                async loadProjectPhases(projectId) {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('project_phases')
+                            .select('*')
+                            .eq('project_id', projectId)
+                            .order('sort_order');
+
+                        if (error) throw error;
+                        this.projectPhases = data || [];
+                    } catch (error) {
+                        console.error('Error loading phases:', error);
+                    }
+                },
+
+                async savePhase() {
+                    if (!this.phaseForm.phase_name || !this.currentProject?.project_detail_id) return;
+
+                    try {
+                        const phaseData = {
+                            project_id: this.currentProject.project_detail_id,
+                            phase_name: this.phaseForm.phase_name,
+                            description: this.phaseForm.description,
+                            total_units: this.phaseForm.total_units ? parseInt(this.phaseForm.total_units) : null,
+                            available_units: this.phaseForm.total_units ? parseInt(this.phaseForm.total_units) : null,
+                            construction_start: this.phaseForm.construction_start || null,
+                            estimated_delivery: this.phaseForm.estimated_delivery || null,
+                            status: this.phaseForm.status,
+                            completion_percentage: this.phaseForm.completion_percentage ? parseInt(this.phaseForm.completion_percentage) : 0
+                        };
+
+                        const { error } = await this.supabase
+                            .from('project_phases')
+                            .insert(phaseData);
+
+                        if (error) throw error;
+
+                        this.showToast('Fase agregada exitosamente');
+                        this.cancelPhaseForm();
+                        await this.loadProjectPhases(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error guardando fase: ' + error.message, 'error');
+                    }
+                },
+
+                cancelPhaseForm() {
+                    this.showPhaseForm = false;
+                    this.phaseForm = {
+                        phase_name: '',
+                        description: '',
+                        total_units: '',
+                        construction_start: '',
+                        estimated_delivery: '',
+                        status: 'planning',
+                        completion_percentage: 0
+                    };
+                },
+
+                async deletePhase(phaseId) {
+                    if (!confirm('¿Está seguro de eliminar esta fase?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_phases')
+                            .delete()
+                            .eq('id', phaseId);
+
+                        if (error) throw error;
+
+                        this.showToast('Fase eliminada exitosamente');
+                        await this.loadProjectPhases(this.currentProject.project_detail_id);
+                    } catch (error) {
+                        this.showToast('Error eliminando fase: ' + error.message, 'error');
+                    }
+                },
+
+                // Developers Methods
+                async loadDevelopers() {
+                    const { data, error } = await this.supabase
+                        .from('developers')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+                    this.developers = data || [];
+                },
+
+                async createDeveloper() {
+                    if (!this.newDeveloper.name) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('developers')
+                            .insert({
+                                name: this.newDeveloper.name,
+                                email: this.newDeveloper.email,
+                                slug: this.newDeveloper.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                            });
+
+                        if (error) throw error;
+
+                        this.newDeveloper = { name: '', email: '' };
+                        await this.loadDevelopers();
+                        this.showToast('Desarrollador creado exitosamente');
+                    } catch (error) {
+                        this.showToast('Error creando desarrollador: ' + error.message, 'error');
+                    }
+                },
+
+                async deleteDeveloper(developerId) {
+                    if (!confirm('¿Está seguro de eliminar este desarrollador?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('developers')
+                            .delete()
+                            .eq('id', developerId);
+
+                        if (error) throw error;
+
+                        await this.loadDevelopers();
+                        this.showToast('Desarrollador eliminado exitosamente');
+                    } catch (error) {
+                        this.showToast('Error eliminando desarrollador: ' + error.message, 'error');
+                    }
+                },
+
+                // Benefits Methods
+                async loadBenefits() {
+                    const { data, error } = await this.supabase
+                        .from('project_benefits_catalog')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+                    this.benefits = data || [];
+                },
+
+                async createBenefit() {
+                    if (!this.newBenefit.name || !this.newBenefit.benefit_type) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_benefits_catalog')
+                            .insert({
+                                name: this.newBenefit.name,
+                                benefit_type: this.newBenefit.benefit_type,
+                                typical_description: this.newBenefit.typical_description
+                            });
+
+                        if (error) throw error;
+
+                        this.newBenefit = { name: '', benefit_type: '', typical_description: '' };
+                        await this.loadBenefits();
+                        this.showToast('Beneficio creado exitosamente');
+                    } catch (error) {
+                        this.showToast('Error creando beneficio: ' + error.message, 'error');
+                    }
+                },
+
+                async deleteBenefit(benefitId) {
+                    if (!confirm('¿Está seguro de eliminar este beneficio?')) return;
+
+                    try {
+                        const { error } = await this.supabase
+                            .from('project_benefits_catalog')
+                            .delete()
+                            .eq('id', benefitId);
+
+                        if (error) throw error;
+
+                        await this.loadBenefits();
+                        this.showToast('Beneficio eliminado exitosamente');
+                    } catch (error) {
+                        this.showToast('Error eliminando beneficio: ' + error.message, 'error');
+                    }
+                },
+
+                // Utility Methods
+                formatPrice(property) {
+                    if (property.sale_price) {
+                        return `${property.sale_price.toLocaleString()} ${property.sale_currency}`;
+                    }
+                    if (property.rental_price) {
+                        return `${property.rental_price.toLocaleString()} ${property.rental_currency}/mes`;
+                    }
+                    return 'Precio a consultar';
+                },
+
+                formatTypologyPrice(typology) {
+                    if (typology.sale_price_from && typology.sale_price_to) {
+                        if (typology.sale_price_from === typology.sale_price_to) {
+                            return `${typology.sale_price_from.toLocaleString()} ${typology.sale_currency}`;
+                        }
+                        return `${typology.sale_price_from.toLocaleString()} - ${typology.sale_price_to.toLocaleString()} ${typology.sale_currency}`;
+                    } else if (typology.sale_price_from) {
+                        return `Desde ${typology.sale_price_from.toLocaleString()} ${typology.sale_currency}`;
+                    } else if (typology.sale_price_to) {
+                        return `Hasta ${typology.sale_price_to.toLocaleString()} ${typology.sale_currency}`;
+                    }
+                    return 'Precio a consultar';
+                },
+
+                showToast(message, type = 'success') {
+                    this.toast = { show: true, message, type };
+                    setTimeout(() => {
+                        this.toast.show = false;
+                    }, 3000);
+                },
+
+                // Watch for pagination changes
+                $watch: {
+                    currentPage() {
+                        this.updatePagination();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

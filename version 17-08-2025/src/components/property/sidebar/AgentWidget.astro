@@ -1,0 +1,244 @@
+---
+// src/components/property/sidebar/AgentWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const agent = data.agent || {};
+const property = data.property || {};
+---
+
+<!-- Agent Widget -->
+{agent && agent.name && (
+  <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <!-- Información del agente - Layout centrado y compacto -->
+    <div class="text-center mb-6 pb-6 border-b border-gray-100">
+      <!-- Agent Photo with Initials Fallback - Más grande -->
+      <div class="relative mx-auto mb-4">
+        {agent.image && agent.image !== '/images/default-agent.jpg' ? (
+          <img 
+            src={agent.image} 
+            alt={agent.name}
+            class="w-20 h-20 rounded-full object-cover mx-auto"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+        ) : null}
+        
+        <!-- Fallback Circle with Initials -->
+        <div 
+          class="w-20 h-20 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-xl shadow-lg mx-auto"
+          style={agent.image && agent.image !== '/images/default-agent.jpg' ? 'display: none;' : 'display: flex;'}
+        >
+          {agent.name ? agent.name.split(' ').map(word => word.charAt(0)).join('').substring(0, 2).toUpperCase() : 'CI'}
+        </div>
+      </div>
+
+      <!-- Información principal -->
+      <div class="space-y-2">
+        <h3 class="text-lg font-semibold text-gray-900">{agent.name}</h3>
+        <p class="text-sm text-gray-600">{agent.position}</p>
+        
+        <!-- Especialidad - Más prominente - Solo si existe -->
+        {agent.specialty_description && agent.specialty_description.trim() && (
+          <div class="flex items-center justify-center gap-2">
+            <i class="fas fa-star text-[#f04e00] text-sm"></i>
+            <span class="text-sm font-medium text-[#f04e00]">{agent.specialty_description}</span>
+          </div>
+        )}
+        
+        <!-- Años de experiencia - Solo si existe y es mayor a 0 -->
+        {Number(agent.years_experience) > 0 && (
+          <p class="text-xs text-gray-500 flex items-center justify-center gap-1">
+            <i class="fas fa-medal text-[#f04e00]"></i>
+            {agent.years_experience} años de experiencia
+          </p>
+        )}
+      </div>
+
+      <!-- Información adicional compacta - Solo si hay algo que mostrar -->
+      {((agent.languages && agent.languages.length > 1) || (agent.social && (agent.social.facebook || agent.social.instagram || agent.social.linkedin || agent.social.twitter || agent.social.youtube))) && (
+        <div class="mt-4 space-y-2">
+          <!-- Idiomas - Solo si habla más de 1 idioma -->
+          {agent.languages && agent.languages.length > 1 && (
+            <div class="flex items-center justify-center gap-2">
+              <i class="fas fa-language text-[#f04e00] text-sm"></i>
+              <span class="text-sm text-gray-700">
+                Habla: {agent.languages.join(', ')}
+              </span>
+            </div>
+          )}
+          
+          <!-- Redes sociales - Solo si tiene al menos una -->
+          {agent.social && (agent.social.facebook || agent.social.instagram || agent.social.linkedin || agent.social.twitter || agent.social.youtube) && (
+            <div class="flex items-center justify-center gap-3">
+              <i class="fas fa-share-alt text-[#f04e00] text-sm"></i>
+              <div class="flex gap-3">
+                {agent.social.facebook && (
+                  <a href={`https://facebook.com/${agent.social.facebook}`} target="_blank" class="text-blue-600 hover:text-blue-700 transition-colors">
+                    <i class="fab fa-facebook text-lg"></i>
+                  </a>
+                )}
+                {agent.social.instagram && (
+                  <a href={`https://instagram.com/${agent.social.instagram.replace('@', '')}`} target="_blank" class="text-pink-500 hover:text-pink-600 transition-colors">
+                    <i class="fab fa-instagram text-lg"></i>
+                  </a>
+                )}
+                {agent.social.linkedin && (
+                  <a href={`https://linkedin.com/in/${agent.social.linkedin}`} target="_blank" class="text-blue-700 hover:text-blue-800 transition-colors">
+                    <i class="fab fa-linkedin text-lg"></i>
+                  </a>
+                )}
+                {agent.social.twitter && (
+                  <a href={`https://twitter.com/${agent.social.twitter.replace('@', '')}`} target="_blank" class="text-blue-400 hover:text-blue-500 transition-colors">
+                    <i class="fab fa-twitter text-lg"></i>
+                  </a>
+                )}
+                {agent.social.youtube && (
+                  <a href={agent.social.youtube.startsWith('http') ? agent.social.youtube : `https://youtube.com/@${agent.social.youtube}`} target="_blank" class="text-red-600 hover:text-red-700 transition-colors">
+                    <i class="fab fa-youtube text-lg"></i>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+
+    <!-- Contact Form Integrado con Tabla Leads -->
+    <form id="property-contact-form" class="space-y-4" onsubmit="submitPropertyLead(event)">
+      <!-- Campos ocultos para datos de contexto -->
+      <input type="hidden" id="lead-property-id" name="propiedad_id" value={property.id || ''}>
+      <input type="hidden" id="lead-property-title" name="property_title" value={property.title || ''}>
+      <input type="hidden" id="lead-agent-id" name="asignado" value={agent.id || agent.uuid || ''}>
+      <input type="hidden" id="lead-origen" name="origen" value="web_formulario">
+      <input type="hidden" id="lead-referidor" name="referidor_lead" value="">
+      <input type="hidden" id="lead-utm-source" name="utm_source" value="">
+      <input type="hidden" id="lead-utm-medium" name="utm_medium" value="">
+      <input type="hidden" id="lead-utm-campaign" name="utm_campaign" value="">
+      <input type="hidden" id="lead-ip-origen" name="ip_origen" value="">
+      <input type="hidden" id="lead-user-agent" name="user_agent" value="">
+      
+      <!-- Campos visibles del formulario -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo *</label>
+        <input 
+          type="text" 
+          name="cliente_nombre"
+          id="lead-nombre"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+          placeholder="Tu nombre completo"
+        />
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+          <input 
+            type="tel" 
+            name="cliente_telefono"
+            id="lead-telefono"
+            required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+            placeholder="(809) 123-4567"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+          <input 
+            type="tel" 
+            name="cliente_celular"
+            id="lead-celular"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+            placeholder="(829) 123-4567"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+        <input 
+          type="email" 
+          name="cliente_email"
+          id="lead-email"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+          placeholder="tu@email.com"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+        <textarea 
+          name="mensaje"
+          id="lead-mensaje"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors h-24 resize-none" 
+          placeholder="Estoy interesado en esta propiedad..."
+        ></textarea>
+      </div>
+      
+      <!-- Checkbox de términos -->
+      <div class="flex items-start gap-3">
+        <input 
+          type="checkbox" 
+          id="lead-terms"
+          name="acepta_terminos"
+          required
+          class="w-4 h-4 text-[#f04e00] border-2 border-gray-300 rounded focus:ring-[#f04e00]/20 focus:ring-2 mt-1"
+        />
+        <label for="lead-terms" class="text-sm text-gray-600 leading-relaxed">
+          Acepto los <a href="/terminos" class="text-[#f04e00] hover:underline" target="_blank">términos y condiciones</a> 
+          y autorizo el uso de mis datos para contacto comercial según la 
+          <a href="/privacidad" class="text-[#f04e00] hover:underline" target="_blank">política de privacidad</a>.
+        </label>
+      </div>
+      
+      <!-- Botón de envío -->
+      <button 
+        type="submit" 
+        id="submit-lead-btn"
+        class="w-full bg-[#f04e00] text-white py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2"
+      >
+        <i class="fas fa-paper-plane"></i>
+        <span id="submit-lead-text">Ser Contactado por un Asesor</span>
+      </button>
+    </form>
+
+    <!-- Direct Contact Buttons -->
+    <div class="grid grid-cols-2 gap-3 mt-6">
+      <a 
+        href={agent.whatsapp || 'https://wa.me/18295550100'}
+        target="_blank"
+        class="bg-gray-800 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-900 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+      >
+        <i class="fab fa-whatsapp"></i>
+        WhatsApp
+      </a>
+      <a 
+        href={`tel:${agent.phone || '+18295550100'}`}
+        class="border-2 border-[#f04e00] text-[#f04e00] py-3 px-4 rounded-lg text-center font-medium hover:bg-[#f04e00] hover:text-white transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+      >
+        <i class="fas fa-phone"></i>
+        Llamar
+      </a>
+    </div>
+  </div>
+)}
+
+<!-- 🔍 DEBUG TEMPORAL - Para encontrar el 0 -->
+<script define:vars={{ agentDebug: agent }}>
+  console.log('🔍 DEBUG AGENT - Buscando el 0:', {
+    name: agentDebug?.name,
+    position: agentDebug?.position,
+    years_experience: agentDebug?.years_experience,
+    specialty_description: agentDebug?.specialty_description,
+    languages: agentDebug?.languages,
+    social: agentDebug?.social,
+    rating: agentDebug?.rating,
+    allFields: agentDebug
+  });
+</script>

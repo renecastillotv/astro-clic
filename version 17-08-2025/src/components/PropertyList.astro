@@ -1,0 +1,722 @@
+---
+// src/components/PropertyList.astro - VERSIÃ“N SIMPLIFICADA
+export interface Props {
+  listings: Array<{
+    id?: string | number;
+    slug: string;
+    titulo: string;
+    precio: string;
+    imagen: string;
+    imagenes?: string[];
+    sector: string;
+    habitaciones: number;
+    banos: number;
+    metros?: number;
+    tipo?: string;
+    url?: string;
+    code?: string;
+    isFormattedByProvider?: boolean;
+    is_project?: boolean;
+    project_badges?: string[];
+    habitaciones_rango?: string;
+    banos_rango?: string;
+    metros_rango?: string;
+    reserva_desde?: string;
+  }>;
+  meta: {
+    title: string;
+    description: string;
+  };
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  itemsPerPage?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+}
+
+const { 
+  listings, 
+  meta, 
+  totalCount, 
+  currentPage = 1, 
+  totalPages = 1,
+  itemsPerPage = 32,
+  hasNextPage = false,
+  hasPreviousPage = false
+} = Astro.props;
+
+console.log('ðŸ  PropertyList recibiÃ³:', {
+  total: listings?.length || 0,
+  totalCount: totalCount,
+  currentPage: currentPage,
+  totalPages: totalPages,
+  metaTitle: meta?.title,
+  sample: listings[0] ? {
+    titulo: listings[0].titulo,
+    imagen: listings[0].imagen,
+    imagenesCount: listings[0].imagenes?.length || 0,
+    isFormatted: listings[0].isFormattedByProvider
+  } : null
+});
+
+// Procesar listados
+const processedListings = listings.map(property => {
+  if (property.isFormattedByProvider) {
+    return property;
+  }
+  
+  return {
+    ...property,
+    titulo: property.titulo || 'Propiedad sin nombre',
+    precio: property.precio || 'Precio a consultar',
+    imagen: property.imagen || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen',
+    imagenes: property.imagenes || [property.imagen || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'],
+    sector: property.sector || 'UbicaciÃ³n no especificada',
+    habitaciones: property.habitaciones || 0,
+    banos: property.banos || 0,
+    metros: property.metros || 0,
+    tipo: property.tipo || 'Propiedad'
+  };
+});
+
+// ParÃ¡metros de la URL
+const url = Astro.url;
+const orden = url.searchParams.get('orden') || 'fecha-desc';
+
+// USAR DATOS REALES DE LA API (no hacer paginaciÃ³n JavaScript)
+const realTotalCount = totalCount || listings.length;
+const realCurrentPage = currentPage;
+const realTotalPages = totalPages;
+const startIndex = ((realCurrentPage - 1) * itemsPerPage) + 1;
+const endIndex = Math.min(realCurrentPage * itemsPerPage, realTotalCount);
+
+// Para sorting local (solo si es necesario)
+function precioToNumber(precioStr: string): number {
+  return parseFloat(precioStr.replace(/[USD$RD$,\s]/g, '')) || 0;
+}
+
+function sortListings(listings: typeof processedListings, orden: string) {
+  const sorted = [...listings];
+  
+  switch (orden) {
+    case 'precio-asc':
+      return sorted.sort((a, b) => precioToNumber(a.precio) - precioToNumber(b.precio));
+    case 'precio-desc':
+      return sorted.sort((a, b) => precioToNumber(b.precio) - precioToNumber(a.precio));
+    case 'habitaciones-desc':
+      return sorted.sort((a, b) => b.habitaciones - a.habitaciones);
+    case 'fecha-desc':
+    default:
+      return sorted;
+  }
+}
+
+// Solo hacer sorting local si la API no lo hizo
+const displayListings = orden === 'fecha-desc' ? processedListings : sortListings(processedListings, orden);
+
+function buildUrl(page: number, currentOrden: string): string {
+  const params = new URLSearchParams();
+  if (currentOrden !== 'fecha-desc') params.set('orden', currentOrden);
+  if (page !== 1) params.set('page', page.toString());
+  
+  const paramString = params.toString();
+  return paramString ? `?${paramString}` : '';
+}
+
+function getPaginationPages(current: number, total: number): (number | string)[] {
+  const pages: (number | string)[] = [];
+  const showPages = 5;
+  
+  if (total <= showPages) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    if (current <= 3) {
+      for (let i = 1; i <= Math.min(showPages, total); i++) {
+        pages.push(i);
+      }
+      if (total > showPages) pages.push('...');
+    } else if (current >= total - 2) {
+      pages.push(1);
+      if (total > showPages) pages.push('...');
+      for (let i = Math.max(1, total - showPages + 1); i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+}
+
+const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
+---
+
+<div class="container mx-auto px-4 py-8">
+  <!-- Header del listado -->
+  {meta.title && (
+    <div class="mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+        {meta.title}
+      </h1>
+      {meta.description && (
+        <p class="text-gray-600">
+          {meta.description}
+        </p>
+      )}
+    </div>
+  )}
+
+  <!-- Resumen de resultados y ordenamiento -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div class="text-sm text-gray-600">
+      Mostrando {startIndex}â€“{endIndex} de {realTotalCount.toLocaleString()} propiedades encontradas
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <label for="sort-select" class="text-sm text-gray-700 whitespace-nowrap">
+        Ordenar por:
+      </label>
+      <select 
+        id="sort-select" 
+        class="text-sm border border-gray-300 rounded-md px-3 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00]"
+      >
+        <option value="fecha-desc" {orden === 'fecha-desc' ? 'selected' : ''}>
+          MÃ¡s recientes
+        </option>
+        <option value="precio-asc" {orden === 'precio-asc' ? 'selected' : ''}>
+          Precio: menor a mayor
+        </option>
+        <option value="precio-desc" {orden === 'precio-desc' ? 'selected' : ''}>
+          Precio: mayor a menor
+        </option>
+        <option value="habitaciones-desc" {orden === 'habitaciones-desc' ? 'selected' : ''}>
+          MÃ¡s habitaciones
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Mensaje si no hay propiedades -->
+  {displayListings.length === 0 && (
+    <div class="text-center py-12">
+      <div class="text-6xl mb-4">ðŸ </div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">No hay propiedades para mostrar</h3>
+      <p class="text-gray-600 mb-4">
+        No se encontraron propiedades que coincidan con los criterios de bÃºsqueda.
+      </p>
+    </div>
+  )}
+
+  <!-- Grid de propiedades -->
+  {displayListings.length > 0 && (
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {displayListings.map((property, index) => {
+        const propertyImages = property.imagenes || [property.imagen];
+        const hasMultipleImages = propertyImages.length > 1;
+        
+        return (
+          <a 
+            href={property.url || '#'}
+            class="group cursor-pointer"
+            data-property-id={property.id || index}
+          >
+            <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+              <!-- Imagen con carousel -->
+              <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                <!-- Contenedor de imÃ¡genes -->
+                <div 
+                  class="carousel-container w-full h-full relative"
+                  data-carousel={index}
+                >
+                  {propertyImages.map((img, imgIndex) => (
+                    <img 
+                      src={img || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'} 
+                      alt={`${property.titulo} - Imagen ${imgIndex + 1}`}
+                      class={`carousel-image absolute inset-0 w-full h-full object-cover transition-all duration-300 ${imgIndex === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+                      data-index={imgIndex}
+                      data-carousel={index}
+                      loading="lazy"
+                      onerror="this.src='https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';"
+                    />
+                  ))}
+                </div>
+                
+                <!-- Controles de navegaciÃ³n -->
+                {hasMultipleImages && (
+                  <div class="carousel-controls absolute inset-0 flex items-center justify-between p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button 
+                      class="carousel-prev w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 shadow-sm flex items-center justify-center transition-colors z-10"
+                      data-carousel={index}
+                      type="button"
+                    >
+                      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+                      </svg>
+                    </button>
+                    
+                    <button 
+                      class="carousel-next w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 shadow-sm flex items-center justify-center transition-colors z-10"
+                      data-carousel={index}
+                      type="button"
+                    >
+                      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                <!-- Indicadores de imagen -->
+                {hasMultipleImages && (
+                  <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                    {propertyImages.map((_, dotIndex) => (
+                      <div 
+                        class={`carousel-dot w-1.5 h-1.5 rounded-full transition-all duration-200 ${dotIndex === 0 ? 'bg-white/90' : 'bg-white/40'}`}
+                        data-carousel={index}
+                        data-dot={dotIndex}
+                      ></div>
+                    ))}
+                  </div>
+                )}
+                
+                <!-- Badges de proyecto -->
+                {property.is_project && property.project_badges && property.project_badges.length > 0 && (
+                  <div class="absolute top-8 left-3 flex flex-wrap gap-1">
+                    {property.project_badges.slice(0, 2).map((badge, idx) => (
+                      <span key={idx} class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[#f03800]/90 text-white shadow-sm">
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                <!-- Badge de reserva/tipo -->
+                {property.is_project && property.reserva_desde ? (
+                  <span class="absolute top-3 left-3 bg-green-500/80 text-white px-2 py-1 rounded text-xs font-medium shadow-sm">
+                    Reserva {property.reserva_desde}
+                  </span>
+                ) : property.tipo && property.tipo !== 'Propiedad' && (
+                  <span class="absolute top-3 left-3 bg-white/80 text-gray-700 px-2 py-1 rounded text-xs font-medium shadow-sm">
+                    {property.tipo}
+                  </span>
+                )}
+                
+                <!-- BotÃ³n de favoritos - SIMPLIFICADO -->
+                <button 
+                  class="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white transition-colors shadow-md z-20"
+                  aria-label="Agregar a favoritos"
+                  onclick={`event.preventDefault(); event.stopPropagation(); toggleFavorite('${property.id || index}', '${property.titulo.replace(/'/g, "\\'")}');`}
+                  data-favorite-id={property.id || index}
+                >
+                  <svg class="w-4 h-4 text-gray-600 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Contenido -->
+              <div class="p-4">
+                <!-- CÃ³digo de referencia -->
+                {property.code && (
+                  <div class="text-xs text-gray-400 font-mono mb-2">
+                    ref.: {property.code}
+                  </div>
+                )}
+                
+                <!-- UbicaciÃ³n -->
+                <div class="flex items-center gap-1 mb-2">
+                  <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <p class="text-sm text-gray-600 truncate">{property.sector}</p>
+                </div>
+                
+                <!-- TÃ­tulo -->
+                <h3 class="font-semibold text-gray-900 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight mb-2">
+                  {property.titulo}
+                </h3>
+                
+                <!-- CaracterÃ­sticas -->
+                <div class="flex flex-wrap gap-3 text-sm text-gray-600 mb-2">
+                  <span class="flex items-center gap-1">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M2 4v16"/>
+                      <path d="M2 8h18a2 2 0 0 1 2 2v10"/>
+                      <path d="M2 17h20"/>
+                      <path d="M6 8v9"/>
+                    </svg>
+                    {property.is_project && property.habitaciones_rango ? 
+                      property.habitaciones_rango : 
+                      `${property.habitaciones || 0} hab`
+                    }
+                  </span>
+                  
+                  {(property.banos > 0 || (property.is_project && property.banos_rango)) && (
+                    <span class="flex items-center gap-1">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+                        <line x1="10" x2="8" y1="5" y2="7"/>
+                        <line x1="2" x2="22" y1="12" y2="12"/>
+                        <line x1="7" x2="7" y1="19" y2="21"/>
+                        <line x1="17" x2="17" y1="19" y2="21"/>
+                      </svg>
+                      {property.is_project && property.banos_rango ? 
+                        property.banos_rango : 
+                        `${property.banos || 0} baÃ±os`
+                      }
+                    </span>
+                  )}
+                  
+                  {(property.metros > 0 || (property.is_project && property.metros_rango)) && (
+                    <span class="flex items-center gap-1">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/>
+                        <path d="m14.5 12.5 2-2"/>
+                        <path d="m11.5 9.5 2-2"/>
+                        <path d="m8.5 6.5 2-2"/>
+                        <path d="m17.5 15.5 2-2"/>
+                      </svg>
+                      {property.is_project && property.metros_rango ? 
+                        property.metros_rango : 
+                        `${property.metros} mÂ²`
+                      }
+                    </span>
+                  )}
+                </div>
+                
+                <!-- Precio -->
+                <div class="text-xl font-bold text-[#f04e00]">
+                  {property.precio}
+                </div>
+              </div>
+            </article>
+          </a>
+        );
+      })}
+    </div>
+  )}
+
+  <!-- PaginaciÃ³n -->
+  {realTotalPages > 1 && (
+    <div class="mt-12 flex justify-center">
+      <nav class="flex gap-2">
+        {hasPreviousPage ? (
+          <a 
+            href={buildUrl(realCurrentPage - 1, orden)}
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Anterior
+          </a>
+        ) : (
+          <span class="px-4 py-2 border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">
+            Anterior
+          </span>
+        )}
+        
+        {paginationPages.map((page) => (
+          page === '...' ? (
+            <span class="px-4 py-2 text-gray-400">...</span>
+          ) : page === realCurrentPage ? (
+            <span class="px-4 py-2 bg-[#f04e00] text-white rounded-md">
+              {page}
+            </span>
+          ) : (
+            <a 
+              href={buildUrl(page as number, orden)}
+              class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              {page}
+            </a>
+          )
+        ))}
+        
+        {hasNextPage ? (
+          <a 
+            href={buildUrl(realCurrentPage + 1, orden)}
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Siguiente
+          </a>
+        ) : (
+          <span class="px-4 py-2 border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">
+            Siguiente
+          </span>
+        )}
+      </nav>
+    </div>
+  )}
+</div>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .carousel-image {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  }
+  
+  .carousel-controls {
+    transition: opacity 0.2s ease-in-out;
+  }
+</style>
+
+<script>
+  // ===== PROPERTYLIST SIMPLIFICADO =====
+  
+  // Estado del carousel por propiedad
+  const carouselStates = new Map();
+
+  // ===== FUNCIONES DE CAROUSEL =====
+  
+  function navigateCarousel(carouselIndex, direction) {
+    console.log('ðŸŽ  Navigating carousel:', carouselIndex, direction);
+    
+    const images = document.querySelectorAll(`[data-carousel="${carouselIndex}"].carousel-image`);
+    const dots = document.querySelectorAll(`[data-carousel="${carouselIndex}"][data-dot]`);
+    
+    if (images.length <= 1) return;
+    
+    let currentIndex = carouselStates.get(carouselIndex) || 0;
+    
+    if (direction === 'next') {
+      currentIndex = (currentIndex + 1) % images.length;
+    } else {
+      currentIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+    }
+    
+    carouselStates.set(carouselIndex, currentIndex);
+    
+    // Actualizar imÃ¡genes
+    images.forEach((img, index) => {
+      if (index === currentIndex) {
+        img.classList.add('opacity-100', 'scale-100');
+        img.classList.remove('opacity-0', 'scale-105');
+      } else {
+        img.classList.remove('opacity-100', 'scale-100');
+        img.classList.add('opacity-0', 'scale-105');
+      }
+    });
+    
+    // Actualizar indicadores
+    dots.forEach((dot, index) => {
+      if (index === currentIndex) {
+        dot.classList.add('bg-white/90');
+        dot.classList.remove('bg-white/40');
+      } else {
+        dot.classList.remove('bg-white/90');
+        dot.classList.add('bg-white/40');
+      }
+    });
+  }
+
+  // ===== FUNCIONES DE SORTING =====
+  
+  function handleSortChange(newOrder) {
+    const currentUrl = new URL(window.location.href);
+    
+    if (newOrder === 'fecha-desc') {
+      currentUrl.searchParams.delete('orden');
+    } else {
+      currentUrl.searchParams.set('orden', newOrder);
+    }
+    
+    currentUrl.searchParams.delete('page');
+    window.location.href = currentUrl.toString();
+  }
+
+  // ===== FUNCIONES DE FAVORITOS SIMPLIFICADAS =====
+  
+  async function toggleFavorite(propertyId, propertyTitle) {
+    console.log('â¤ï¸ Toggle favorite:', propertyId, propertyTitle);
+    
+    if (!window.simpleFavoritesManager) {
+      console.error('âŒ SimpleFavoritesManager not available');
+      return;
+    }
+
+    try {
+      // Actualizar UI inmediatamente
+      const isCurrentlyFavorite = window.simpleFavoritesManager.isFavorite(propertyId);
+      updateFavoriteButtonUI(propertyId, !isCurrentlyFavorite);
+      
+      // Llamar a la API
+      await window.simpleFavoritesManager.toggleFavorite(propertyId);
+      
+      console.log(`âœ… Favorito ${isCurrentlyFavorite ? 'removido' : 'agregado'}:`, propertyTitle);
+      
+    } catch (error) {
+      console.error('âŒ Error toggling favorite:', error);
+      
+      // Revertir UI en caso de error
+      const currentState = window.simpleFavoritesManager.isFavorite(propertyId);
+      updateFavoriteButtonUI(propertyId, currentState);
+      
+      alert('Error al actualizar favorito. IntÃ©ntalo de nuevo.');
+    }
+  }
+
+  function updateFavoriteButtonUI(propertyId, isFavorite) {
+    const button = document.querySelector(`[data-favorite-id="${propertyId}"]`);
+    if (!button) return;
+    
+    const icon = button.querySelector('svg');
+    if (!icon) return;
+    
+    if (isFavorite) {
+      icon.setAttribute('fill', 'currentColor');
+      icon.classList.remove('text-gray-600');
+      icon.classList.add('text-red-500');
+    } else {
+      icon.setAttribute('fill', 'none');
+      icon.classList.remove('text-red-500');
+      icon.classList.add('text-gray-600');
+    }
+  }
+
+  // ===== FUNCIÃ“N PARA ACTUALIZAR UI DESDE MANAGER EXTERNO =====
+  
+  function updatePropertyListUI(info) {
+    // El manager pasa directamente el objeto info, no state
+    if (!info || !info.favorites) return;
+    
+    console.log('ðŸŽ¨ PropertyList updating favorites UI:', info.favorites);
+    
+    // info.favorites es un Array, convertir a Set para usar .has()
+    const favoritesSet = new Set(info.favorites);
+    
+    document.querySelectorAll('[data-favorite-id]').forEach(button => {
+      const propertyId = button.getAttribute('data-favorite-id');
+      const isFavorite = favoritesSet.has(propertyId);
+      updateFavoriteButtonUI(propertyId, isFavorite);
+    });
+  }
+
+  // ===== FUNCIÃ“N PARA SINCRONIZAR CON MANAGER =====
+  
+  function syncWithFavoritesManager() {
+    if (window.simpleFavoritesManager) {
+      try {
+        const info = window.simpleFavoritesManager.getDeviceInfo();
+        if (info) {
+          updatePropertyListUI(info);
+        }
+      } catch (error) {
+        console.error('âŒ Error sincronizando favoritos:', error);
+      }
+    }
+  }
+
+  // ===== FUNCIÃ“N PARA POLLING PERIÃ“DICO =====
+  
+  function startFavoritesSync() {
+    // Sincronizar cada 2 segundos si hay manager disponible
+    setInterval(() => {
+      if (window.simpleFavoritesManager && !window._syncInProgress) {
+        syncWithFavoritesManager();
+      }
+    }, 2000);
+  }
+
+  // ===== INICIALIZACIÃ“N =====
+  
+  document.addEventListener('DOMContentLoaded', async function() {
+    console.log('ðŸš€ Initializing PropertyList functionality');
+    
+    // Prevenir inicializaciÃ³n mÃºltiple
+    if (window._propertyListInitialized) {
+      console.log('âš ï¸ PropertyList ya inicializado, saltando...');
+      return;
+    }
+    window._propertyListInitialized = true;
+    
+    try {
+      // Esperar al SimpleFavoritesManager con polling
+      let attempts = 0;
+      const maxAttempts = 50;
+      
+      while (!window.simpleFavoritesManager && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (window.simpleFavoritesManager) {
+        console.log('âœ… SimpleFavoritesManager encontrado');
+        
+        // Actualizar UI inicial si hay favoritos
+        const info = window.simpleFavoritesManager.getDeviceInfo();
+        if (info && info.count > 0) {
+          updatePropertyListUI(info);
+        }
+        
+        // Agregar listener para cambios
+        window.simpleFavoritesManager.addListener(updatePropertyListUI);
+        
+        // Iniciar sincronizaciÃ³n periÃ³dica
+        startFavoritesSync();
+        
+        console.log('âœ… SimpleFavoritesManager conectado a PropertyList');
+      } else {
+        console.log('âš ï¸ SimpleFavoritesManager no disponible despuÃ©s de esperar');
+      }
+    } catch (error) {
+      console.error('âŒ Error conectando con SimpleFavoritesManager:', error);
+    }
+    
+    // Inicializar carousels
+    document.querySelectorAll('[data-carousel]').forEach(container => {
+      const carouselIndex = container.getAttribute('data-carousel');
+      if (carouselIndex !== null && !carouselStates.has(carouselIndex)) {
+        carouselStates.set(carouselIndex, 0);
+      }
+    });
+    
+    // Event listeners para carousel
+    document.addEventListener('click', function(event) {
+      if (event.target.closest('.carousel-prev') || event.target.closest('.carousel-next')) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const button = event.target.closest('.carousel-prev, .carousel-next');
+        const carouselIndex = button.getAttribute('data-carousel');
+        const direction = button.classList.contains('carousel-prev') ? 'prev' : 'next';
+        
+        if (carouselIndex !== null) {
+          navigateCarousel(carouselIndex, direction);
+        }
+      }
+    });
+    
+    // Event listener para sorting
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', function(event) {
+        handleSortChange(event.target.value);
+      });
+    }
+    
+    console.log('âœ… PropertyList functionality initialized');
+  });
+
+  // ===== FUNCIONES GLOBALES =====
+  
+  window.handleSortChange = handleSortChange;
+  window.toggleFavorite = toggleFavorite;
+  window.navigateCarousel = navigateCarousel;
+  window.updatePropertyListUI = updatePropertyListUI;
+  window.syncWithFavoritesManager = syncWithFavoritesManager;
+</script>

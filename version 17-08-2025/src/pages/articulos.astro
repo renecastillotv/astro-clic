@@ -1,0 +1,1116 @@
+---
+// src/pages/[...slug].astro
+import { getSingleProperty, getPropertyList } from '../data/hybridProvider.ts';
+
+// Obtener los segmentos de la URL
+const { slug } = Astro.params;
+const segments = slug ? slug.split('/').filter(Boolean) : [];
+const searchParams = Astro.url.searchParams;
+
+// Intentar obtener datos como propiedad individual primero
+let propertyData = null;
+let listData = null;
+let pageType = 'not-found';
+
+try {
+  // Primero intentar como propiedad individual
+  propertyData = await getSingleProperty(segments, searchParams);
+  
+  if (propertyData && propertyData.type === 'property') {
+    pageType = 'property';
+  } else if (propertyData && propertyData.type === 'property-sold') {
+    pageType = 'property-sold';
+  } else {
+    // Si no es propiedad individual, intentar como listado
+    listData = await getPropertyList(segments, searchParams);
+    if (listData && listData.type === 'property-list') {
+      pageType = 'property-list';
+    }
+  }
+} catch (error) {
+  console.error('Error loading page data:', error);
+  pageType = 'error';
+}
+
+// Si no se encuentra nada, devolver 404
+if (pageType === 'not-found') {
+  return Astro.redirect('/404');
+}
+
+// Datos para la página según el tipo
+let pageTitle = '';
+let pageDescription = '';
+let pageKeywords = '';
+let canonicalUrl = '';
+
+if (pageType === 'property' && propertyData) {
+  pageTitle = propertyData.seo.title || `${propertyData.property.title} | CLIC Inmobiliaria`;
+  pageDescription = propertyData.seo.description || propertyData.property.description?.substring(0, 160);
+  pageKeywords = propertyData.seo.keywords?.join(', ') || '';
+  canonicalUrl = Astro.url.href;
+} else if (pageType === 'property-list' && listData) {
+  pageTitle = listData.seo.title;
+  pageDescription = listData.seo.description;
+  pageKeywords = listData.seo.keywords?.join(', ') || '';
+  canonicalUrl = Astro.url.href;
+}
+
+// Crear JSON-LD para propiedades
+const propertyJsonLd = pageType === 'property' && propertyData ? {
+  "@context": "https://schema.org",
+  "@type": "RealEstateListing",
+  "name": propertyData.property.title,
+  "description": propertyData.property.description,
+  "url": canonicalUrl,
+  "image": propertyData.mainImage,
+  "price": {
+    "@type": "PriceSpecification",
+    "price": propertyData.pricing.main?.amount || "80000-120000",
+    "priceCurrency": propertyData.pricing.main?.currency || "USD"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": propertyData.property.sector,
+    "addressLocality": propertyData.property.city,
+    "addressCountry": "DO"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": propertyData.location.coordinates.lat.toString(),
+    "longitude": propertyData.location.coordinates.lng.toString()
+  },
+  "numberOfRooms": propertyData.property.bedrooms?.toString(),
+  "floorSize": {
+    "@type": "QuantitativeValue",
+    "value": propertyData.property.built_area?.toString(),
+    "unitCode": "MTK"
+  },
+  "realEstateAgent": {
+    "@type": "Person",
+    "name": propertyData.agent.name,
+    "telephone": propertyData.agent.phone,
+    "email": propertyData.agent.email
+  }
+} : null;
+---
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{pageTitle}</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content={pageDescription}>
+    {pageKeywords && <meta name="keywords" content={pageKeywords}>}
+    <link rel="canonical" href={canonicalUrl}>
+    
+    {pageType === 'property' && propertyData && (
+      <Fragment>
+        <meta property="og:title" content={propertyData.seo.title}>
+        <meta property="og:description" content={propertyData.seo.description}>
+        <meta property="og:image" content={propertyData.mainImage}>
+        <meta property="og:type" content="website">
+        <meta property="og:url" content={canonicalUrl}>
+      </Fragment>
+    )}
+    
+    {propertyJsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(propertyJsonLd)}></script>
+    )}
+    
+    <!-- Fonts y iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Variables CSS */
+        :root {
+            --primary: #FF4D10;
+            --primary-light: #FF6B3D;
+            --primary-dark: #E03900;
+            --dark-blue: #1A2438;
+            --dark-grey: #333333;
+            --mid-grey: #666666;
+            --light-grey: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --radius: 8px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --transition: all 0.3s ease;
+        }
+
+        /* Reset y base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark-grey);
+            line-height: 1.6;
+            background-color: var(--white);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            background-color: var(--light-grey);
+            padding: var(--spacing-sm) 0;
+        }
+
+        .breadcrumb-item {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--mid-grey);
+            font-weight: 500;
+        }
+
+        .breadcrumb-item:not(:last-child)::after {
+            content: '/';
+            margin: 0 10px;
+            color: #ccc;
+        }
+
+        .breadcrumb-item a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .breadcrumb-item a:hover {
+            color: var(--primary);
+        }
+
+        /* Layout Principal */
+        .property-detail {
+            padding: 0;
+        }
+
+        .property-layout {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Galería hero */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: 600px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .gallery-main {
+            grid-row: 1 / 3;
+            grid-column: 1 / 2;
+            overflow: hidden;
+            border-radius: var(--radius);
+            position: relative;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        /* Property header */
+        .property-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .property-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .property-location {
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            color: var(--mid-grey);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .property-location i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .property-price {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        /* Sección de título */
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+            position: relative;
+            padding-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--primary);
+        }
+
+        /* Sidebar */
+        .sticky-sidebar {
+            position: sticky;
+            top: 100px;
+        }
+
+        .agent-widget {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid #eee;
+        }
+
+        .agent-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 15px;
+        }
+
+        .agent-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .agent-name {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            font-weight: 600;
+        }
+
+        .agent-position {
+            font-size: 0.9rem;
+            color: var(--mid-grey);
+        }
+
+        /* Botones */
+        .btn-elegant {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+
+        .btn-elegant:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .property-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-container {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+                height: auto;
+            }
+
+            .gallery-main {
+                grid-row: auto;
+                grid-column: span 2;
+                height: 300px;
+            }
+
+            .gallery-item:not(.gallery-main) {
+                height: 150px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .property-header {
+                flex-direction: column;
+            }
+
+            .property-title {
+                font-size: 1.8rem;
+            }
+
+            .property-price {
+                font-size: 1.8rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .gallery-container {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-main {
+                grid-column: 1;
+            }
+
+            .gallery-item:not(.gallery-main) {
+                display: none;
+            }
+        }
+
+        /* Estilos específicos para listados */
+        .property-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .property-card {
+            background: white;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .property-card-image {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+        }
+
+        .property-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .property-card:hover .property-card-image img {
+            transform: scale(1.05);
+        }
+
+        .property-card-content {
+            padding: 1.5rem;
+        }
+
+        .property-card-price {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .property-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .property-card-location {
+            color: var(--mid-grey);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .property-card-location i {
+            margin-right: 5px;
+            color: var(--primary);
+        }
+
+        .property-card-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--mid-grey);
+        }
+
+        .property-feature {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .property-feature i {
+            color: var(--primary);
+        }
+
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 3rem;
+        }
+
+        .pagination-button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            color: var(--dark-grey);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .pagination-button:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination-button.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+{pageType === 'property' && propertyData && (
+  <div>
+    <!-- Banner de referencia si hay agente -->
+    {propertyData.agent && (
+      <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 0.75rem;">
+        <div class="container">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-weight: 600;">
+            <i class="fas fa-user-tie"></i>
+            Propiedad presentada por <strong>{propertyData.agent.name}</strong>
+            {propertyData.agent.code && (
+              <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem;">
+                {propertyData.agent.code}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <div class="container">
+        {propertyData.breadcrumbs.map((crumb) => (
+          <div class="breadcrumb-item">
+            {crumb.current ? (
+              <span>{crumb.name}</span>
+            ) : (
+              <a href={crumb.url}>{crumb.name}</a>
+            )}
+          </div>
+        ))}
+      </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <div class="property-detail">
+      <!-- Galería hero a pantalla completa -->
+      <div style="position: relative; margin-bottom: 2rem; width: 100vw; margin-left: calc(-50vw + 50%); height: 70vh; min-height: 500px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; height: 100%; padding: 0;">
+          {propertyData.images.slice(0, 5).map((image, index) => (
+            <div 
+              style={index === 0 ? "grid-row: 1 / 3; grid-column: 1 / 2; overflow: hidden; position: relative; cursor: pointer;" : "overflow: hidden; position: relative; cursor: pointer;"}
+              onclick={`openLightbox(${index})`}
+            >
+              <img 
+                src={image}
+                alt={`${propertyData.property.title} - Imagen ${index + 1}`}
+                style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+              />
+            </div>
+          ))}
+        </div>
+
+        <!-- Información superpuesta en la galería -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;">
+          <!-- Badges superiores izquierdos -->
+          <div style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto;">
+            <span style="background: var(--primary); color: white; padding: 8px 16px; border-radius: 25px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 77, 16, 0.4); border: 2px solid rgba(255,255,255,0.2);">
+              Ref: {propertyData.property.reference}
+            </span>
+            {propertyData.isProject && (
+              <span style="background: white; color: var(--primary); padding: 8px 16px; border-radius: 25px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 2px solid var(--primary);">
+                PROYECTO
+              </span>
+            )}
+          </div>
+
+          <!-- Precio superior derecho -->
+          <div style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); color: var(--dark-grey); padding: 20px 28px; border-radius: 20px; text-align: right; pointer-events: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.12); border: 1px solid rgba(255,255,255,0.2);">
+            <div style="font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; color: var(--primary);">
+              {propertyData.property.price}
+            </div>
+            {propertyData.property.reservation && (
+              <div style="font-size: 0.76rem; color: var(--mid-grey); font-weight: 500;">
+                Reserva con {propertyData.property.reservation}
+              </div>
+            )}
+          </div>
+
+          <!-- Ver fotos -->
+          <div style="position: absolute; bottom: 20px; right: 20px; pointer-events: auto;">
+            <button class="view-all-photos" onclick="event.stopPropagation(); openLightbox(0)" style="background: rgba(255,255,255,0.95); color: var(--dark-grey); padding: 12px 24px; border-radius: 25px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 600; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.15); backdrop-filter: blur(10px); transition: all 0.3s ease; white-space: nowrap; min-width: 140px;">
+              <i class="fas fa-images" style="color: var(--primary); flex-shrink: 0;"></i>
+              <span>Ver {propertyData.images.length} fotos</span>
+            </button>
+          </div>
+
+          <!-- Título y ubicación en el centro-bottom -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 80px 20px 30px; color: white; pointer-events: auto;">
+            <div style="max-width: 800px;">
+              <h1 style="font-size: 2.8rem; font-weight: 700; margin-bottom: 8px; line-height: 1.2; text-shadow: 0 2px 12px rgba(0,0,0,0.7);">
+                {propertyData.property.title}
+              </h1>
+              <h2 style="font-size: 1.6rem; font-weight: 400; margin-bottom: 16px; opacity: 0.95; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                {propertyData.property.subtitle}
+              </h2>
+              <div style="display: flex; align-items: center; font-size: 1.2rem; gap: 10px; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                <i class="fas fa-map-marker-alt" style="color: var(--primary); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+                {propertyData.property.location}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout principal con container -->
+      <div class="container">
+        <div class="property-layout">
+          <!-- Columna izquierda (main) -->
+          <main class="property-left">
+            
+            <!-- Descripción -->
+            <div style="margin-bottom: 2rem;">
+              <h2 class="section-title">Descripción</h2>
+              <div style="line-height: 1.8; color: var(--dark-grey);">
+                <p>{propertyData.property.description}</p>
+              </div>
+            </div>
+
+            <!-- Características si es proyecto -->
+            {propertyData.isProject && propertyData.project && (
+              <div style="margin-bottom: 2rem;">
+                <h2 class="section-title">Información del Proyecto</h2>
+                
+                {propertyData.project.typologies && propertyData.project.typologies.length > 0 && (
+                  <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Tipologías Disponibles</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                      {propertyData.project.typologies.map((typology) => (
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e0e0e0;">
+                          <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--dark-grey);">
+                            {typology.name}
+                          </h4>
+                          <div style="color: var(--primary); font-weight: 700; margin-bottom: 0.5rem;">
+                            {typology.priceFrom ? `Desde ${typology.currency === 'USD' ? 'US$' : 'RD$'}${typology.priceFrom.toLocaleString()}` : 'Precio a consultar'}
+                          </div>
+                          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 0.85rem; color: var(--mid-grey);">
+                            <div><i class="fas fa-bed"></i> {typology.bedrooms} hab</div>
+                            <div><i class="fas fa-bath"></i> {typology.bathrooms} baños</div>
+                            <div><i class="fas fa-vector-square"></i> {typology.area}m²</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {propertyData.project.amenities && propertyData.project.amenities.length > 0 && (
+                  <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Amenidades del Proyecto</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                      {propertyData.project.amenities.map((amenity) => (
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 0.75rem; background: #f8f9fa; border-radius: 6px;">
+                          <i class={amenity.icon || 'fas fa-check'} style="color: var(--primary);"></i>
+                          <span style="font-size: 0.9rem;">{amenity.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <!-- Amenidades generales -->
+            {propertyData.amenities && propertyData.amenities.length > 0 && (
+              <div style="margin-bottom: 2rem;">
+                <h2 class="section-title">Amenidades</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                  {propertyData.amenities.map((amenity) => (
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                      <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class={amenity.icon} style="color: white; font-size: 1rem;"></i>
+                      </div>
+                      <span style="font-weight: 600; color: var(--dark-grey);">{amenity.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          <!-- Columna derecha (aside - sidebar) -->
+          <aside class="property-right">
+            <div class="sticky-sidebar">
+              
+              <!-- Card de detalles -->
+              <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--dark-grey); margin-bottom: 1rem; text-align: center;">
+                  Detalles de la Propiedad
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                      {propertyData.property.bedrooms || 'N/A'}
+                    </div>
+                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Habitaciones</div>
+                  </div>
+                  
+                  <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                      {propertyData.property.bathrooms || 'N/A'}
+                    </div>
+                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Baños</div>
+                  </div>
+                  
+                  <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                      {propertyData.property.built_area ? `${propertyData.property.built_area}m²` : 'N/A'}
+                    </div>
+                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Área</div>
+                  </div>
+                  
+                  <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                      {propertyData.property.parking_spots || 'N/A'}
+                    </div>
+                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Parqueos</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Widget del agente -->
+              {propertyData.agent && (
+                <div class="agent-widget">
+                  <div class="agent-header">
+                    <div class="agent-avatar">
+                      <img src={propertyData.agent.image || '/images/default-agent.jpg'} alt={propertyData.agent.name} />
+                    </div>
+                    <div style="flex-grow: 1;">
+                      <h3 class="agent-name">{propertyData.agent.name}</h3>
+                      <div class="agent-position">{propertyData.agent.position || 'Agente Inmobiliario'}</div>
+                      {propertyData.agent.code && (
+                        <span style="display: inline-block; background-color: var(--primary-light); color: var(--white); padding: 3px 8px; border-radius: 50px; font-size: 0.7rem; font-weight: 600; margin-top: 5px;">
+                          Código: {propertyData.agent.code}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <!-- Rating del agente -->
+                  {propertyData.agent.rating && (
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                      <div style="margin-bottom: 0.5rem;">
+                        {Array.from({length: 5}, (_, i) => (
+                          <i class="fas fa-star" style={`color: ${i < Math.floor(propertyData.agent.rating) ? '#ffc107' : '#ddd'}; margin: 0 2px;`}></i>
+                        ))}
+                      </div>
+                      <div style="font-size: 0.9rem; color: var(--mid-grey); font-weight: 500;">
+                        {propertyData.agent.rating}/5 - Agente Verificado
+                      </div>
+                    </div>
+                  )}
+
+                  <!-- Botones de contacto -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem;">
+                    <a href={propertyData.agent.whatsapp} target="_blank" class="btn-elegant" style="background-color: #25d366; font-size: 0.9rem; padding: 0.75rem; text-align: center;">
+                      <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href={`tel:${propertyData.agent.phone}`} class="btn-elegant" style="background-color: transparent; color: var(--primary); border: 2px solid var(--primary); text-align: center;">
+                      <i class="fas fa-phone"></i>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{pageType === 'property-list' && listData && (
+  <div>
+    <!-- Breadcrumb para listados -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <div class="container">
+        {listData.breadcrumbs.map((crumb) => (
+          <div class="breadcrumb-item">
+            {crumb.current ? (
+              <span>{crumb.name}</span>
+            ) : (
+              <a href={crumb.url}>{crumb.name}</a>
+            )}
+          </div>
+        ))}
+      </div>
+    </nav>
+
+    <!-- Contenido del listado -->
+    <div class="container" style="padding: 2rem 0;">
+      
+      <!-- Header del listado -->
+      <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--dark-grey);">
+          {listData.seo.h1}
+        </h1>
+        {listData.content.intro && (
+          <p style="font-size: 1.1rem; color: var(--mid-grey); line-height: 1.6;">
+            {listData.content.intro}
+          </p>
+        )}
+      </div>
+
+      <!-- Información de resultados -->
+      <div style="margin-bottom: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid var(--primary);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <strong>{listData.pagination.totalCount.toLocaleString()}</strong> propiedades encontradas
+            {listData.search.location && (
+              <span> en <strong>{listData.search.location}</strong></span>
+            )}
+          </div>
+          <div style="font-size: 0.9rem; color: var(--mid-grey);">
+            Página {listData.pagination.currentPage} de {listData.pagination.totalPages}
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de propiedades -->
+      {listData.properties.length > 0 ? (
+        <div class="property-list-container">
+          {listData.properties.map((property) => (
+            <a href={property.url || property.slug} class="property-card">
+              <div class="property-card-image">
+                <img 
+                  src={property.imagen || property.imagenes?.[0] || '/images/placeholder-property.jpg'} 
+                  alt={property.titulo}
+                />
+                {property.is_project && (
+                  <div style="position: absolute; top: 10px; left: 10px; background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                    PROYECTO
+                  </div>
+                )}
+              </div>
+              <div class="property-card-content">
+                <div class="property-card-price">{property.precio}</div>
+                <h3 class="property-card-title">{property.titulo}</h3>
+                <div class="property-card-location">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {property.sector}
+                </div>
+                <div class="property-card-features">
+                  <div class="property-feature">
+                    <i class="fas fa-bed"></i>
+                    <span>{property.habitaciones} hab</span>
+                  </div>
+                  <div class="property-feature">
+                    <i class="fas fa-bath"></i>
+                    <span>{property.banos} baños</span>
+                  </div>
+                  <div class="property-feature">
+                    <i class="fas fa-vector-square"></i>
+                    <span>{property.metros}m²</span>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div style="text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
+          <i class="fas fa-search" style="font-size: 3rem; color: var(--mid-grey); margin-bottom: 1rem;"></i>
+          <h3 style="margin-bottom: 1rem; color: var(--dark-grey);">No se encontraron propiedades</h3>
+          <p style="color: var(--mid-grey);">Intenta ajustar tus criterios de búsqueda o explora otras ubicaciones.</p>
+          <a href="/propiedades" class="btn-elegant" style="margin-top: 1rem;">
+            Ver todas las propiedades
+          </a>
+        </div>
+      )}
+
+    <!-- SOLUCIÓN ALTERNATIVA MÁS SIMPLE -->
+<!-- Reemplazar toda la sección de paginación problemática por esta versión: -->
+
+<!-- Paginación -->
+{listData.pagination.totalPages > 1 && (
+  <div class="pagination">
+    {listData.pagination.hasPreviousPage && (
+      <a href={`?page=${listData.pagination.currentPage - 1}`} class="pagination-button">
+        <i class="fas fa-chevron-left"></i> Anterior
+      </a>
+    )}
+    
+    <a href="?page=1" class={`pagination-button ${listData.pagination.currentPage === 1 ? 'active' : ''}`}>1</a>
+    
+    {listData.pagination.currentPage > 3 && <span class="pagination-ellipsis">...</span>}
+    
+    {listData.pagination.currentPage > 2 && listData.pagination.currentPage < listData.pagination.totalPages && (
+      <a href={`?page=${listData.pagination.currentPage}`} class="pagination-button active">
+        {listData.pagination.currentPage}
+      </a>
+    )}
+    
+    {listData.pagination.currentPage < listData.pagination.totalPages - 2 && <span class="pagination-ellipsis">...</span>}
+    
+    {listData.pagination.totalPages > 1 && (
+      <a href={`?page=${listData.pagination.totalPages}`} class={`pagination-button ${listData.pagination.currentPage === listData.pagination.totalPages ? 'active' : ''}`}>
+        {listData.pagination.totalPages}
+      </a>
+    )}
+    
+    {listData.pagination.hasNextPage && (
+      <a href={`?page=${listData.pagination.currentPage + 1}`} class="pagination-button">
+        Siguiente <i class="fas fa-chevron-right"></i>
+      </a>
+    )}
+  </div>
+)}
+
+      <!-- Contenido SEO adicional -->
+      {listData.content.benefits && listData.content.benefits.length > 0 && (
+        <div style="margin-top: 3rem; padding: 2rem; background: white; border-radius: 8px; box-shadow: var(--shadow);">
+          <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--dark-grey);">
+            Beneficios de invertir con CLIC Inmobiliaria
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+            {listData.content.benefits.map((benefit) => (
+              <div style="display: flex; align-items: center; gap: 10px; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                <i class="fas fa-check-circle" style="color: var(--primary); font-size: 1.2rem;"></i>
+                <span>{benefit}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+    </div>
+  </div>
+)}
+
+{pageType === 'property-sold' && propertyData && (
+  <div class="container" style="padding: 3rem 0; text-align: center;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: var(--shadow);">
+      <i class="fas fa-home" style="font-size: 4rem; color: var(--mid-grey); margin-bottom: 1rem;"></i>
+      <h1 style="font-size: 2rem; margin-bottom: 1rem; color: var(--dark-grey);">Propiedad No Disponible</h1>
+      <p style="color: var(--mid-grey); margin-bottom: 2rem; line-height: 1.6;">
+        {propertyData.message || 'Esta propiedad ya no está disponible, pero tenemos muchas opciones similares para ti.'}
+      </p>
+      
+      {propertyData.property && (
+        <div style="margin-bottom: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; text-align: left;">
+          <h3 style="margin-bottom: 0.5rem;">{propertyData.property.name || propertyData.property.title}</h3>
+          <p style="color: var(--mid-grey); font-size: 0.9rem; margin-bottom: 0.5rem;">
+            <i class="fas fa-map-marker-alt"></i> {propertyData.property.cities?.name}
+          </p>
+          <p style="color: var(--primary); font-weight: 600;">
+            {propertyData.property.pricing_unified?.display_price?.formatted || 'Precio no disponible'}
+          </p>
+        </div>
+      )}
+      
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/propiedades" class="btn-elegant">
+          <i class="fas fa-search"></i> Ver propiedades disponibles
+        </a>
+        <a href="/contacto" class="btn-elegant" style="background: transparent; color: var(--primary); border: 2px solid var(--primary);">
+          <i class="fas fa-envelope"></i> Contactar asesor
+        </a>
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  // Variables globales
+  const propertyImages = propertyData?.images || [];
+  let currentImageIndex = 0;
+
+  // Función para abrir lightbox
+  function openLightbox(index) {
+    if (!propertyImages || propertyImages.length === 0) return;
+    
+    currentImageIndex = index;
+    
+    // Crear modal si no existe
+    let modal = document.getElementById('lightbox-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'lightbox-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; max-width: 90%; max-height: 90%;">
+            <img id="lightbox-image" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;" />
+            
+            <button onclick="closeLightbox()" style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-times"></i>
+            </button>
+            
+            <button onclick="prevImage()" style="position: absolute; left: -50px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <button onclick="nextImage()" style="position: absolute; right: -50px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            
+            <div style="position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px;">
+              <span id="lightbox-counter"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    updateLightboxImage();
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+  }
+
+  function prevImage() {
+    currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : propertyImages.length - 1;
+    updateLightboxImage();
+  }
+
+  function nextImage() {
+    currentImageIndex = currentImageIndex < propertyImages.length - 1 ? currentImageIndex + 1 : 0;
+    updateLightboxImage();
+  }
+
+  function updateLightboxImage() {
+    const image = document.getElementById('lightbox-image');
+    const counter = document.getElementById('lightbox-counter');
+    
+    if (image && counter && propertyImages.length > 0) {
+      image.src = propertyImages[currentImageIndex];
+      counter.textContent = `${currentImageIndex + 1} / ${propertyImages.length}`;
+    }
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    // Cerrar lightbox con tecla Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      }
+    });
+
+    // Cerrar lightbox al hacer clic fuera de la imagen
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('lightbox-modal');
+      if (modal && e.target === modal.firstElementChild) {
+        closeLightbox();
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

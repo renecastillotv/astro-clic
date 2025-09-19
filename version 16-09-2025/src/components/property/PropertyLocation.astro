@@ -1,0 +1,352 @@
+---
+// src/components/property/PropertyLocation.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+const locationData = data.location || {};
+
+// ✅ LÓGICA INTELIGENTE DE COORDENADAS
+function getDisplayCoordinates() {
+  console.log('🗺️ === DETERMINANDO COORDENADAS PARA MOSTRAR ===');
+  console.log('📍 Location data recibido:', locationData);
+  
+  // Si hay datos de ubicación del provider, usarlos
+  if (locationData && locationData.coordinates) {
+    console.log('✅ Usando coordenadas del provider:', locationData.coordinates);
+    return {
+      coordinates: locationData.coordinates,
+      source: locationData.coordinatesSource || 'provider',
+      showExactLocation: locationData.showExactLocation || false,
+      hasExactCoordinates: locationData.hasExactCoordinates || false,
+      zoom: locationData.mapConfig?.zoom || 14,
+      showMarker: locationData.mapConfig?.showMarker !== false
+    };
+  }
+  
+  // Fallback: buscar coordenadas en otras ubicaciones
+  console.log('⚠️ Buscando coordenadas en ubicaciones alternativas...');
+  
+  // Intentar obtener de data.location directamente
+  if (data.location?.coordinates) {
+    console.log('✅ Encontradas en data.location:', data.location.coordinates);
+    return {
+      coordinates: data.location.coordinates,
+      source: data.location.coordinatesSource || 'direct',
+      showExactLocation: data.location.showExactLocation || false,
+      hasExactCoordinates: data.location.hasExactCoordinates || false,
+      zoom: data.location.mapConfig?.zoom || 14,
+      showMarker: true
+    };
+  }
+  
+  // ✅ SIN FALLBACK HARDCODEADO - RETORNAR NULL
+  console.log('⚠️ Sin coordenadas reales válidas');
+  return {
+    coordinates: null, // ← SIN COORDENADAS HARDCODEADAS
+    source: 'none',
+    showExactLocation: false,
+    hasExactCoordinates: false,
+    zoom: 6, // ← ZOOM OUT REGIONAL
+    showMarker: false // ← SIN PIN
+  };
+}
+
+function getPrivacyAdjustedCoordinates(coords, showExact, hasExact) {
+  // Si no hay coordenadas, retornar null
+  if (!coords) {
+    console.log('⚠️ No hay coordenadas para ajustar');
+    return null;
+  }
+  
+  // Validar que las coordenadas son válidas
+  if (typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
+    console.warn('⚠️ Coordenadas inválidas, no hay fallback hardcodeado:', coords);
+    return null; // ← SIN FALLBACK HARDCODEADO
+  }
+  
+  if (!hasExact || showExact) {
+    // Si no hay coordenadas exactas O se debe mostrar ubicación exacta
+    console.log('📍 Usando coordenadas sin modificar');
+    return coords;
+  }
+  
+  // Si hay coordenadas exactas pero NO se debe mostrar ubicación exacta,
+  // aplicar desplazamiento aleatorio de ~200 metros
+  const randomAngle = Math.random() * 2 * Math.PI;
+  const randomDistance = 0.002; // Aproximadamente 200 metros en grados
+  
+  const adjustedCoords = {
+    lat: coords.lat + (Math.cos(randomAngle) * randomDistance),
+    lng: coords.lng + (Math.sin(randomAngle) * randomDistance)
+  };
+  
+  console.log('🔒 Aplicando desplazamiento de privacidad:', {
+    original: coords,
+    adjusted: adjustedCoords,
+    displacement: '~200m'
+  });
+  
+  return adjustedCoords;
+}
+
+const mapConfig = getDisplayCoordinates();
+const displayCoordinates = getPrivacyAdjustedCoordinates(
+  mapConfig.coordinates,
+  mapConfig.showExactLocation,
+  mapConfig.hasExactCoordinates
+);
+
+console.log('🗺️ Configuración final del mapa:', {
+  coordinates: displayCoordinates,
+  zoom: mapConfig.zoom,
+  source: mapConfig.source,
+  showMarker: mapConfig.showMarker,
+  privacyApplied: mapConfig.hasExactCoordinates && !mapConfig.showExactLocation
+});
+
+// ✅ VALIDACIÓN FINAL DE COORDENADAS
+if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof displayCoordinates.lng !== 'number') {
+  console.error('❌ Error: Coordenadas finales inválidas!', displayCoordinates);
+}
+---
+
+<!-- Mapa y Lugares Cercanos -->
+<div class="space-y-6">
+  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block flex items-center gap-2">
+    Ubicación de la Propiedad
+    {mapConfig.hasExactCoordinates ? (
+      mapConfig.showExactLocation ? (
+        <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+          * Exacta
+        </span>
+      ) : (
+        <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+          * Aproximada
+        </span>
+      )
+    ) : (
+      <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+        * Del Sector
+      </span>
+    )}
+  </h2>
+  
+
+  
+  <!-- Mapbox (Gratuito hasta 50k vistas/mes) -->
+  <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+    <div id="mapbox-map" class="w-full h-64"></div>
+  </div>
+  
+  <!-- Lugares Cercanos - Solo con datos reales -->
+  {(data.seo?.structuredData?.nearbyPoints && data.seo.structuredData.nearbyPoints.length > 0) && (
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">
+        Lugares de Interés Cercanos a {locationData.sector || locationData.city || 'la Zona'}
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {data.seo.structuredData.nearbyPoints.slice(0, 6).map((place, index) => (
+          <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" 
+                 style={`background-color: ${
+                   place.description.includes('shopping') ? '#f04e00' : 
+                   place.description.includes('hospital') ? '#dc2626' : 
+                   place.description.includes('bank') ? '#3b82f6' : 
+                   place.description.includes('supermarket') ? '#f59e0b' : 
+                   place.description.includes('school') ? '#10b981' :
+                   '#6b7280'
+                 }15`}>
+              <i class={`${
+                place.description.includes('shopping') ? 'fas fa-shopping-bag text-[#f04e00]' :
+                place.description.includes('hospital') ? 'fas fa-hospital text-red-600' :
+                place.description.includes('bank') ? 'fas fa-university text-blue-600' :
+                place.description.includes('supermarket') ? 'fas fa-shopping-cart text-yellow-600' :
+                place.description.includes('school') ? 'fas fa-graduation-cap text-green-600' :
+                'fas fa-map-marker-alt text-gray-600'
+              } text-sm`}></i>
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-gray-900 text-sm truncate">{place.name}</h4>
+              <p class="text-xs text-gray-500 truncate">{place.address}</p>
+            </div>
+            
+            <div class="text-right flex-shrink-0">
+              <span class="text-xs text-gray-600 font-medium">
+                {index < 2 ? '0.5 km' : index < 4 ? '1.2 km' : '2+ km'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
+
+<!-- Mapbox CSS y JS -->
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+
+<script define:vars={{ 
+  coordinates: displayCoordinates, 
+  propertyTitle: property.title || 'Propiedad',
+  mapConfig: mapConfig,
+  locationData: locationData
+}}>
+  document.addEventListener('DOMContentLoaded', function() {
+    const mapElement = document.getElementById('mapbox-map');
+    if (!mapElement) {
+      console.error('❌ Elemento del mapa no encontrado');
+      return;
+    }
+
+    console.log('📍 Coordenadas recibidas:', coordinates);
+    
+    // ✅ CASO ESPECIAL: SIN COORDENADAS REALES
+    if (!coordinates || coordinates === null) {
+      console.log('⚠️ No hay coordenadas reales disponibles - mostrando mapa regional');
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map text-[#f04e00] text-4xl mb-3"></i>
+            <p class="text-gray-800 font-semibold mb-1">Ubicación General</p>
+            <p class="text-sm text-gray-600 mb-3">${propertyTitle}</p>
+            <p class="text-xs text-gray-500">📍 ${locationData.address || 'Dirección no especificada'}</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    // ✅ VALIDACIÓN SIMPLE PARA COORDENADAS EXISTENTES
+    if (typeof coordinates.lat !== 'number' || typeof coordinates.lng !== 'number') {
+      console.error('❌ Coordenadas inválidas:', coordinates);
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gray-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-exclamation-triangle text-gray-500 text-3xl mb-2"></i>
+            <p class="text-gray-700">Error cargando mapa</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    try {
+      // ✅ CONFIGURAR MAPBOX
+      mapboxgl.accessToken = 'pk.eyJ1IjoiY2xpY2lubW9iaWxpYXJpYXJkIiwiYSI6ImNtZTI5NGQxYzBrNmkycXBybmkxNDA5NTcifQ.sknz-kLZp77tsm-bGZupzQ';
+      
+      // ✅ CREAR MAPA - SIMPLE Y DIRECTO
+      const map = new mapboxgl.Map({
+        container: 'mapbox-map',
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [coordinates.lng, coordinates.lat], // [lng, lat] - orden correcto
+        zoom: mapConfig.zoom || 14
+      });
+
+      // ✅ DETERMINAR COLOR DEL MARCADOR
+      let markerColor = '#f04e00'; // Naranja CLIC por defecto
+      
+      if (mapConfig.hasExactCoordinates) {
+        if (mapConfig.showExactLocation) {
+          markerColor = '#f04e00'; // Naranja CLIC para ubicación exacta
+        } else {
+          markerColor = '#ff6b35'; // Naranja claro para aproximada
+        }
+      } else {
+        markerColor = '#ff8c69'; // Naranja suave para zona general
+      }
+
+      // ✅ CREAR MARCADOR SOLO CON COORDENADAS REALES
+      const marker = new mapboxgl.Marker({
+        color: markerColor,
+        scale: 1.2
+      })
+      .setLngLat([coordinates.lng, coordinates.lat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25 })
+        .setHTML(`
+          <div style="text-align: center; font-family: Inter, sans-serif; padding: 12px;">
+            <strong style="color: ${markerColor}; font-size: 14px;">${propertyTitle}</strong>
+            <br>
+            <small style="color: #666; font-size: 12px;">
+              ${mapConfig.hasExactCoordinates ? 
+                (mapConfig.showExactLocation ? '📍 Ubicación exacta' : '🔒 Ubicación aproximada') : 
+                '📍 Zona general'}
+            </small>
+          </div>
+        `)
+      )
+      .addTo(map);
+
+      // ✅ CONTROLES BÁSICOS
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // ✅ ZOOM CON SCROLL AL HACER CLIC
+      map.scrollZoom.disable();
+      map.on('click', () => map.scrollZoom.enable());
+      map.on('mouseout', () => map.scrollZoom.disable());
+
+      console.log('✅ Mapa inicializado correctamente con coordenadas reales');
+
+    } catch (error) {
+      console.error('❌ Error inicializando mapa:', error);
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gray-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-3xl mb-2"></i>
+            <p class="text-gray-700 mb-2">Error cargando mapa</p>
+            ${coordinates ? `
+              <a href="https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}" 
+                 target="_blank" 
+                 class="text-[#f04e00] hover:underline text-sm">
+                Ver en Google Maps
+              </a>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+  });
+</script>
+
+<script>
+  // Función helper para formatear ubicación
+  function formatLocation(property) {
+    const parts = [
+      property.sectors?.name,
+      property.cities?.name,
+      property.cities?.provinces?.name
+    ].filter(Boolean);
+    
+    return parts.length > 0 ? parts.join(', ') : 'República Dominicana';
+  }
+</script>
+
+<style>
+  #mapbox-map {
+    border-radius: 12px;
+  }
+  
+  .mapboxgl-popup-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 0;
+  }
+  
+  .mapboxgl-popup-tip {
+    border-top-color: white;
+  }
+  
+  @media (max-width: 640px) {
+    .mapboxgl-ctrl-top-right {
+      top: 10px;
+      right: 10px;
+    }
+  }
+</style>

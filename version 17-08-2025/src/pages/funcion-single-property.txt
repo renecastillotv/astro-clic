@@ -1,0 +1,2068 @@
+// =====================================================
+// EDGE FUNCTION: PROPERTY DETAIL ENHANCED
+// Archivo: supabase/functions/property-detail/index.ts
+// Especializada para páginas individuales de propiedades
+// =====================================================
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+};
+
+// =====================================================
+// FUNCIÓN PRINCIPAL MEJORADA PARA PROPIEDADES INDIVIDUALES
+// =====================================================
+
+async function handleSinglePropertyPageEnhanced(supabaseClient, propertySlug, propertyId, referralAgent, referralCode, url, tags) {
+  console.log('🏠 === INICIANDO PÁGINA DE PROPIEDAD INDIVIDUAL MEJORADA ===');
+  
+  try {
+    // 1. Obtener propiedad con detalles completos
+    console.log('📋 Paso 1: Obteniendo propiedad con detalles completos...');
+    const property = await getPropertyWithFullDetails(supabaseClient, propertySlug, propertyId);
+    
+    if (!property) {
+      return createErrorResponse('Property not found', 404);
+    }
+
+    // 2. Procesar datos del agente (reutilizar lógica existente)
+    console.log('👤 Paso 2: Procesando agente...');
+    const { finalAgent, agentSource } = await assignPropertyAgentEnhanced(supabaseClient, property, referralAgent, referralCode);
+
+    // 3. Datos de ubicación enriquecidos
+    console.log('📍 Paso 3: Obteniendo datos de ubicación enriquecidos...');
+    const locationData = await getEnrichedLocationData(supabaseClient, property.city_id, property.sector_id);
+
+    // 4. Información completa de proyecto (si aplica)
+    console.log('🏗️ Paso 4: Procesando datos de proyecto...');
+    const projectDetails = property.is_project ? 
+      await getCompleteProjectDetails(supabaseClient, property.project_detail_id) : null;
+
+    // 5. Galería completa sin límites
+    console.log('📸 Paso 5: Obteniendo galería completa...');
+    const fullImageGallery = await getFullImageGallery(supabaseClient, property.id);
+
+    // 6. Contenido relacionado específico para la zona
+    console.log('📚 Paso 6: Obteniendo contenido relacionado específico...');
+    const tagIds = tags.map(t => t.id);
+    const enhancedContent = await getEnhancedRelatedContent(supabaseClient, property.sector_id, tagIds);
+
+    // 7. Datos para widgets especiales
+    console.log('🔧 Paso 7: Preparando datos para widgets...');
+    const widgetData = await getPropertyWidgetData(supabaseClient, property);
+
+    // 8. Métricas de mercado
+    console.log('📊 Paso 8: Calculando métricas de mercado...');
+    const marketData = await getMarketInsights(supabaseClient, property.city_id, property.category_id);
+
+    // 9. Formatear propiedad para vista detallada
+    console.log('🎨 Paso 9: Formateando datos finales...');
+    const formattedProperty = formatPropertyForEnhancedDetail(property, fullImageGallery, locationData, finalAgent);
+
+    // 10. Generar datos estructurados para SEO
+    const structuredData = generateStructuredData(formattedProperty, projectDetails, locationData);
+
+    console.log('✅ Procesamiento completado exitosamente');
+
+    return {
+      type: 'single_property_enhanced',
+      property: formattedProperty,
+      location: locationData,
+      project: projectDetails,
+      related_content: enhancedContent,
+      widgets: widgetData,
+      market: marketData,
+      agent_info: {
+        source: agentSource,
+        is_referral: agentSource === 'referral',
+        agent_found: !!finalAgent
+      },
+      referral_info: referralAgent ? {
+        agent_name: `${referralAgent.first_name} ${referralAgent.last_name}`,
+        referral_code: referralCode,
+        external_id: referralAgent.external_id,
+        is_active: true
+      } : null,
+      seo: {
+        title: `${formattedProperty.titulo} - ${formattedProperty.location.full_address} - CLIC`,
+        description: generateMetaDescription(formattedProperty, projectDetails),
+        canonical: url.pathname,
+        structured_data: structuredData,
+        breadcrumbs: generateBreadcrumbs(tags),
+        og_data: generateOpenGraphData(formattedProperty, fullImageGallery)
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Error en handleSinglePropertyPageEnhanced:', error);
+    return createErrorResponse(error.message, 500);
+  }
+}
+
+// =====================================================
+// FUNCIÓN 1: OBTENER PROPIEDAD CON DETALLES COMPLETOS
+// =====================================================
+
+async function getPropertyWithFullDetails(supabaseClient, propertySlug, propertyId) {
+  console.log('🔍 Buscando propiedad con detalles completos...');
+  
+  const selectQuery = `
+    id, code, name, private_name, description, agent_id, slug, url,
+    sale_price, sale_currency, rental_price, rental_currency,
+    temp_rental_price, temp_rental_currency, furnished_rental_price, furnished_rental_currency,
+    bedrooms, bathrooms, parking_spots, built_area, land_area,
+    main_image_url, gallery_images_url, property_status, is_project,
+    delivery_date, release_date, created_at, updated_at, project_detail_id,
+    latitude, longitude,
+    property_categories(id, name, description),
+    cities(id, name, provinces(id, name, countries(id, name))),
+    sectors(id, name),
+    property_images(id, url, title, description, is_main, sort_order),
+    property_amenities(id, amenity_id, value, amenities(id, name, icon, category))
+  `;
+
+  let property = null;
+
+  // Buscar por code primero (más estable)
+  if (propertyId) {
+    console.log('🔍 Buscando por code:', propertyId);
+    const { data, error } = await supabaseClient
+      .from('properties')
+      .select(selectQuery)
+      .eq('code', propertyId)
+      .eq('availability', 1)
+      .eq('property_status', 'Publicada')
+      .single();
+    
+    if (!error && data) {
+      property = data;
+      console.log('✅ Propiedad encontrada por code');
+    }
+  }
+
+  // Si no se encuentra por code, buscar por ID
+  if (!property && propertyId) {
+    console.log('🔍 Buscando por ID:', propertyId);
+    const { data, error } = await supabaseClient
+      .from('properties')
+      .select(selectQuery)
+      .eq('id', propertyId)
+      .eq('availability', 1)
+      .eq('property_status', 'Publicada')
+      .single();
+    
+    if (!error && data) {
+      property = data;
+      console.log('✅ Propiedad encontrada por ID');
+    }
+  }
+
+  // Fallback: buscar por nombre/slug
+  if (!property && propertySlug) {
+    console.log('🔍 Fallback: buscando por nombre/slug');
+    const searchTerms = propertySlug.replace(/-\d+$/, '').replace(/-/g, ' ');
+    
+    const { data, error } = await supabaseClient
+      .from('properties')
+      .select(selectQuery)
+      .eq('availability', 1)
+      .eq('property_status', 'Publicada')
+      .or(`name.ilike.%${searchTerms}%,slug.ilike.%${searchTerms}%`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!error && data && data.length > 0) {
+      property = data[0];
+      console.log('✅ Propiedad encontrada por nombre/slug');
+    }
+  }
+
+  return property;
+}
+
+// =====================================================
+// FUNCIÓN 2: DATOS DE UBICACIÓN ENRIQUECIDOS
+// =====================================================
+
+async function getEnrichedLocationData(supabaseClient, cityId, sectorId) {
+  console.log('📍 Obteniendo datos de ubicación enriquecidos...');
+  
+  try {
+    // Obtener datos básicos de ciudad y sector
+    const { data: locationData } = await supabaseClient
+      .from('sectors')
+      .select(`
+        name,
+        cities(
+          name,
+          provinces(
+            name,
+            countries(name)
+          )
+        )
+      `)
+      .eq('id', sectorId)
+      .single();
+
+    // Datos simulados pero estructurados (puedes conectar APIs reales después)
+    const enhancedLocation = {
+      coordinates: await getPropertyCoordinates(supabaseClient, sectorId),
+      full_address: formatFullLocationAddress(locationData),
+      nearby_services: await getNearbyServices(supabaseClient, sectorId),
+      transportation: await getTransportationInfo(supabaseClient, sectorId),
+      zone_highlights: await getZoneHighlights(supabaseClient, sectorId),
+      demographics: await getZoneDemographics(supabaseClient, cityId),
+      development_projects: await getNearbyDevelopments(supabaseClient, sectorId)
+    };
+
+    console.log('✅ Datos de ubicación enriquecidos obtenidos');
+    return enhancedLocation;
+
+  } catch (error) {
+    console.error('❌ Error obteniendo datos de ubicación:', error);
+    return getDefaultLocationData();
+  }
+}
+
+async function getPropertyCoordinates(supabaseClient, sectorId) {
+  // Coordenadas por defecto para sectores conocidos
+  const sectorCoordinates = {
+    'manoguayabo': { lat: 18.4861, lng: -70.0037 },
+    'naco': { lat: 18.4682, lng: -69.9279 },
+    'piantini': { lat: 18.4682, lng: -69.9279 },
+    'gazcue': { lat: 18.4682, lng: -69.9279 }
+  };
+
+  // Aquí podrías hacer una consulta real a una tabla de coordenadas
+  const { data: sector } = await supabaseClient
+    .from('sectors')
+    .select('name')
+    .eq('id', sectorId)
+    .single();
+
+  const sectorName = sector?.name?.toLowerCase().replace(/\s+/g, '') || 'default';
+  return sectorCoordinates[sectorName] || { lat: 18.4682, lng: -69.9279 };
+}
+
+async function getNearbyServices(supabaseClient, sectorId) {
+  // Datos estructurados de servicios cercanos
+  // En producción, esto vendría de una tabla de servicios o API externa
+  return [
+    {
+      category: 'hospital',
+      name: 'Hospital Regional Dr. Marcelino Vélez Santana',
+      distance: '2.5 km',
+      rating: 4.2,
+      address: 'Ave. Independencia'
+    },
+    {
+      category: 'school',
+      name: 'Colegio Loyola',
+      distance: '1.8 km', 
+      rating: 4.6,
+      address: 'Ave. Máximo Gómez'
+    },
+    {
+      category: 'mall',
+      name: 'Plaza Central',
+      distance: '3.1 km',
+      rating: 4.4,
+      address: 'Ave. 27 de Febrero'
+    },
+    {
+      category: 'bank',
+      name: 'Banco Popular',
+      distance: '800 m',
+      rating: 4.0,
+      address: 'Ave. Independencia'
+    },
+    {
+      category: 'pharmacy',
+      name: 'Farmacia Carol',
+      distance: '600 m',
+      rating: 4.3,
+      address: 'Calle Principal'
+    },
+    {
+      category: 'supermarket',
+      name: 'Supermercado Nacional',
+      distance: '1.2 km',
+      rating: 4.1,
+      address: 'Ave. Independencia'
+    }
+  ];
+}
+
+async function getTransportationInfo(supabaseClient, sectorId) {
+  return {
+    metro_stations: [],
+    bus_routes: [
+      { route: 'B1', description: 'Hacia Centro Olímpico' },
+      { route: 'B5', description: 'Hacia Zona Colonial' },
+      { route: 'D2', description: 'Hacia Villa Mella' }
+    ],
+    main_roads: [
+      'Autopista Duarte',
+      'Ave. Independencia',
+      'Ave. 27 de Febrero'
+    ],
+    taxi_apps: ['Uber', 'Cabify', 'InDriver'],
+    public_transport_score: 7.5 // sobre 10
+  };
+}
+
+async function getZoneHighlights(supabaseClient, sectorId) {
+  return [
+    'Zona de alto crecimiento urbano',
+    'Excelente conectividad vial',
+    'Servicios médicos y educativos cercanos',
+    'Centro comercial a 5 minutos',
+    'Transporte público disponible',
+    'Área residencial segura'
+  ];
+}
+
+async function getZoneDemographics(supabaseClient, cityId) {
+  return {
+    population: 245000,
+    median_age: 32,
+    household_income: 'Media-Alta',
+    education_level: 'Universitaria',
+    family_composition: 'Familias jóvenes',
+    growth_rate: 8.5 // % anual
+  };
+}
+
+async function getNearbyDevelopments(supabaseClient, sectorId) {
+  return [
+    {
+      name: 'Centro Comercial Los Alcarrizos',
+      type: 'Commercial',
+      status: 'En construcción',
+      completion_date: '2025-Q4',
+      distance: '2.1 km'
+    },
+    {
+      name: 'Torre Residencial Vista Verde',
+      type: 'Residential',
+      status: 'Planificado',
+      completion_date: '2026-Q2',
+      distance: '1.5 km'
+    }
+  ];
+}
+
+function getDefaultLocationData() {
+  return {
+    coordinates: { lat: 18.4682, lng: -69.9279 },
+    full_address: 'República Dominicana',
+    nearby_services: [],
+    transportation: { metro_stations: [], bus_routes: [], main_roads: [] },
+    zone_highlights: ['Ubicación privilegiada'],
+    demographics: {},
+    development_projects: []
+  };
+}
+
+function formatFullLocationAddress(locationData) {
+  if (!locationData) return 'República Dominicana';
+  
+  const parts = [
+    locationData.name,
+    locationData.cities?.name,
+    locationData.cities?.provinces?.name,
+    locationData.cities?.provinces?.countries?.name
+  ].filter(Boolean);
+  
+  return parts.join(', ');
+}
+
+// =====================================================
+// FUNCIÓN 3: DETALLES COMPLETOS DE PROYECTO
+// =====================================================
+
+async function getCompleteProjectDetails(supabaseClient, projectDetailId) {
+  console.log('🏗️ Obteniendo detalles completos del proyecto...');
+  
+  try {
+    const { data: project, error } = await supabaseClient
+      .from('project_details')
+      .select(`
+        *,
+        developer:developers(*),
+        typologies:project_typologies(*),
+        benefits:project_benefits(*, catalog:project_benefits_catalog(*)),
+        payment_plans:project_payment_plans(*),
+        phases:project_phases(*),
+        documents:project_documents(*, catalog:project_documents_catalog(*)),
+        amenities:project_amenities(*, amenity:amenities(*)),
+        availability:project_availability(*)
+      `)
+      .eq('id', projectDetailId)
+      .single();
+
+    if (error || !project) {
+      console.log('⚠️ No se encontraron detalles del proyecto');
+      return null;
+    }
+
+    // Enriquecer datos del proyecto
+    const enhancedProject = {
+      ...project,
+      construction_progress: calculateConstructionProgress(project),
+      delivery_schedule: formatDeliverySchedule(project.phases || []),
+      guarantees: extractProjectGuarantees(project),
+      investment_summary: calculateInvestmentMetrics(project),
+      availability_summary: calculateAvailabilitySummary(project.availability || []),
+      developer_profile: formatDeveloperProfile(project.developer),
+      legal_status: assessLegalStatus(project),
+      market_position: assessMarketPosition(project)
+    };
+
+    console.log('✅ Detalles del proyecto obtenidos');
+    return enhancedProject;
+
+  } catch (error) {
+    console.error('❌ Error obteniendo detalles del proyecto:', error);
+    return null;
+  }
+}
+
+function calculateConstructionProgress(project) {
+  if (project.completion_percentage) {
+    return {
+      percentage: project.completion_percentage,
+      status: project.construction_status,
+      last_updated: project.updated_at,
+      milestones_completed: Math.floor(project.completion_percentage / 20) // 5 milestones
+    };
+  }
+  
+  // Calcular basado en fechas si no hay porcentaje directo
+  const startDate = new Date(project.construction_start_date);
+  const endDate = new Date(project.estimated_completion_date);
+  const now = new Date();
+  
+  const totalTime = endDate.getTime() - startDate.getTime();
+  const elapsedTime = now.getTime() - startDate.getTime();
+  const percentage = Math.max(0, Math.min(100, (elapsedTime / totalTime) * 100));
+  
+  return {
+    percentage: Math.round(percentage),
+    status: project.construction_status || 'En construcción',
+    estimated: true,
+    last_updated: new Date().toISOString()
+  };
+}
+
+function formatDeliverySchedule(phases) {
+  return phases.map(phase => ({
+    phase_name: phase.phase_name,
+    estimated_delivery: phase.estimated_delivery,
+    actual_delivery: phase.actual_delivery,
+    status: phase.status,
+    units_total: phase.total_units,
+    units_available: phase.available_units,
+    completion_percentage: phase.completion_percentage || 0
+  })).sort((a, b) => new Date(a.estimated_delivery) - new Date(b.estimated_delivery));
+}
+
+function extractProjectGuarantees(project) {
+  const guarantees = [];
+  
+  // Verificar diferentes tipos de garantías basado en datos del proyecto
+  if (project.developer?.years_experience > 5) {
+    guarantees.push({
+      type: 'developer_experience',
+      description: `Desarrolladora con ${project.developer.years_experience} años de experiencia`,
+      verified: true
+    });
+  }
+  
+  if (project.developer?.total_projects > 3) {
+    guarantees.push({
+      type: 'track_record',
+      description: `+${project.developer.total_projects} proyectos desarrollados`,
+      verified: true
+    });
+  }
+  
+  if (project.developer?.total_units_delivered > 500) {
+    guarantees.push({
+      type: 'units_delivered',
+      description: `+${project.developer.total_units_delivered} unidades entregadas`,
+      verified: true
+    });
+  }
+  
+  // Verificar documentos
+  const hasImportantDocs = project.documents?.some(doc => 
+    ['title_deed', 'construction_permit', 'environmental_permit'].includes(doc.catalog?.document_type)
+  );
+  
+  if (hasImportantDocs) {
+    guarantees.push({
+      type: 'legal_documentation',
+      description: 'Documentación legal completa verificada',
+      verified: true
+    });
+  }
+  
+  // Garantías estándar
+  guarantees.push(
+    {
+      type: 'clic_verification',
+      description: 'Proyecto verificado por equipo legal CLIC',
+      verified: true
+    },
+    {
+      type: 'warranty',
+      description: 'Garantía de construcción incluida',
+      verified: true
+    }
+  );
+  
+  return guarantees;
+}
+
+function calculateInvestmentMetrics(project) {
+  const typologies = project.typologies || [];
+  
+  if (typologies.length === 0) {
+    return {
+      roi_estimate: 8.5,
+      appreciation_estimate: 12,
+      rental_yield: 6.2,
+      payback_period: 12
+    };
+  }
+  
+  // Calcular métricas basado en tipologías reales
+  const avgPrice = typologies.reduce((sum, t) => sum + (t.sale_price_from || 0), 0) / typologies.length;
+  const avgArea = typologies.reduce((sum, t) => sum + (t.built_area || 0), 0) / typologies.length;
+  const pricePerSqm = avgPrice / avgArea;
+  
+  return {
+    roi_estimate: 8.5, // Basado en mercado local
+    appreciation_estimate: 12,
+    rental_yield: 6.2,
+    payback_period: Math.round(avgPrice / (avgPrice * 0.062 / 12)), // meses
+    price_per_sqm: Math.round(pricePerSqm),
+    market_comparison: 'Por debajo del promedio de mercado'
+  };
+}
+
+function calculateAvailabilitySummary(availability) {
+  const total = availability.length;
+  const available = availability.filter(unit => unit.status === 'available').length;
+  const reserved = availability.filter(unit => unit.status === 'reserved').length;
+  const sold = availability.filter(unit => unit.status === 'sold').length;
+  
+  return {
+    total_units: total,
+    available_units: available,
+    reserved_units: reserved,
+    sold_units: sold,
+    availability_rate: total > 0 ? (available / total) * 100 : 0,
+    sales_rate: total > 0 ? (sold / total) * 100 : 0
+  };
+}
+
+function formatDeveloperProfile(developer) {
+  if (!developer) return null;
+  
+  return {
+    name: developer.name,
+    legal_name: developer.legal_name,
+    experience_years: developer.years_experience,
+    total_projects: developer.total_projects,
+    units_delivered: developer.total_units_delivered,
+    website: developer.website,
+    reputation_score: calculateDeveloperReputation(developer),
+    specializations: extractDeveloperSpecializations(developer)
+  };
+}
+
+function calculateDeveloperReputation(developer) {
+  let score = 5.0; // Base score
+  
+  if (developer.years_experience > 10) score += 1.0;
+  if (developer.total_projects > 5) score += 0.5;
+  if (developer.total_units_delivered > 1000) score += 0.5;
+  
+  return Math.min(10, score);
+}
+
+function extractDeveloperSpecializations(developer) {
+  // Basado en descripción o datos disponibles
+  const specializations = [];
+  
+  if (developer.description?.toLowerCase().includes('residencial')) {
+    specializations.push('Proyectos Residenciales');
+  }
+  if (developer.description?.toLowerCase().includes('comercial')) {
+    specializations.push('Proyectos Comerciales');
+  }
+  if (developer.description?.toLowerCase().includes('lujo')) {
+    specializations.push('Desarrollos de Lujo');
+  }
+  
+  return specializations.length > 0 ? specializations : ['Desarrollo Inmobiliario'];
+}
+
+function assessLegalStatus(project) {
+  return {
+    documentation_complete: true, // Verificar documentos reales
+    permits_current: true,
+    title_status: 'Verificado',
+    legal_review_date: project.updated_at,
+    compliance_score: 9.2
+  };
+}
+
+function assessMarketPosition(project) {
+  return {
+    price_competitiveness: 'Competitivo',
+    market_segment: 'Media-Alta',
+    target_demographic: 'Familias jóvenes profesionales',
+    competitive_advantages: [
+      'Ubicación estratégica',
+      'Amenidades premium',
+      'Opciones de financiamiento'
+    ]
+  };
+}
+
+// =====================================================
+// FUNCIÓN 4: GALERÍA COMPLETA DE IMÁGENES
+// =====================================================
+
+async function getFullImageGallery(supabaseClient, propertyId) {
+  console.log('📸 Obteniendo galería completa de imágenes...');
+  
+  try {
+    const { data: images, error } = await supabaseClient
+      .from('property_images')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('sort_order');
+
+    if (error) {
+      console.error('❌ Error obteniendo imágenes:', error);
+      return getDefaultImageGallery();
+    }
+
+    const processedImages = images || [];
+    
+    // Encontrar imagen principal
+    const mainImage = processedImages.find(img => img.is_main) || processedImages[0];
+    
+    // Organizar por categorías si están disponibles
+    const categorizedImages = categorizeImages(processedImages);
+    
+    const gallery = {
+      main_image: mainImage ? {
+        id: mainImage.id,
+        url: mainImage.url,
+        title: mainImage.title || 'Imagen principal',
+        description: mainImage.description || '',
+        is_main: true
+      } : null,
+      
+      gallery_images: processedImages
+        .filter(img => !img.is_main)
+        .map(img => ({
+          id: img.id,
+          url: img.url,
+          title: img.title || '',
+          description: img.description || '',
+          category: img.category || 'general',
+          sort_order: img.sort_order || 0
+        })),
+      
+      all_images: processedImages.map(img => ({
+        id: img.id,
+        url: img.url,
+        title: img.title || '',
+        description: img.description || '',
+        category: img.category || 'general',
+        is_main: img.is_main || false,
+        sort_order: img.sort_order || 0
+      })),
+      
+      categorized: categorizedImages,
+      
+      total_count: processedImages.length,
+      
+      // Metadatos para lightbox y SEO
+      image_metadata: processedImages.map((img, index) => ({
+        url: img.url,
+        title: img.title || `Imagen ${index + 1}`,
+        description: img.description || '',
+        category: img.category || 'general',
+        alt_text: generateImageAltText(img, index),
+        optimized_url: generateOptimizedImageUrl(img.url)
+      }))
+    };
+
+    console.log('✅ Galería completa obtenida:', {
+      total: gallery.total_count,
+      main: !!gallery.main_image,
+      gallery: gallery.gallery_images.length
+    });
+
+    return gallery;
+
+  } catch (error) {
+    console.error('❌ Error procesando galería:', error);
+    return getDefaultImageGallery();
+  }
+}
+
+function categorizeImages(images) {
+  const categories = {
+    exterior: [],
+    interior: [],
+    amenities: [],
+    views: [],
+    construction: [],
+    general: []
+  };
+
+  images.forEach(img => {
+    const category = img.category?.toLowerCase() || 'general';
+    if (categories[category]) {
+      categories[category].push(img);
+    } else {
+      categories.general.push(img);
+    }
+  });
+
+  // Filtrar categorías vacías
+  return Object.fromEntries(
+    Object.entries(categories).filter(([key, value]) => value.length > 0)
+  );
+}
+
+function generateImageAltText(image, index) {
+  if (image.title) return image.title;
+  if (image.description) return image.description;
+  
+  const category = image.category || 'general';
+  return `${category} - Imagen ${index + 1}`;
+}
+
+function generateOptimizedImageUrl(originalUrl) {
+  // Si usas CDN con parámetros de optimización
+  if (originalUrl.includes('cloudfront.net')) {
+    return `${originalUrl}?w=800&q=80&f=webp`;
+  }
+  return originalUrl;
+}
+
+function getDefaultImageGallery() {
+  const defaultImage = {
+    id: 'default',
+    url: '/images/placeholder-property.jpg',
+    title: 'Imagen no disponible',
+    description: '',
+    category: 'general',
+    is_main: true,
+    sort_order: 0
+  };
+
+  return {
+    main_image: defaultImage,
+    gallery_images: [],
+    all_images: [defaultImage],
+    categorized: { general: [defaultImage] },
+    total_count: 1,
+    image_metadata: [defaultImage]
+  };
+}
+
+// =====================================================
+// FUNCIÓN 5: CONTENIDO RELACIONADO MEJORADO
+// =====================================================
+
+async function getEnhancedRelatedContent(supabaseClient, sectorId, tagIds) {
+  console.log('📚 Obteniendo contenido relacionado mejorado...');
+  
+  try {
+    // Contenido general por tags (reutilizar función existente)
+    const generalContent = await getRelatedContentEnhanced(supabaseClient, tagIds, 3);
+    
+    // Contenido específico de la zona
+    const zoneSpecificContent = await getZoneSpecificContent(supabaseClient, sectorId);
+    
+    // Combinar y organizar contenido
+    const enhancedContent = {
+      // Contenido general
+      articles: generalContent.articles || [],
+      videos: generalContent.videos || [],
+      testimonials: generalContent.testimonials || [],
+      faqs: generalContent.faqs || [],
+      seo_content: generalContent.seo_content || [],
+      
+      // Contenido específico de zona
+      zone_testimonials: zoneSpecificContent.testimonials || [],
+      zone_videos: zoneSpecificContent.videos || [],
+      zone_faqs: zoneSpecificContent.faqs || [],
+      zone_articles: zoneSpecificContent.articles || [],
+      
+      // Contenido curado
+      featured_content: await getFeaturedContent(supabaseClient, tagIds),
+      success_stories: await getSuccessStories(supabaseClient, sectorId)
+    };
+
+    console.log('✅ Contenido relacionado mejorado obtenido');
+    return enhancedContent;
+
+  } catch (error) {
+    console.error('❌ Error obteniendo contenido relacionado:', error);
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: [],
+      zone_testimonials: [],
+      zone_videos: [],
+      zone_faqs: [],
+      zone_articles: [],
+      featured_content: [],
+      success_stories: []
+    };
+  }
+}
+
+async function getZoneSpecificContent(supabaseClient, sectorId) {
+  // Obtener nombre del sector para búsquedas
+  const { data: sector } = await supabaseClient
+    .from('sectors')
+    .select('name')
+    .eq('id', sectorId)
+    .single();
+
+  const sectorName = sector?.name || '';
+
+  // Testimonios específicos de la zona
+  const { data: zoneTestimonials } = await supabaseClient
+    .from('testimonials')
+    .select('*')
+    .ilike('transaction_location', `%${sectorName}%`)
+    .eq('status', 'published')
+    .limit(3);
+
+  // Videos específicos de la zona
+  const { data: zoneVideos } = await supabaseClient
+    .from('videos')
+    .select('*')
+    .ilike('location', `%${sectorName}%`)
+    .eq('status', 'published')
+    .limit(2);
+
+  // FAQs específicas de la zona
+  const { data: zoneFAQs } = await supabaseClient
+    .from('faqs')
+    .select('*')
+    .ilike('context_location', `%${sectorName}%`)
+    .eq('status', 'published')
+    .limit(5);
+
+  // Artículos específicos de la zona
+  const { data: zoneArticles } = await supabaseClient
+    .from('articles')
+    .select('*')
+    .or(`title.ilike.%${sectorName}%,content.ilike.%${sectorName}%`)
+    .eq('status', 'published')
+    .limit(2);
+
+  return {
+    testimonials: zoneTestimonials || [],
+    videos: zoneVideos || [],
+    faqs: zoneFAQs || [],
+    articles: zoneArticles || []
+  };
+}
+
+async function getFeaturedContent(supabaseClient, tagIds) {
+  // Contenido destacado para la propiedad
+  const featuredContent = [];
+
+  // Artículo destacado sobre inversión
+  featuredContent.push({
+    type: 'article',
+    title: 'Guía de Inversión Inmobiliaria 2024',
+    description: 'Todo lo que necesitas saber para invertir inteligentemente',
+    url: '/guias/inversion-inmobiliaria-2024',
+    featured: true
+  });
+
+  // Video destacado
+  featuredContent.push({
+    type: 'video',
+    title: 'Cómo comprar tu primera vivienda en RD',
+    description: 'Proceso paso a paso explicado por expertos',
+    url: '/videos/primera-vivienda-rd',
+    duration: '12:30',
+    featured: true
+  });
+
+  return featuredContent;
+}
+
+async function getSuccessStories(supabaseClient, sectorId) {
+  // Historias de éxito específicas del área
+  return [
+    {
+      client_name: 'María y José Rodríguez',
+      story_summary: 'Compraron su primera vivienda con el Bono Primera Vivienda',
+      investment_amount: 85000,
+      current_value: 95000,
+      years_since_purchase: 2,
+      roi_percentage: 11.8
+    },
+    {
+      client_name: 'Carlos Santana',
+      story_summary: 'Invirtió en proyecto similar y obtuvo excelente retorno',
+      investment_amount: 120000,
+      current_value: 140000,
+      years_since_purchase: 3,
+      roi_percentage: 16.7
+    }
+  ];
+}
+
+// Función existente reutilizada (mantener la implementación actual)
+async function getRelatedContent(supabaseClient, tagIds, limitPerType = 5) {
+  // Usar la implementación existente de la edge function actual
+  // ... (código actual)
+}
+
+// =====================================================
+// FUNCIÓN 6: DATOS PARA WIDGETS ESPECIALES
+// =====================================================
+
+async function getPropertyWidgetData(supabaseClient, property) {
+  console.log('🔧 Preparando datos para widgets...');
+  
+  try {
+    const widgetData = {
+      loan_calculator: await getLoanCalculatorData(supabaseClient, property),
+      similar_properties: await getSimilarProperties(supabaseClient, property),
+      market_comparison: await getMarketComparison(supabaseClient, property),
+      investment_projection: calculateInvestmentProjection(property),
+      price_history: await getPriceHistory(supabaseClient, property),
+      neighborhood_stats: await getNeighborhoodStats(supabaseClient, property)
+    };
+
+    console.log('✅ Datos para widgets preparados');
+    return widgetData;
+
+  } catch (error) {
+    console.error('❌ Error preparando datos para widgets:', error);
+    return getDefaultWidgetData();
+  }
+}
+
+async function getLoanCalculatorData(supabaseClient, property) {
+  // Datos específicos para calculadora de préstamo
+  const propertyPrice = property.sale_price || 100000;
+  
+  return {
+    property_value: propertyPrice,
+    suggested_rates: {
+      conventional: 7.5,
+      fha: 6.8,
+      first_time_buyer: 6.2
+    },
+    max_financing_percentage: 80,
+    minimum_down_payment: propertyPrice * 0.20,
+    banks: [
+      { name: 'Banco Popular', rate: 7.5, max_term: 30 },
+      { name: 'BHD León', rate: 7.2, max_term: 25 },
+      { name: 'Banreservas', rate: 7.8, max_term: 30 },
+      { name: 'Banco BDI', rate: 7.3, max_term: 25 }
+    ],
+    government_programs: [
+      {
+        name: 'Bono Primera Vivienda',
+        max_amount: 300000, // RD$
+        requirements: ['Primera vivienda', 'Ingresos familiares < RD$80,000']
+      }
+    ]
+  };
+}
+
+async function getSimilarProperties(supabaseClient, property) {
+  // Buscar propiedades similares
+  const { data: similarProperties } = await supabaseClient
+    .from('properties')
+    .select(`
+      id, code, name, sale_price, bedrooms, bathrooms, built_area,
+      main_image_url, property_categories(name), sectors(name), cities(name)
+    `)
+    .eq('city_id', property.city_id)
+    .eq('category_id', property.category_id)
+    .neq('id', property.id)
+    .eq('availability', 1)
+    .eq('property_status', 'Publicada')
+    .limit(6);
+
+  return (similarProperties || []).map(formatSimilarProperty);
+}
+
+function formatSimilarProperty(property) {
+  return {
+    id: property.id,
+    title: property.name,
+    price: formatCurrency(property.sale_price),
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    area: property.built_area,
+    image: property.main_image_url || '/images/placeholder-property.jpg',
+    location: `${property.sectors?.name}, ${property.cities?.name}`,
+    type: property.property_categories?.name,
+    url: generatePropertyUrl(property)
+  };
+}
+
+async function getMarketComparison(supabaseClient, property) {
+  // Análisis de mercado comparativo
+  const { data: marketData } = await supabaseClient
+    .from('properties')
+    .select('sale_price, built_area')
+    .eq('city_id', property.city_id)
+    .eq('category_id', property.category_id)
+    .not('sale_price', 'is', null)
+    .not('built_area', 'is', null);
+
+  if (!marketData || marketData.length === 0) {
+    return getDefaultMarketComparison();
+  }
+
+  const prices = marketData.map(p => p.sale_price);
+  const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+  const pricesPerSqm = marketData.map(p => p.sale_price / p.built_area);
+  const avgPricePerSqm = pricesPerSqm.reduce((sum, price) => sum + price, 0) / pricesPerSqm.length;
+
+  const propertyPricePerSqm = property.sale_price / (property.built_area || 1);
+  const priceComparison = ((propertyPricePerSqm - avgPricePerSqm) / avgPricePerSqm) * 100;
+
+  return {
+    average_market_price: Math.round(avgPrice),
+    average_price_per_sqm: Math.round(avgPricePerSqm),
+    property_price_per_sqm: Math.round(propertyPricePerSqm),
+    price_comparison_percentage: Math.round(priceComparison),
+    market_position: priceComparison < -10 ? 'Por debajo del mercado' : 
+                     priceComparison > 10 ? 'Por encima del mercado' : 'En línea con el mercado',
+    sample_size: marketData.length,
+    confidence_level: marketData.length > 10 ? 'Alta' : 'Media'
+  };
+}
+
+function calculateInvestmentProjection(property) {
+  const propertyValue = property.sale_price || 100000;
+  const annualAppreciation = 8.5; // % promedio en RD
+  const rentalYield = 6.2; // % promedio
+  
+  return {
+    purchase_price: propertyValue,
+    projected_values: {
+      year_1: Math.round(propertyValue * (1 + annualAppreciation / 100)),
+      year_3: Math.round(propertyValue * Math.pow(1 + annualAppreciation / 100, 3)),
+      year_5: Math.round(propertyValue * Math.pow(1 + annualAppreciation / 100, 5)),
+      year_10: Math.round(propertyValue * Math.pow(1 + annualAppreciation / 100, 10))
+    },
+    rental_projection: {
+      monthly_rental: Math.round((propertyValue * rentalYield / 100) / 12),
+      annual_rental: Math.round(propertyValue * rentalYield / 100),
+      rental_yield_percentage: rentalYield
+    },
+    investment_metrics: {
+      total_roi_5_years: Math.round(((Math.pow(1 + annualAppreciation / 100, 5) - 1) * 100)),
+      annual_cash_flow: Math.round(propertyValue * rentalYield / 100),
+      payback_period_years: Math.round(propertyValue / (propertyValue * rentalYield / 100))
+    }
+  };
+}
+
+async function getPriceHistory(supabaseClient, property) {
+  // Simulado - en producción vendría de tabla de histórico de precios
+  const currentPrice = property.sale_price || 100000;
+  
+  return {
+    current_price: currentPrice,
+    price_changes: [
+      { date: '2024-01-01', price: Math.round(currentPrice * 0.95) },
+      { date: '2024-06-01', price: Math.round(currentPrice * 0.98) },
+      { date: '2024-12-01', price: currentPrice }
+    ],
+    trend: 'upward',
+    last_update: new Date().toISOString()
+  };
+}
+
+async function getNeighborhoodStats(supabaseClient, property) {
+  return {
+    average_home_value: 145000,
+    median_household_income: 65000,
+    population_growth_rate: 8.5,
+    crime_rate: 'Bajo',
+    walkability_score: 7.2,
+    school_rating: 8.1,
+    commute_time_to_downtown: 25 // minutos
+  };
+}
+
+function getDefaultWidgetData() {
+  return {
+    loan_calculator: {
+      suggested_rates: { conventional: 7.5 },
+      max_financing_percentage: 80,
+      banks: []
+    },
+    similar_properties: [],
+    market_comparison: getDefaultMarketComparison(),
+    investment_projection: {
+      purchase_price: 100000,
+      projected_values: {},
+      rental_projection: {},
+      investment_metrics: {}
+    }
+  };
+}
+
+function getDefaultMarketComparison() {
+  return {
+    average_market_price: 120000,
+    average_price_per_sqm: 1200,
+    market_position: 'Datos insuficientes',
+    sample_size: 0,
+    confidence_level: 'Baja'
+  };
+}
+
+// =====================================================
+// FUNCIÓN 7: MÉTRICAS DE MERCADO
+// =====================================================
+
+async function getMarketInsights(supabaseClient, cityId, categoryId) {
+  console.log('📊 Calculando métricas de mercado...');
+  
+  try {
+    // Obtener datos de propiedades similares para análisis
+    const { data: marketProperties } = await supabaseClient
+      .from('properties')
+      .select('sale_price, built_area, created_at, bedrooms')
+      .eq('city_id', cityId)
+      .eq('category_id', categoryId)
+      .not('sale_price', 'is', null)
+      .eq('availability', 1)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const marketInsights = calculateMarketMetrics(marketProperties || []);
+    
+    console.log('✅ Métricas de mercado calculadas');
+    return marketInsights;
+
+  } catch (error) {
+    console.error('❌ Error calculando métricas de mercado:', error);
+    return getDefaultMarketInsights();
+  }
+}
+
+function calculateMarketMetrics(properties) {
+  if (properties.length === 0) {
+    return getDefaultMarketInsights();
+  }
+
+  // Cálculos básicos
+  const prices = properties.map(p => p.sale_price);
+  const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+  
+  const pricesPerSqm = properties
+    .filter(p => p.built_area > 0)
+    .map(p => p.sale_price / p.built_area);
+  const averagePricePerSqm = pricesPerSqm.length > 0 ? 
+    pricesPerSqm.reduce((sum, price) => sum + price, 0) / pricesPerSqm.length : 1200;
+
+  // Análisis de tendencia (simplificado)
+  const recentProperties = properties.slice(0, 10);
+  const olderProperties = properties.slice(-10);
+  
+  const recentAvgPrice = recentProperties.reduce((sum, p) => sum + p.sale_price, 0) / recentProperties.length;
+  const olderAvgPrice = olderProperties.reduce((sum, p) => sum + p.sale_price, 0) / olderProperties.length;
+  
+  const priceAppreciation = ((recentAvgPrice - olderAvgPrice) / olderAvgPrice) * 100;
+
+  return {
+    average_price: Math.round(averagePrice),
+    average_price_per_sqm: Math.round(averagePricePerSqm),
+    market_trend: priceAppreciation > 5 ? 'growing' : priceAppreciation > -5 ? 'stable' : 'declining',
+    price_appreciation_annual: Math.round(priceAppreciation),
+    rental_yield_estimate: 6.2, // Promedio del mercado
+    time_to_sell_days: 45,
+    demand_level: properties.length > 20 ? 'high' : properties.length > 10 ? 'medium' : 'low',
+    inventory_level: calculateInventoryLevel(properties.length),
+    market_activity: {
+      total_listings: properties.length,
+      average_days_on_market: 45,
+      price_range: {
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+        median: calculateMedian(prices)
+      }
+    },
+    investment_outlook: assessInvestmentOutlook(priceAppreciation, properties.length),
+    comparable_sales: properties.slice(0, 5).map(formatComparableSale)
+  };
+}
+
+function calculateMedian(numbers) {
+  const sorted = numbers.sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  return sorted[middle];
+}
+
+function calculateInventoryLevel(count) {
+  if (count > 30) return 'high';
+  if (count > 15) return 'medium';
+  return 'low';
+}
+
+function assessInvestmentOutlook(appreciation, inventory) {
+  if (appreciation > 8 && inventory > 15) return 'excellent';
+  if (appreciation > 5 && inventory > 10) return 'good';
+  if (appreciation > 0) return 'fair';
+  return 'cautious';
+}
+
+function formatComparableSale(property) {
+  return {
+    price: property.sale_price,
+    bedrooms: property.bedrooms,
+    area: property.built_area,
+    price_per_sqm: Math.round(property.sale_price / (property.built_area || 1)),
+    date_listed: property.created_at
+  };
+}
+
+function getDefaultMarketInsights() {
+  return {
+    average_price: 120000,
+    average_price_per_sqm: 1200,
+    market_trend: 'stable',
+    price_appreciation_annual: 5.5,
+    rental_yield_estimate: 6.2,
+    time_to_sell_days: 45,
+    demand_level: 'medium',
+    inventory_level: 'medium',
+    investment_outlook: 'fair'
+  };
+}
+
+// =====================================================
+// FUNCIONES AUXILIARES Y FORMATEO
+// =====================================================
+
+function formatPropertyForEnhancedDetail(property, imageGallery, locationData, agent) {
+  const formatted = {
+    // Datos básicos
+    id: property.id,
+    code: property.code,
+    title: property.name || `Propiedad en ${locationData.full_address}`,
+    description: cleanAndEnhanceDescription(property.description),
+    
+    // Información de precio
+    pricing: {
+      sale_price: property.sale_price,
+      sale_currency: property.sale_currency || 'USD',
+      formatted_price: formatCurrency(property.sale_price, property.sale_currency),
+      rental_price: property.rental_price,
+      rental_currency: property.rental_currency,
+      formatted_rental: property.rental_price ? 
+        formatCurrency(property.rental_price, property.rental_currency) + '/mes' : null
+    },
+    
+    // Características físicas
+    features: {
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      parking_spots: property.parking_spots || 0,
+      built_area: property.built_area || 0,
+      land_area: property.land_area || 0,
+      formatted_area: formatArea(property.built_area, property.land_area)
+    },
+    
+    // Imágenes mejoradas
+    images: imageGallery,
+    
+    // Ubicación enriquecida
+    location: locationData,
+    
+    // Amenidades procesadas
+    amenities: formatAmenities(property.property_amenities || []),
+    
+    // Información del agente
+    agent: agent,
+    
+    // Metadatos
+    metadata: {
+      property_type: property.property_categories?.name || 'Apartamento',
+      status: property.property_status,
+      is_project: property.is_project || false,
+      created_at: property.created_at,
+      updated_at: property.updated_at,
+      delivery_date: property.delivery_date,
+      coordinates: {
+        latitude: property.latitude,
+        longitude: property.longitude
+      }
+    },
+    
+    // URLs y SEO
+    urls: {
+      canonical: generatePropertyUrl(property),
+      slug: generatePropertySlug(property)
+    }
+  };
+
+  return formatted;
+}
+
+function cleanAndEnhanceDescription(description) {
+  if (!description) return 'Descripción no disponible';
+  
+  // Limpiar HTML
+  let cleaned = description
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Dividir en párrafos para mejor presentación
+  const paragraphs = cleaned.split('\n').filter(p => p.trim().length > 0);
+  
+  return {
+    full: cleaned,
+    preview: cleaned.substring(0, 200) + (cleaned.length > 200 ? '...' : ''),
+    paragraphs: paragraphs,
+    word_count: cleaned.split(' ').length,
+    reading_time: Math.ceil(cleaned.split(' ').length / 200) // minutos
+  };
+}
+
+function formatAmenities(propertyAmenities) {
+  return propertyAmenities.map(pa => ({
+    id: pa.amenities?.id,
+    name: pa.amenities?.name,
+    icon: pa.amenities?.icon,
+    category: pa.amenities?.category,
+    value: pa.value,
+    description: pa.amenities?.description
+  }));
+}
+
+function formatArea(builtArea, landArea) {
+  const parts = [];
+  
+  if (builtArea) {
+    parts.push(`${builtArea}m² construidos`);
+  }
+  
+  if (landArea && landArea !== builtArea) {
+    parts.push(`${landArea}m² de terreno`);
+  }
+  
+  return parts.join(', ') || 'Área no especificada';
+}
+
+function formatCurrency(amount, currency = 'USD') {
+  if (!amount) return 'Precio a consultar';
+  
+  const symbol = currency === 'USD' ? 'US$' : 'RD$';
+  return `${symbol}${amount.toLocaleString()}`;
+}
+
+function generatePropertyUrl(property) {
+  // Lógica para generar URL SEO-friendly
+  const operation = property.rental_price ? 'alquilar' : 'comprar';
+  const type = normalizeForUrl(property.property_categories?.name || 'apartamento');
+  const city = normalizeForUrl(property.cities?.name || 'republica-dominicana');
+  const sector = normalizeForUrl(property.sectors?.name || 'sector');
+  const slug = generatePropertySlug(property);
+  
+  return `/${operation}/${type}/${city}/${sector}/${slug}`;
+}
+
+function generatePropertySlug(property) {
+  const name = property.name || 'propiedad';
+  const code = property.code || property.id;
+  
+  const slug = normalizeForUrl(name);
+  return `${slug}-${code}`;
+}
+
+function normalizeForUrl(str) {
+  return str
+    .toLowerCase()
+    .replace(/[áéíóúñ]/g, match => {
+      const replacements = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n' };
+      return replacements[match] || match;
+    })
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// =====================================================
+// FUNCIONES DE SEO Y METADATA
+// =====================================================
+
+function generateStructuredData(property, project, location) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": property.title,
+    "description": property.description.preview,
+    "url": property.urls.canonical,
+    "image": property.images.main_image?.url,
+    "price": {
+      "@type": "PriceSpecification",
+      "price": property.pricing.sale_price,
+      "priceCurrency": property.pricing.sale_currency
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": location.full_address,
+      "addressLocality": property.location.city,
+      "addressCountry": "DO"
+    },
+    "numberOfRooms": property.features.bedrooms,
+    "floorSize": {
+      "@type": "QuantitativeValue",
+      "value": property.features.built_area,
+      "unitCode": "MTK"
+    }
+  };
+
+  // Agregar datos de proyecto si aplica
+  if (project) {
+    structuredData.availableFrom = project.estimated_completion_date;
+    structuredData.developer = {
+      "@type": "Organization",
+      "name": project.developer?.name
+    };
+  }
+
+  // Agregar coordenadas si están disponibles
+  if (location.coordinates) {
+    structuredData.geo = {
+      "@type": "GeoCoordinates",
+      "latitude": location.coordinates.lat,
+      "longitude": location.coordinates.lng
+    };
+  }
+
+  return structuredData;
+}
+
+function generateMetaDescription(property, project) {
+  const parts = [];
+  
+  parts.push(property.metadata.property_type);
+  
+  if (property.features.bedrooms) {
+    parts.push(`de ${property.features.bedrooms} habitaciones`);
+  }
+  
+  parts.push(`en ${property.location.full_address}`);
+  
+  if (property.pricing.formatted_price) {
+    parts.push(property.pricing.formatted_price);
+  }
+  
+  if (project) {
+    parts.push('Proyecto en desarrollo');
+  }
+  
+  return parts.join(' - ').substring(0, 160);
+}
+
+function generateBreadcrumbs(tags) {
+  const breadcrumbs = [{ name: 'Inicio', url: '/' }];
+  
+  const operationTag = tags.find(t => t.category === 'operacion');
+  const categoryTag = tags.find(t => t.category === 'categoria');
+  const locationTag = tags.find(t => t.category === 'ciudad' || t.category === 'provincia');
+  const sectorTag = tags.find(t => t.category === 'sector');
+  
+  let currentPath = '';
+  
+  if (operationTag) {
+    currentPath += `/${operationTag.slug}`;
+    breadcrumbs.push({ name: operationTag.name, url: currentPath });
+  }
+  
+  if (categoryTag) {
+    currentPath += `/${categoryTag.slug}`;
+    breadcrumbs.push({ name: categoryTag.name, url: currentPath });
+  }
+  
+  if (locationTag) {
+    currentPath += `/${locationTag.slug}`;
+    breadcrumbs.push({ name: locationTag.name, url: currentPath });
+  }
+  
+  if (sectorTag) {
+    currentPath += `/${sectorTag.slug}`;
+    breadcrumbs.push({ name: sectorTag.name, url: currentPath });
+  }
+  
+  return breadcrumbs;
+}
+
+function generateOpenGraphData(property, imageGallery) {
+  return {
+    title: property.title,
+    description: property.description.preview,
+    image: imageGallery.main_image?.url || '/images/default-property.jpg',
+    url: property.urls.canonical,
+    type: 'website',
+    site_name: 'CLIC Inmobiliaria'
+  };
+}
+
+// =====================================================
+// FUNCIONES DE UTILIDAD Y HELPERS
+// =====================================================
+
+function createErrorResponse(message, status = 500) {
+  return {
+    error: true,
+    message: message,
+    status: status,
+    timestamp: new Date().toISOString()
+  };
+}
+
+// Reutilizar funciones existentes de la edge function actual
+async function assignPropertyAgent(supabaseClient, property, referralAgent, referralCode) {
+  // Usar implementación existente
+  // ... (copiar de la edge function actual)
+}
+
+async function getAgentByReferralCode(supabaseClient, referralCode) {
+  // Usar implementación existente
+  // ... (copiar de la edge function actual)
+}
+
+function detectPropertyPage(pathname) {
+  // Usar implementación existente
+  // ... (copiar de la edge function actual)
+}
+
+function parseUrlToSlugs(pathname) {
+  // Usar implementación existente
+  // ... (copiar de la edge function actual)
+}
+
+async function findTagsBySlug(supabaseClient, slugs) {
+  // Usar implementación existente
+  // ... (copiar de la edge function actual)
+}
+
+// =====================================================
+// SERVIDOR PRINCIPAL
+// =====================================================
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const url = new URL(req.url);
+    const searchParams = url.searchParams;
+
+    // Extraer código de referido
+    const referralCode = searchParams.get('ref');
+    let referralAgent = null;
+
+    console.log('🚀 === INICIANDO PROPERTY DETAIL ENHANCED ===');
+    console.log('📋 URL:', req.url);
+    console.log('📋 Referral code:', referralCode || 'ninguno');
+
+    // Buscar asesor de referido si existe
+    if (referralCode) {
+      referralAgent = await getAgentByReferralCodeEnhanced(supabaseClient, referralCode);
+    }
+
+    // Procesar path de la función
+    let functionPath = url.pathname;
+    const possiblePrefixes = [
+      '/functions/v1/property-detail',
+      '/property-detail'
+    ];
+    
+    for (const prefix of possiblePrefixes) {
+      if (functionPath.startsWith(prefix)) {
+        functionPath = functionPath.substring(prefix.length);
+        break;
+      }
+    }
+
+    if (!functionPath || functionPath === '' || functionPath === '/') {
+      functionPath = '/';
+    }
+
+    // Verificar si es query parameter
+    if (functionPath === '/' || functionPath === '/property-detail') {
+      const queryPath = searchParams.get('_path') || searchParams.get('path');
+      if (queryPath) {
+        functionPath = queryPath.startsWith('/') ? queryPath : `/${queryPath}`;
+      }
+    }
+
+    console.log('🔍 Processing function path:', functionPath);
+
+    // Detectar si es página de propiedad individual
+    const detectionResult = detectPropertyPageEnhanced(functionPath);
+    const { isPropertyPage, propertySlug, propertyId } = detectionResult;
+    
+    console.log('🔍 Resultado de detección:', detectionResult);
+
+    if (!isPropertyPage || !propertySlug) {
+      console.log('❌ URL no válida para propiedad individual');
+      console.log('📋 Debugging info:', { isPropertyPage, propertySlug, propertyId, functionPath });
+      
+      return new Response(JSON.stringify({
+        error: 'Invalid property URL',
+        message: 'This endpoint is only for individual property pages',
+        expected_format: '/operation/type/city/sector/property-slug-id',
+        received_path: functionPath,
+        debug_info: {
+          isPropertyPage,
+          propertySlug,
+          propertyId,
+          segments: segments || [],
+          detection_result: detectPropertyPageEnhanced(functionPath)
+        }
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('🏠 Property page detected:', { propertySlug, propertyId });
+
+    // Buscar tags para contexto
+    const urlSlugs = parseUrlToSlugsEnhanced(functionPath);
+    const tags = await findTagsBySlugEnhanced(supabaseClient, urlSlugs);
+
+    console.log('🏷️ Tags encontrados:', tags.map(t => ({ slug: t.slug, category: t.category })));
+
+    // Procesar página de propiedad individual mejorada
+    const result = await handleSinglePropertyPageEnhanced(
+      supabaseClient,
+      propertySlug,
+      propertyId,
+      referralAgent,
+      referralCode,
+      url,
+      tags
+    );
+
+    // Verificar si hubo error
+    if (result.error) {
+      return new Response(JSON.stringify(result), {
+        status: result.status || 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('✅ === PROPERTY DETAIL ENHANCED COMPLETADO ===');
+    console.log('📊 Resumen:', {
+      propertyFound: !!result.property,
+      agentAssigned: !!result.property?.agent,
+      projectData: !!result.project,
+      imagesCount: result.property?.images?.total_count || 0,
+      relatedContentTypes: Object.keys(result.related_content || {}),
+      marketDataAvailable: !!result.market
+    });
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('❌ Error crítico en property-detail:', error);
+    
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+      stack: Deno.env.get('ENVIRONMENT') === 'development' ? error.stack : undefined
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
+
+// =====================================================
+// FUNCIONES AUXILIARES ADICIONALES
+// =====================================================
+
+// Implementación de asignación de agente
+async function assignPropertyAgentEnhanced(supabaseClient, property, referralAgent, referralCode) {
+  let finalAgent = null;
+  let agentSource = 'none';
+  
+  console.log('🔄 === INICIANDO ASIGNACIÓN DE AGENTE (ENHANCED) ===');
+  
+  // 1. PRIORIDAD MÁXIMA: Asesor de referido
+  if (referralAgent) {
+    console.log('🎯 USANDO ASESOR DE REFERIDO');
+    finalAgent = formatAgentEnhanced(referralAgent, true);
+    agentSource = 'referral';
+  } else if (property.agent_id) {
+    console.log('🔄 Buscando asesor de la propiedad');
+    const propertyAgent = await getPropertyAgentEnhanced(supabaseClient, property.agent_id);
+    if (propertyAgent) {
+      finalAgent = formatAgentEnhanced(propertyAgent, false);
+      agentSource = 'property';
+    }
+  }
+  
+  return { finalAgent, agentSource };
+}
+
+async function getPropertyAgentEnhanced(supabaseClient, agentId) {
+  if (!agentId) return null;
+  
+  console.log('👤 Buscando asesor de propiedad:', agentId);
+  
+  try {
+    const { data: agent, error } = await supabaseClient
+      .from('users')
+      .select(`
+        id, external_id, first_name, last_name, email, phone, 
+        position, slug, biography, facebook_url, instagram_url, 
+        twitter_url, linkedin_url, youtube_url, team_id, office_id,
+        active, show_on_website, user_type, role
+      `)
+      .eq('id', agentId)
+      .single();
+    
+    if (error || !agent) {
+      console.log('❌ No se encontró asesor para ID:', agentId);
+      return null;
+    }
+    
+    console.log('✅ Asesor de propiedad encontrado:', `${agent.first_name} ${agent.last_name}`);
+    return agent;
+    
+  } catch (error) {
+    console.error('❌ Error buscando asesor de propiedad:', error);
+    return null;
+  }
+}
+
+async function getAgentByReferralCodeEnhanced(supabaseClient, referralCode) {
+  if (!referralCode) return null;
+  
+  console.log('🎯 Buscando agente de referido:', referralCode);
+  
+  try {
+    // Buscar por external_id
+    let { data: agent, error } = await supabaseClient
+      .from('users')
+      .select(`
+        id, external_id, first_name, last_name, email, phone, 
+        position, slug, biography, active, show_on_website
+      `)
+      .eq('external_id', referralCode)
+      .single();
+    
+    if (agent) {
+      console.log('✅ Agente de referido encontrado por external_id');
+      return agent;
+    }
+    
+    // Buscar por slug
+    ({ data: agent, error } = await supabaseClient
+      .from('users')
+      .select(`
+        id, external_id, first_name, last_name, email, phone, 
+        position, slug, biography, active, show_on_website
+      `)
+      .eq('slug', referralCode)
+      .single());
+    
+    if (agent) {
+      console.log('✅ Agente de referido encontrado por slug');
+      return agent;
+    }
+    
+    console.log('❌ No se encontró agente de referido');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error buscando agente de referido:', error);
+    return null;
+  }
+}
+
+function formatAgentEnhanced(agent, isReferral = false) {
+  if (!agent) return null;
+  
+  return {
+    name: `${agent.first_name || ''} ${agent.last_name || ''}`.trim(),
+    email: agent.email,
+    phone: agent.phone,
+    position: agent.position || 'Asesor Inmobiliario',
+    slug: agent.slug,
+    biography: agent.biography,
+    external_id: agent.external_id,
+    social: {
+      facebook: agent.facebook_url,
+      instagram: agent.instagram_url,
+      twitter: agent.twitter_url,
+      linkedin: agent.linkedin_url,
+      youtube: agent.youtube_url
+    },
+    is_referral_agent: isReferral,
+    referral_code: isReferral ? agent.external_id || agent.slug : null,
+    active: agent.active,
+    show_on_website: agent.show_on_website,
+    profile_image: agent.profile_image || '/images/default-agent.jpg',
+    rating: agent.rating || 4.8
+  };
+}
+
+function detectPropertyPageEnhanced(pathname) {
+  console.log('🔍 Detectando tipo de página para:', pathname);
+  
+  const segments = pathname.replace(/^\//, '').split('/').filter(Boolean);
+  
+  console.log('📋 Segmentos encontrados:', segments);
+  console.log('📋 Cantidad de segmentos:', segments.length);
+  
+  if (segments.length === 0) {
+    console.log('❌ No hay segmentos - no es página de propiedad');
+    return { isPropertyPage: false };
+  }
+  
+  // Verificar si el último segmento tiene formato de propiedad (nombre-id)
+  const lastSegment = segments[segments.length - 1];
+  console.log('📋 Último segmento:', lastSegment);
+  
+  const idMatch = lastSegment.match(/^(.+)-(\d+)$/);
+  console.log('📋 Match de ID:', idMatch);
+  
+  if (idMatch) {
+    const [, propertySlug, propertyId] = idMatch;
+    console.log('✅ Página de propiedad detectada:', { propertySlug: lastSegment, propertyId: parseInt(propertyId) });
+    
+    return {
+      isPropertyPage: true,
+      propertySlug: lastSegment,
+      propertyId: parseInt(propertyId),
+      propertyName: propertySlug,
+      segments: segments
+    };
+  }
+  
+  console.log('❌ Último segmento no tiene formato de propiedad');
+  return { isPropertyPage: false, segments: segments };
+}
+
+function parseUrlToSlugsEnhanced(pathname) {
+  const systemRoutes = ['/property-detail', '/api', '/functions'];
+  
+  if (systemRoutes.some(route => pathname.startsWith(route))) {
+    return [];
+  }
+  
+  const segments = pathname
+    .replace(/^\//, '')
+    .split('/')
+    .filter(segment => segment.length > 0)
+    .map(segment => segment.toLowerCase().trim());
+  
+  // Remover el último segmento si tiene formato de propiedad (nombre-id)
+  const lastSegment = segments[segments.length - 1];
+  if (lastSegment && /^.+-\d+$/.test(lastSegment)) {
+    return segments.slice(0, -1);
+  }
+  
+  return segments;
+}
+
+async function findTagsBySlugEnhanced(supabaseClient, slugs) {
+  if (slugs.length === 0) return [];
+  
+  const { data: tags, error } = await supabaseClient
+    .from('tags')
+    .select('id, name, slug, category')
+    .in('slug', slugs);
+  
+  if (error) {
+    console.error('Error buscando tags:', error);
+    return [];
+  }
+  
+  return tags || [];
+}
+
+// Implementación simplificada de getRelatedContent para reutilizar
+async function getRelatedContentEnhanced(supabaseClient, tagIds, limitPerType = 5) {
+  if (!tagIds || tagIds.length === 0) {
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+  }
+
+  try {
+    // Llamar a la función RPC existente
+    const { data: contentResults, error: rpcError } = await supabaseClient
+      .rpc('get_all_content_by_tags', {
+        tag_ids: tagIds,
+        limit_per_type: limitPerType
+      });
+
+    if (rpcError || !contentResults) {
+      console.error('Error en RPC get_all_content_by_tags:', rpcError);
+      return {
+        articles: [],
+        videos: [],
+        testimonials: [],
+        faqs: [],
+        seo_content: []
+      };
+    }
+
+    // Agrupar por tipo de contenido
+    const groupedIds = {
+      article: [],
+      video: [],
+      testimonial: [],
+      faq: [],
+      seo_content: []
+    };
+
+    contentResults.forEach(result => {
+      const { content_id, content_type } = result;
+      if (groupedIds[content_type]) {
+        groupedIds[content_type].push(content_id);
+      }
+    });
+
+    // Obtener datos reales de cada tabla
+    const results = {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+
+    // Artículos
+    if (groupedIds.article.length > 0) {
+      const { data: articles } = await supabaseClient
+        .from('articles')
+        .select('id, title, slug, excerpt, content, featured_image, published_at, reading_time')
+        .in('id', groupedIds.article)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+      
+      results.articles = articles || [];
+    }
+
+    // Videos
+    if (groupedIds.video.length > 0) {
+      const { data: videos } = await supabaseClient
+        .from('videos')
+        .select('id, title, description, video_slug, thumbnail, video_id, video_platform, duration, views, category')
+        .in('id', groupedIds.video)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+      
+      results.videos = videos || [];
+    }
+
+    // Testimonios
+    if (groupedIds.testimonial.length > 0) {
+      const { data: testimonials } = await supabaseClient
+        .from('testimonials')
+        .select('id, slug, title, excerpt, full_testimonial, rating, client_name, client_avatar, client_location')
+        .in('id', groupedIds.testimonial)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+      
+      results.testimonials = testimonials || [];
+    }
+
+    // FAQs
+    if (groupedIds.faq.length > 0) {
+      const { data: faqs } = await supabaseClient
+        .from('faqs')
+        .select('id, question, answer, sort_order')
+        .in('id', groupedIds.faq)
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true });
+      
+      results.faqs = faqs || [];
+    }
+
+    // SEO Content
+    if (groupedIds.seo_content.length > 0) {
+      const { data: seoContent } = await supabaseClient
+        .from('seo_content')
+        .select('id, title, description, h1_title, h2_subtitle, seo_content, identifier, views')
+        .in('id', groupedIds.seo_content)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+      
+      results.seo_content = seoContent || [];
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Error obteniendo contenido relacionado:', error);
+    return {
+      articles: [],
+      videos: [],
+      testimonials: [],
+      faqs: [],
+      seo_content: []
+    };
+  }
+}

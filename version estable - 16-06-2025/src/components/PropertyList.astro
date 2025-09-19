@@ -1,0 +1,318 @@
+---
+export interface Props {
+  listings: Array<{
+    slug: string;
+    titulo: string;
+    precio: string;
+    imagen: string;
+    sector: string;
+    habitaciones: number;
+    banos: number;
+    metros?: number;
+    tipo?: string;
+  }>;
+  meta: {
+    title: string;
+    description: string;
+  };
+}
+
+const { listings, meta } = Astro.props;
+
+// Función para convertir precio string a número para ordenamiento
+function precioToNumber(precioStr: string): number {
+  // Remover símbolos de moneda, comas y espacios, luego convertir a número
+  return parseFloat(precioStr.replace(/[RD$,\s]/g, '')) || 0;
+}
+
+// Función de ordenamiento
+function sortListings(listings: typeof Astro.props.listings, orden: string) {
+  const sorted = [...listings];
+  
+  switch (orden) {
+    case 'precio-asc':
+      return sorted.sort((a, b) => precioToNumber(a.precio) - precioToNumber(b.precio));
+    case 'precio-desc':
+      return sorted.sort((a, b) => precioToNumber(b.precio) - precioToNumber(a.precio));
+    case 'habitaciones-desc':
+      return sorted.sort((a, b) => b.habitaciones - a.habitaciones);
+    case 'fecha-desc':
+    default:
+      // Por ahora mantenemos el orden original como "fecha-desc"
+      // En el futuro se podrá ordenar por fecha real desde Supabase
+      return sorted;
+  }
+}
+
+// Leer parámetros de URL
+const url = Astro.url;
+const orden = url.searchParams.get('orden') || 'fecha-desc';
+const currentPage = parseInt(url.searchParams.get('page') || '1');
+const pageSize = 12;
+
+// Aplicar ordenamiento
+const sortedListings = sortListings(listings, orden);
+
+// Calcular paginación
+const totalListings = sortedListings.length;
+const totalPages = Math.ceil(totalListings / pageSize);
+const startIndex = (currentPage - 1) * pageSize;
+const endIndex = startIndex + pageSize;
+const paginatedListings = sortedListings.slice(startIndex, endIndex);
+
+// Función para generar URL con parámetros
+function buildUrl(page: number, currentOrden: string): string {
+  const params = new URLSearchParams();
+  if (currentOrden !== 'fecha-desc') params.set('orden', currentOrden);
+  if (page !== 1) params.set('page', page.toString());
+  
+  const paramString = params.toString();
+  return paramString ? `?${paramString}` : '';
+}
+
+// Generar array de páginas para mostrar en paginación
+function getPaginationPages(current: number, total: number): (number | string)[] {
+  const pages: (number | string)[] = [];
+  const showPages = 5; // Mostrar máximo 5 páginas numeradas
+  
+  if (total <= showPages) {
+    // Si hay pocas páginas, mostrar todas
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Lógica más compleja para muchas páginas
+    if (current <= 3) {
+      for (let i = 1; i <= Math.min(showPages, total); i++) {
+        pages.push(i);
+      }
+      if (total > showPages) pages.push('...');
+    } else if (current >= total - 2) {
+      pages.push(1);
+      if (total > showPages) pages.push('...');
+      for (let i = Math.max(1, total - showPages + 1); i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+}
+
+const paginationPages = getPaginationPages(currentPage, totalPages);
+---
+
+<div class="container mx-auto px-4 py-8">
+  <!-- Header del listado -->
+  <div class="mb-8">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+      {meta.title}
+    </h1>
+    <p class="text-lg text-gray-600">
+      {meta.description}
+    </p>
+  </div>
+
+  <!-- Resumen de resultados y ordenamiento -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <!-- Resumen de resultados -->
+    <div class="text-sm text-gray-600">
+      Mostrando {startIndex + 1}–{Math.min(endIndex, totalListings)} de {totalListings} propiedades encontradas
+    </div>
+    
+    <!-- Dropdown de ordenamiento -->
+    <div class="flex items-center gap-2">
+      <label for="sort-select" class="text-sm text-gray-700 whitespace-nowrap">
+        Ordenar por:
+      </label>
+      <select 
+        id="sort-select" 
+        class="text-sm border border-gray-300 rounded-md px-3 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00]"
+        onchange="handleSortChange(this.value)"
+      >
+        <option value="fecha-desc" {orden === 'fecha-desc' ? 'selected' : ''}>
+          Más recientes
+        </option>
+        <option value="precio-asc" {orden === 'precio-asc' ? 'selected' : ''}>
+          Precio: menor a mayor
+        </option>
+        <option value="precio-desc" {orden === 'precio-desc' ? 'selected' : ''}>
+          Precio: mayor a menor
+        </option>
+        <option value="habitaciones-desc" {orden === 'habitaciones-desc' ? 'selected' : ''}>
+          Más habitaciones
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Grid de propiedades -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {paginatedListings.map((property) => (
+      <a 
+        href={`/comprar/${property.tipo?.toLowerCase().replace(/\s+/g, '-') || 'propiedad'}/${property.sector?.toLowerCase().replace(/[,\s]+/g, '-').replace(/\.-\./, '/') || 'rd'}/${property.slug}`}
+        class="group cursor-pointer"
+      >
+        <article class="overflow-hidden rounded-xl transition-transform duration-200 hover:-translate-y-1">
+          <!-- Imagen -->
+          <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+            <img 
+              src={property.imagen} 
+              alt={property.titulo}
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              loading="lazy"
+            />
+            <!-- Badge de tipo (si existe) -->
+            {property.tipo && (
+              <span class="absolute top-3 left-3 bg-white px-3 py-1 rounded-full text-sm font-medium shadow-md">
+                {property.tipo}
+              </span>
+            )}
+            <!-- Botón de favoritos -->
+            <button 
+              class="absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+              aria-label="Agregar a favoritos"
+              onclick="event.preventDefault(); event.stopPropagation();"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Contenido -->
+          <div class="pt-3">
+            <!-- Ubicación y título -->
+            <div class="flex items-start justify-between mb-1">
+              <div class="flex-1">
+                <p class="text-sm text-gray-600 mb-1">{property.sector}</p>
+                <h3 class="font-semibold text-gray-900 line-clamp-2 group-hover:text-[#f04e00] transition-colors">
+                  {property.titulo}
+                </h3>
+              </div>
+            </div>
+            
+            <!-- Características -->
+            <div class="flex gap-4 text-sm text-gray-600 mb-3">
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                {property.habitaciones} hab
+              </span>
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2m12 0V5a2 2 0 00-2-2M8 7V5a2 2 0 012-2"></path>
+                </svg>
+                {property.banos} baños
+              </span>
+              {property.metros && (
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"></path>
+                  </svg>
+                  {property.metros} m²
+                </span>
+              )}
+            </div>
+            
+            <!-- Precio -->
+            <div class="flex items-baseline gap-2">
+              <span class="text-lg font-bold text-[#f04e00]">{property.precio}</span>
+            </div>
+          </div>
+        </article>
+      </a>
+    ))}
+  </div>
+
+  <!-- Paginación -->
+  {totalPages > 1 && (
+    <div class="mt-12 flex justify-center">
+      <nav class="flex gap-2">
+        <!-- Botón Anterior -->
+        {currentPage > 1 ? (
+          <a 
+            href={buildUrl(currentPage - 1, orden)}
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Anterior
+          </a>
+        ) : (
+          <span class="px-4 py-2 border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">
+            Anterior
+          </span>
+        )}
+        
+        <!-- Páginas numeradas -->
+        {paginationPages.map((page) => (
+          page === '...' ? (
+            <span class="px-4 py-2 text-gray-400">...</span>
+          ) : page === currentPage ? (
+            <span class="px-4 py-2 bg-[#f04e00] text-white rounded-md">
+              {page}
+            </span>
+          ) : (
+            <a 
+              href={buildUrl(page as number, orden)}
+              class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              {page}
+            </a>
+          )
+        ))}
+        
+        <!-- Botón Siguiente -->
+        {currentPage < totalPages ? (
+          <a 
+            href={buildUrl(currentPage + 1, orden)}
+            class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Siguiente
+          </a>
+        ) : (
+          <span class="px-4 py-2 border border-gray-200 rounded-md text-gray-400 cursor-not-allowed">
+            Siguiente
+          </span>
+        )}
+      </nav>
+    </div>
+  )}
+</div>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  // Función para manejar el cambio de ordenamiento
+  function handleSortChange(newOrder) {
+    const currentUrl = new URL(window.location.href);
+    
+    // Actualizar parámetros
+    if (newOrder === 'fecha-desc') {
+      currentUrl.searchParams.delete('orden');
+    } else {
+      currentUrl.searchParams.set('orden', newOrder);
+    }
+    
+    // Resetear a página 1 cuando se cambia el orden
+    currentUrl.searchParams.delete('page');
+    
+    // Navegar a la nueva URL
+    window.location.href = currentUrl.toString();
+  }
+</script>

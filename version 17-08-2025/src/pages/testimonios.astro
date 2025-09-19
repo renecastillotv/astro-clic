@@ -1,0 +1,467 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// Categorías de testimonios
+const testimonialCategories = [
+  {
+    id: 'compradores',
+    slug: 'compradores',
+    title: 'Compradores Exitosos',
+    description: 'Historias de familias y personas que encontraron su hogar ideal con CLIC',
+    thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
+    testimonialCount: 89,
+    featured: true,
+    popularTestimonials: [
+      'Juan Luis Guerra y su nueva casa en Casa de Campo',
+      'Familia estadounidense en Punta Cana',
+      'Joven profesional en Santo Domingo'
+    ],
+    icon: '🏠'
+  },
+  {
+    id: 'vendedores',
+    slug: 'vendedores',
+    title: 'Vendedores Satisfechos',
+    description: 'Propietarios que vendieron sus propiedades de manera rápida y exitosa',
+    thumbnail: 'https://images.unsplash.com/photo-1556909906-f057c7c981e1?w=800&h=600&fit=crop',
+    testimonialCount: 67,
+    featured: true,
+    popularTestimonials: [
+      'Vendió su villa en Cap Cana en 30 días',
+      'Familia que se mudó al extranjero',
+      'Inversionista satisfecho con el servicio'
+    ],
+    icon: '💰'
+  },
+  {
+    id: 'desarrolladores',
+    slug: 'desarrolladores',
+    title: 'Desarrolladores',
+    description: 'Constructores y desarrolladores que confían en CLIC para sus proyectos',
+    thumbnail: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=600&fit=crop',
+    testimonialCount: 34,
+    popularTestimonials: [
+      'Desarrollador de Vista Cana',
+      'Constructor independiente en Bávaro',
+      'Empresa constructora en Santiago'
+    ],
+    icon: '🏗️'
+  },
+  {
+    id: 'inversionistas',
+    slug: 'inversionistas',
+    title: 'Inversionistas',
+    description: 'Inversores que han multiplicado su capital con propiedades dominicanas',
+    thumbnail: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop',
+    testimonialCount: 45,
+    popularTestimonials: [
+      'ROI del 20% en Airbnb Punta Cana',
+      'Portfolio de 5 propiedades exitosas',
+      'Inversionista europeo satisfecho'
+    ],
+    icon: '📈'
+  },
+  {
+    id: 'extranjeros',
+    slug: 'extranjeros',
+    title: 'Clientes Internacionales',
+    description: 'Extranjeros que eligieron República Dominicana como su nuevo hogar',
+    thumbnail: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=600&fit=crop',
+    testimonialCount: 78,
+    popularTestimonials: [
+      'Familia canadiense en Las Terrenas',
+      'Jubilados estadounidenses en Cabarete',
+      'Empresario italiano en Santo Domingo'
+    ],
+    icon: '🌍'
+  },
+  {
+    id: 'celebridades',
+    slug: 'celebridades',
+    title: 'Celebridades',
+    description: 'Famosos y personalidades que han confiado en nuestros servicios',
+    thumbnail: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop',
+    testimonialCount: 23,
+    popularTestimonials: [
+      'Luz García compra en Cacicazgos',
+      'Artista urbano en villa moderna',
+      'Deportista internacional en Cap Cana'
+    ],
+    icon: '⭐'
+  }
+];
+
+// Separar categorías destacadas
+const featuredCategories = testimonialCategories.filter(cat => cat.featured);
+const regularCategories = testimonialCategories.filter(cat => !cat.featured);
+
+// Stats
+const totalTestimonials = testimonialCategories.reduce((sum, cat) => sum + cat.testimonialCount, 0);
+
+// Testimonios más recientes (mock)
+const recentTestimonials = [
+  {
+    slug: 'juan-luis-guerra-casa-de-campo',
+    author: 'Juan Luis Guerra',
+    title: 'Mi experiencia comprando en Casa de Campo',
+    excerpt: 'Excelente servicio de CLIC. Me ayudaron a encontrar la propiedad perfecta.',
+    featuredImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop',
+    category: 'Celebridades',
+    rating: 5,
+    propertyType: 'Villa',
+    location: 'Casa de Campo',
+    verified: true
+  },
+  {
+    slug: 'familia-martinez-punta-cana',
+    author: 'Familia Martínez',
+    title: 'Nuestra villa de ensueño en Punta Cana',
+    excerpt: 'Después de años soñando, finalmente encontramos nuestro hogar perfecto.',
+    featuredImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop',
+    category: 'Compradores',
+    rating: 5,
+    propertyType: 'Villa',
+    location: 'Punta Cana',
+    verified: true
+  },
+  {
+    slug: 'robert-smith-inversion-exitosa',
+    author: 'Robert Smith',
+    title: 'Mi inversión más rentable en el Caribe',
+    excerpt: 'El ROI de mi propiedad superó todas mis expectativas.',
+    featuredImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=400&h=300&fit=crop',
+    category: 'Inversionistas',
+    rating: 5,
+    propertyType: 'Apartamento',
+    location: 'Bávaro',
+    verified: true
+  }
+];
+
+// Propiedades relacionadas con testimonios populares
+const relatedProperties = [
+  {
+    slug: 'villa-estilo-luz-garcia',
+    titulo: 'Villa estilo celebrity en Cacicazgos',
+    precio: '$750,000',
+    imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+    sector: 'Cacicazgos',
+    habitaciones: 4,
+    banos: 4,
+    metros: 380,
+    tipo: 'Villa de Lujo',
+    destacado: true,
+    descuento: 'Como la de Juan Luis'
+  },
+  {
+    slug: 'villa-familiar-punta-cana',
+    titulo: 'Villa familiar perfecta en Punta Cana',
+    precio: '$485,000',
+    imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    sector: 'Punta Cana',
+    habitaciones: 3,
+    banos: 3,
+    metros: 250,
+    tipo: 'Villa',
+    nuevo: true
+  },
+  {
+    slug: 'apartamento-inversion-bavaro',
+    titulo: 'Apartamento ideal para Airbnb',
+    precio: '$185,000',
+    imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    sector: 'Bávaro',
+    habitaciones: 2,
+    banos: 2,
+    metros: 95,
+    tipo: 'Apartamento',
+    descuento: 'ROI 18%'
+  }
+];
+---
+
+<Layout 
+  title="Testimonios de Clientes - CLIC" 
+  description="Lee las experiencias reales de nuestros clientes satisfechos: compradores, vendedores, inversionistas y más"
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center text-white">
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">
+          Historias Reales de Éxito
+        </h1>
+        <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+          Más de {totalTestimonials} clientes satisfechos confían en CLIC para 
+          sus decisiones inmobiliarias más importantes
+        </p>
+        
+        {/* Stats */}
+        <div class="flex flex-wrap justify-center gap-8 mt-10">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">98%</div>
+            <div class="text-sm text-white/80">Satisfacción del cliente</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">{totalTestimonials}+</div>
+            <div class="text-sm text-white/80">Testimonios verificados</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">4.9/5</div>
+            <div class="text-sm text-white/80">Calificación promedio</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-white mb-2">15+</div>
+            <div class="text-sm text-white/80">Años de experiencia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonios Recientes -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+        🌟 Testimonios más recientes
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {recentTestimonials.map((testimonial) => (
+          <a 
+            href={`/testimonios/${testimonial.category.toLowerCase()}/${testimonial.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+          >
+            <div class="aspect-video relative overflow-hidden rounded-t-lg">
+              <img 
+                src={testimonial.featuredImage} 
+                alt={testimonial.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+              
+              {/* Verified badge */}
+              {testimonial.verified && (
+                <div class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Verificado
+                </div>
+              )}
+              
+              {/* Rating */}
+              <div class="absolute top-3 right-3 bg-black/80 text-white px-2 py-1 rounded flex items-center gap-1">
+                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span class="text-xs">{testimonial.rating}</span>
+              </div>
+            </div>
+            
+            <div class="p-6">
+              <span class="text-xs text-[#f04e00] font-medium mb-2 block">
+                {testimonial.category}
+              </span>
+              <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors mb-2">
+                {testimonial.title}
+              </h3>
+              <p class="text-sm text-gray-600 mb-3">"{testimonial.excerpt}"</p>
+              
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>- {testimonial.author}</span>
+                <span>{testimonial.location}</span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Categories -->
+  {featuredCategories.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Categorías Destacadas</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredCategories.map((category) => (
+            <a 
+              href={`/testimonios/${category.slug}`}
+              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div class="aspect-[16/9] relative">
+                <img 
+                  src={category.thumbnail} 
+                  alt={category.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                
+                {/* Content overlay */}
+                <div class="absolute bottom-0 left-0 right-0 p-8">
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="text-4xl">{category.icon}</span>
+                    <h3 class="text-3xl font-bold text-white">{category.title}</h3>
+                  </div>
+                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/80">
+                      {category.testimonialCount} testimonios
+                    </span>
+                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                      Ver testimonios
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
+                  
+                  {/* Popular testimonials preview */}
+                  {category.popularTestimonials && (
+                    <div class="mt-4 pt-4 border-t border-white/20">
+                      <p class="text-sm text-white/70 mb-2">Historias destacadas:</p>
+                      <ul class="text-sm text-white/90 space-y-1">
+                        {category.popularTestimonials.slice(0, 3).map(testimonial => (
+                          <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            {testimonial}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- All Categories -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Todas las Categorías</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularCategories.map((category) => (
+          <a 
+            href={`/testimonios/${category.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
+          >
+            <div class="flex items-start gap-4">
+              <span class="text-4xl flex-shrink-0">{category.icon}</span>
+              <div class="flex-1">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                  {category.title}
+                </h3>
+                <p class="text-gray-600 mb-4">{category.description}</p>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-500">
+                    {category.testimonialCount} testimonios
+                  </span>
+                  <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    Leer más
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  <PropertyCarousel 
+    title="Propiedades como las de nuestros clientes satisfechos"
+    subtitle="Encuentra tu próximo hogar en las mismas zonas donde nuestros clientes han triunfado"
+    properties={relatedProperties}
+    viewAllLink="/comprar?fuente=testimonios"
+  />
+
+  <!-- Trust Indicators -->
+  <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿Por qué confían en CLIC?
+      </h2>
+      <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
+        Nuestros clientes eligen CLIC una y otra vez por estos valores
+      </p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Transparencia</h3>
+          <p class="text-sm text-white/70">Proceso claro y honesto en cada transacción</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Rapidez</h3>
+          <p class="text-sm text-white/70">Cerramos operaciones en tiempo récord</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Experiencia</h3>
+          <p class="text-sm text-white/70">Más de 15 años en el mercado dominicano</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Pasión</h3>
+          <p class="text-sm text-white/70">Amamos lo que hacemos y se nota</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        ¿Listo para ser nuestro próximo testimonio de éxito?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Únete a cientos de clientes satisfechos que han encontrado su propiedad ideal
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/contacto" class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium">
+          Empezar mi historia de éxito
+        </a>
+        <a href="/comprar" class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium">
+          Ver propiedades disponibles
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

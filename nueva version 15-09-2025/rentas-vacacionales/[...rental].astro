@@ -1,0 +1,1623 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import PropertyList from '../../components/PropertyList.astro';
+import RentalCarousel from '../../components/RentalCarousel.astro';
+import RentalSearchBox from '../../components/RentalSearchBox.astro';
+import RentalTypeGrid from '../../components/RentalTypeGrid.astro';
+import DestinationGrid from '../../components/DestinationGrid.astro';
+import RentalStats from '../../components/RentalStats.astro';
+import RentalFeatures from '../../components/RentalFeatures.astro';
+import SEODescription from '../../components/SEODescription.astro';
+import SEOContentRentals from '../../components/SEOContentRentals.astro';
+import PropertySeoContent from '../../components/PropertySeoContent.astro';
+import DynamicFAQs from '../../components/DynamicFAQs.astro';
+import Testimonials from '../../components/Testimonials.astro';
+import RelatedArticles from '../../components/RelatedArticles.astro';
+import VideoGallery from '../../components/VideoGallery.astro';
+import { Fragment } from 'astro/jsx-runtime';
+
+// Variable para controlar si usamos mock o Supabase real
+const USE_MOCK_DATA = true;
+
+// Función para extraer parámetros de búsqueda desde segmentos de URL
+function extractSearchParamsFromSegments(segments: string[]): {
+  destino: string;
+  tipo: string;
+  presupuesto: string;
+  huespedes: string;
+} {
+  let destino = '';
+  let tipo = '';
+  let presupuesto = '';
+  let huespedes = '';
+  
+  // Mapeos inversos para convertir de URL SEO a valores
+  const tipoMap: Record<string, string> = {
+    'villa': 'villa',
+    'apartamento': 'apartamento',
+    'casa': 'casa',
+    'lujo': 'lujo'
+  };
+  
+  const destinoMap: Record<string, string> = {
+    'punta-cana': 'punta-cana',
+    'cap-cana': 'cap-cana',
+    'las-terrenas': 'las-terrenas',
+    'casa-de-campo': 'casa-de-campo',
+    'samana': 'samana',
+    'bavaro': 'bavaro'
+  };
+  
+  const presupuestoMap: Record<string, string> = {
+    'menos-de-100-por-noche': '0-100',
+    'de-100-a-200-por-noche': '100-200',
+    'de-200-a-400-por-noche': '200-400',
+    'de-400-a-600-por-noche': '400-600',
+    'mas-de-600-por-noche': '600+'
+  };
+  
+  const huespedesMap: Record<string, string> = {
+    'para-1-persona': '1',
+    'para-2-personas': '2',
+    'para-3-personas': '3',
+    'para-4-personas': '4',
+    'para-5-personas': '5',
+    'para-6-o-mas-personas': '6+'
+  };
+  
+  // Procesar cada segmento de la URL
+  segments.forEach(segment => {
+    if (tipoMap[segment]) {
+      tipo = tipoMap[segment];
+    } else if (destinoMap[segment]) {
+      destino = destinoMap[segment];
+    } else if (presupuestoMap[segment]) {
+      presupuesto = presupuestoMap[segment];
+    } else if (huespedesMap[segment]) {
+      huespedes = huespedesMap[segment];
+    }
+  });
+  
+  return { destino, tipo, presupuesto, huespedes };
+}
+
+// Mock data para rentas vacacionales
+async function getRentalPageData(segments: string[]): Promise<any> {
+  const path = '/' + segments.join('/');
+  
+  // Mock de propiedades vacacionales individuales
+  const mockRentalProperties = {
+    'villa-paradiso': {
+      slug: 'villa-paradiso',
+      titulo: 'Villa Paradiso - Punta Cana',
+      precio: '$320/noche',
+      precioSemanal: '$2,100/semana',
+      descripcion: 'Espectacular villa de 4 habitaciones con piscina privada, ubicada a solo 5 minutos de la playa de Punta Cana. Perfecta para familias y grupos que buscan lujo y comodidad.',
+      descripcionCompleta: `Espectacular villa de 4 habitaciones con piscina privada, ubicada a solo 5 minutos de la playa de Punta Cana. Esta propiedad excepcional combina el lujo moderno con la calidez tropical, ofreciendo una experiencia vacacional inolvidable.
+
+La villa cuenta con amplios espacios interiores diseñados para el máximo confort, incluyendo una sala de estar de concepto abierto que se conecta perfectamente con la cocina gourmet completamente equipada. Cada una de las 4 habitaciones ha sido cuidadosamente diseñada con aire acondicionado individual, camas king size y baños privados con acabados de primera calidad.
+
+El área exterior es verdaderamente impresionante, con una piscina privada de agua cristalina rodeada de un amplio deck de madera tropical, perfecta para relajarse bajo el sol caribeño. El jardín tropical meticulosamente cuidado incluye palmeras nativas, flores exóticas y áreas de sombra natural que crean un ambiente de oasis privado.
+
+La ubicación es inmejorable: a solo 5 minutos caminando de la mundialmente famosa playa de Punta Cana, con sus aguas turquesas y arena blanca como polvo. Los huéspedes tienen fácil acceso a restaurantes de clase mundial, centros comerciales, campos de golf diseñados por profesionales y una vibrante vida nocturna.
+
+Esta villa es ideal para familias que buscan privacidad y comodidad, grupos de amigos que desean celebrar ocasiones especiales, o parejas en luna de miel que quieren una experiencia romántica y exclusiva. La combinación perfecta de lujo, ubicación y amenidades hace de Villa Paradiso el refugio vacacional definitivo en el Caribe.`,
+      imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+      imagenes: [
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop'
+      ],
+      video: {
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        thumbnail: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=450&fit=crop',
+        title: 'Tour Virtual: Villa Paradiso Punta Cana',
+        duration: '3:45'
+      },
+      destino: 'Punta Cana',
+      habitaciones: 4,
+      banos: 4,
+      capacidad: 8,
+      metros: 300,
+      tipo: 'Villa',
+      rating: 4.9,
+      reviews: 127,
+      amenidades: [
+        'Piscina privada', 
+        'WiFi gratuito', 
+        'Aire acondicionado', 
+        'Cocina completa', 
+        'BBQ', 
+        'Jardín tropical', 
+        'Parking gratuito', 
+        'Servicio de limpieza',
+        'Terraza con vista al mar',
+        'Jacuzzi exterior',
+        'Área de juegos para niños',
+        'Seguridad 24/7'
+      ],
+      caracteristicas: {
+        'Check-in': '3:00 PM',
+        'Check-out': '11:00 AM',
+        'Capacidad máxima': '8 huéspedes',
+        'Mascotas': 'No permitidas',
+        'Fumadores': 'No permitido'
+      },
+      politicas: {
+        cancelacion: 'Cancelación gratuita hasta 7 días antes',
+        deposito: 'Depósito de seguridad: $200',
+        limpieza: 'Tarifa de limpieza: $80'
+      }
+    },
+    'penthouse-bavaro': {
+      slug: 'penthouse-bavaro',
+      titulo: 'Penthouse Bávaro Beach',
+      precio: '$180/noche',
+      precioSemanal: '$1,200/semana',
+      descripcion: 'Moderno penthouse con vista al mar en el corazón de Bávaro. Ideal para parejas o familias pequeñas que buscan confort y ubicación privilegiada.',
+      descripcionCompleta: `Moderno penthouse con vista al mar en el corazón de Bávaro, diseñado para ofrecer una experiencia vacacional de lujo con todas las comodidades modernas. Esta propiedad de 3 habitaciones se encuentra en el último piso de un exclusivo edificio residencial, garantizando privacidad y vistas espectaculares.
+
+El diseño interior contemporáneo presenta líneas limpias, acabados de alta calidad y grandes ventanales que permiten la entrada abundante de luz natural. La sala principal de concepto abierto se conecta seamlessly con una terraza privada de 40 metros cuadrados, perfecta para cenas al aire libre o simplemente relajarse mientras disfrutas de las vistas panorámicas del mar Caribe.
+
+La cocina moderna está completamente equipada con electrodomésticos de acero inoxidable, incluyendo refrigerador de doble puerta, horno, microondas, lavavajillas y una isla central perfecta para preparar comidas familiares. Las tres habitaciones ofrecen máximo confort con aire acondicionado individual, camas queen size y amplios closets.
+
+La ubicación en Bávaro es simplemente incomparable. El edificio está ubicado a solo 2 cuadras de la famosa playa de Bávaro y a minutos caminando de restaurantes, bares, centros comerciales y el vibrante entretenimiento nocturno de la zona. Los huéspedes también tienen acceso a todas las amenidades del edificio, incluyendo piscina con vista al mar, gimnasio equipado, y seguridad 24/7.
+
+Este penthouse es perfecto para parejas que buscan una escapada romántica, familias pequeñas que valoran el confort y la ubicación, o pequeños grupos de amigos que quieren estar en el centro de la acción de Bávaro mientras disfrutan de un refugio privado y elegante.`,
+      imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop',
+      imagenes: [
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1560448205-17d3a46c84de?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1560448075-cbc16bb4af8e?w=1200&h=800&fit=crop'
+      ],
+      video: {
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        thumbnail: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=450&fit=crop',
+        title: 'Penthouse Bávaro Beach - Vista Aérea',
+        duration: '2:30'
+      },
+      destino: 'Bávaro',
+      habitaciones: 3,
+      banos: 2,
+      capacidad: 6,
+      metros: 150,
+      tipo: 'Apartamento',
+      rating: 4.7,
+      reviews: 89,
+      amenidades: [
+        'Vista al mar', 
+        'Piscina del edificio', 
+        'Gimnasio', 
+        'WiFi gratuito', 
+        'Aire acondicionado', 
+        'Terraza privada', 
+        'Seguridad 24/7',
+        'Concierge',
+        'Spa del complejo',
+        'Restaurant en el edificio'
+      ],
+      caracteristicas: {
+        'Check-in': '4:00 PM',
+        'Check-out': '10:00 AM',
+        'Capacidad máxima': '6 huéspedes',
+        'Mascotas': 'Consultar',
+        'Fumadores': 'Solo en terraza'
+      }
+    },
+    'villa-lujo-cap-cana': {
+      slug: 'villa-lujo-cap-cana',
+      titulo: 'Villa de Lujo Cap Cana',
+      precio: '$580/noche',
+      precioSemanal: '$3,800/semana',
+      descripcion: 'Villa ultra-lujosa en Cap Cana con acceso directo a la playa, piscina infinita y servicio de concierge. La experiencia vacacional definitiva.',
+      descripcionCompleta: `Villa ultra-lujosa en el exclusivo desarrollo de Cap Cana, representando la cúspide del lujo vacacional en el Caribe. Esta magnífica propiedad de 5 habitaciones ha sido diseñada por arquitectos de renombre internacional y decorada por diseñadores de interiores de clase mundial, creando un ambiente de sofisticación incomparable.
+
+La villa se extiende sobre 500 metros cuadrados de espacios interiores meticulosamente diseñados, con techos altos, mármoles importados de Italia, maderas tropicales selectas y acabados artesanales que reflejan el más alto nivel de craftsmanship. La gran sala principal presenta ventanales del piso al techo que ofrecen vistas panorámicas al mar Caribe y se abren completamente para crear una perfecta fusión entre los espacios interiores y exteriores.
+
+La cocina gourmet es un sueño para los amantes de la gastronomía, equipada con electrodomésticos Sub-Zero y Wolf, una isla central de mármol Calacatta, bodega de vinos climatizada y un área de servicio separada. Las cinco suites master cada una con su propio diseño único, baños tipo spa con jacuzzis privados, duchas de lluvia y vistas espectaculares.
+
+El área exterior es verdaderamente extraordinaria: una piscina infinita de 20 metros que parece fundirse con el horizonte del océano, múltiples áreas de entretenimiento incluyendo un bar al aire libre, gazebo frente al mar, área de BBQ profesional y jardines tropicales diseñados por paisajistas especialistas. El acceso directo a una playa privada de arena blanca completa esta experiencia de lujo absoluto.
+
+Los servicios de concierge están disponibles las 24 horas para organizar cualquier experiencia que desees: desde excursiones privadas en yate hasta cenas preparadas por chefs Michelin, masajes en la villa, golf en campos de campeonato mundial, o experiencias culturales exclusivas. Esta villa no es solo un alojamiento, es una experiencia de lifestyle que redefine el concepto de vacaciones de lujo en el Caribe.`,
+      imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
+      imagenes: [
+        'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop'
+      ],
+      video: {
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=450&fit=crop',
+        title: 'Villa de Lujo Cap Cana - Tour Completo 4K',
+        duration: '5:20'
+      },
+      destino: 'Cap Cana',
+      habitaciones: 5,
+      banos: 5,
+      capacidad: 10,
+      metros: 500,
+      tipo: 'Villa de Lujo',
+      rating: 5.0,
+      reviews: 45,
+      amenidades: [
+        'Playa privada', 
+        'Piscina infinita', 
+        'Servicio concierge', 
+        'Chef privado disponible', 
+        'Spa', 
+        'Gimnasio privado', 
+        'Bodega de vinos', 
+        'Helipuerto',
+        'Marina privada',
+        'Campo de golf',
+        'Servicio de mayordomo',
+        'Transporte privado'
+      ],
+      caracteristicas: {
+        'Check-in': 'Flexible',
+        'Check-out': 'Flexible',
+        'Capacidad máxima': '10 huéspedes',
+        'Mascotas': 'Permitidas',
+        'Fumadores': 'Áreas designadas'
+      }
+    }
+  };
+
+  // Verificar si es una propiedad individual
+  // Formato correcto: /villa/punta-cana/villa-paradiso (3 segmentos)
+  if (segments.length === 3) {
+    const [tipo, destino, propertySlug] = segments;
+    
+    if (mockRentalProperties[propertySlug]) {
+      const property = mockRentalProperties[propertySlug];
+      
+      // Filtrar propiedades similares (mismo tipo o destino, excluyendo la actual)
+      const similarProperties = Object.values(mockRentalProperties)
+        .filter(p => p.slug !== propertySlug)
+        .filter(p => 
+          p.tipo.toLowerCase().includes(property.tipo.toLowerCase().split(' ')[0]) || 
+          p.destino === property.destino
+        )
+        .slice(0, 4); // Máximo 4 propiedades similares
+      
+      return {
+        type: 'rental-property',
+        property: property,
+        nearbyProperties: similarProperties,
+        meta: {
+          title: `${property.titulo} - Renta Vacacional en ${property.destino}`,
+          description: property.descripcion
+        }
+      };
+    }
+  }
+
+  // Mock data para listados por categorías - Base de datos completa
+  const allProperties = [
+    {
+      slug: 'villa-paradiso',
+      titulo: 'Villa Paradiso - Punta Cana',
+      precio: '$320/noche',
+      imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+      destino: 'Punta Cana',
+      habitaciones: 4,
+      banos: 4,
+      capacidad: 8,
+      tipo: 'Villa',
+      rating: 4.9,
+      reviews: 127,
+      destacado: true
+    },
+    {
+      slug: 'penthouse-bavaro',
+      titulo: 'Penthouse Bávaro Beach',
+      precio: '$180/noche',
+      imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+      destino: 'Bávaro',
+      habitaciones: 3,
+      banos: 2,
+      capacidad: 6,
+      tipo: 'Apartamento',
+      rating: 4.7,
+      reviews: 89,
+      nuevo: true
+    },
+    {
+      slug: 'villa-lujo-cap-cana',
+      titulo: 'Villa de Lujo Cap Cana',
+      precio: '$580/noche',
+      imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+      destino: 'Cap Cana',
+      habitaciones: 5,
+      banos: 5,
+      capacidad: 10,
+      tipo: 'Villa de Lujo',
+      rating: 5.0,
+      reviews: 45
+    },
+    {
+      slug: 'apartamento-las-terrenas',
+      titulo: 'Apartamento Frente al Mar Las Terrenas',
+      precio: '$150/noche',
+      imagen: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop',
+      destino: 'Las Terrenas',
+      habitaciones: 2,
+      banos: 2,
+      capacidad: 4,
+      tipo: 'Apartamento',
+      rating: 4.6,
+      reviews: 73
+    },
+    {
+      slug: 'casa-samana-playa',
+      titulo: 'Casa Familiar Samaná',
+      precio: '$280/noche',
+      imagen: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+      destino: 'Samaná',
+      habitaciones: 3,
+      banos: 3,
+      capacidad: 6,
+      tipo: 'Casa',
+      rating: 4.8,
+      reviews: 45
+    },
+    {
+      slug: 'villa-golf-casa-campo',
+      titulo: 'Villa Golf Casa de Campo',
+      precio: '$650/noche',
+      imagen: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=800&h=600&fit=crop',
+      destino: 'Casa de Campo',
+      habitaciones: 4,
+      banos: 4,
+      capacidad: 8,
+      tipo: 'Villa',
+      rating: 4.9,
+      reviews: 67
+    },
+    {
+      slug: 'apartamento-ocean-view-punta-cana',
+      titulo: 'Apartamento Ocean View Punta Cana',
+      precio: '$120/noche',
+      imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+      destino: 'Punta Cana',
+      habitaciones: 2,
+      banos: 2,
+      capacidad: 4,
+      tipo: 'Apartamento',
+      rating: 4.5,
+      reviews: 89
+    },
+    {
+      slug: 'casa-bohemia-terrenas',
+      titulo: 'Casa Bohemia Las Terrenas',
+      precio: '$200/noche',
+      imagen: 'https://images.unsplash.com/photo-1520637836862-4d197d17c13a?w=800&h=600&fit=crop',
+      destino: 'Las Terrenas',
+      habitaciones: 3,
+      banos: 2,
+      capacidad: 6,
+      tipo: 'Casa',
+      rating: 4.8,
+      reviews: 92
+    }
+  ];
+
+  // Extraer parámetros de búsqueda de los segmentos
+  const searchParams = extractSearchParamsFromSegments(segments);
+  
+  // Función para filtrar propiedades
+  function filterProperties(properties: any[], filters: any) {
+    return properties.filter(property => {
+      // Filtrar por destino
+      if (filters.destino) {
+        const destinoMap: Record<string, string[]> = {
+          'punta-cana': ['Punta Cana'],
+          'cap-cana': ['Cap Cana'],
+          'las-terrenas': ['Las Terrenas'],
+          'casa-de-campo': ['Casa de Campo'],
+          'samana': ['Samaná'],
+          'bavaro': ['Bávaro']
+        };
+        const allowedDestinos = destinoMap[filters.destino] || [];
+        if (!allowedDestinos.includes(property.destino)) return false;
+      }
+      
+      // Filtrar por tipo
+      if (filters.tipo) {
+        const tipoMap: Record<string, string[]> = {
+          'villa': ['Villa', 'Villa de Lujo'],
+          'apartamento': ['Apartamento', 'Penthouse'],
+          'casa': ['Casa'],
+          'lujo': ['Villa de Lujo', 'Penthouse de Lujo']
+        };
+        const allowedTypes = tipoMap[filters.tipo] || [];
+        if (!allowedTypes.some(allowedType => property.tipo.includes(allowedType))) return false;
+      }
+      
+      // Filtrar por presupuesto
+      if (filters.presupuesto) {
+        const priceNumber = parseInt(property.precio.replace(/[^\d]/g, ''));
+        const [min, max] = filters.presupuesto.split('-').map((p: string) => p === '+' ? Infinity : parseInt(p));
+        if (max === undefined) {
+          if (priceNumber < min) return false;
+        } else {
+          if (priceNumber < min || priceNumber > max) return false;
+        }
+      }
+      
+      // Filtrar por huéspedes
+      if (filters.huespedes) {
+        const guestCount = filters.huespedes === '6+' ? 6 : parseInt(filters.huespedes);
+        if (filters.huespedes === '6+') {
+          if (property.capacidad < 6) return false;
+        } else {
+          if (property.capacidad < guestCount) return false;
+        }
+      }
+      
+      return true;
+    });
+  }
+
+  // Filtrar propiedades según los parámetros
+  const filteredProperties = filterProperties(allProperties, searchParams);
+
+  // Generar título y descripción dinámicos
+  const destinoLabels: Record<string, string> = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana',
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+
+  const tipoLabels: Record<string, string> = {
+    'villa': 'Villas',
+    'apartamento': 'Apartamentos',
+    'casa': 'Casas',
+    'lujo': 'Propiedades de Lujo'
+  };
+
+  let title = '';
+  let description = '';
+
+  if (searchParams.tipo && searchParams.destino) {
+    title = `${tipoLabels[searchParams.tipo]} en ${destinoLabels[searchParams.destino]}`;
+    description = `Encuentra las mejores ${tipoLabels[searchParams.tipo].toLowerCase()} en ${destinoLabels[searchParams.destino]}. Propiedades verificadas con los mejores precios.`;
+  } else if (searchParams.tipo) {
+    title = `${tipoLabels[searchParams.tipo]} Vacacionales`;
+    description = `Descubre las mejores ${tipoLabels[searchParams.tipo].toLowerCase()} para tus vacaciones en República Dominicana.`;
+  } else if (searchParams.destino) {
+    title = `Rentas Vacacionales en ${destinoLabels[searchParams.destino]}`;
+    description = `Las mejores propiedades vacacionales en ${destinoLabels[searchParams.destino]}. Villas, apartamentos y casas cerca de la playa.`;
+  } else {
+    title = 'Rentas Vacacionales';
+    description = 'Encuentra la propiedad vacacional perfecta en República Dominicana.';
+  }
+
+  return {
+    type: 'rental-list',
+    meta: {
+      title: `${title} - CLIC`,
+      description: description
+    },
+    category: searchParams.tipo,
+    destination: searchParams.destino,
+    searchParams: searchParams,
+    listings: filteredProperties,
+    totalProperties: filteredProperties.length,
+    // Datos adicionales para SEO
+    seasonalData: {
+      highSeason: 'Diciembre - Abril',
+      lowSeason: 'Mayo - Noviembre', 
+      bestMonths: ['Enero', 'Febrero', 'Marzo'],
+      averageOccupancy: 75
+    },
+    experienceData: {
+      nearbyAttractions: searchParams.destino && destinoDataRentals[searchParams.destino] ? 
+        destinoDataRentals[searchParams.destino].attractions : 
+        ['Playas hermosas', 'Restaurantes locales', 'Actividades acuáticas'],
+      popularActivities: ['Snorkeling', 'Golf', 'Spa', 'Tours culturales'],
+      restaurantsNearby: 15,
+      beachDistance: '200 metros',
+      nightlifeOptions: ['Bares en la playa', 'Discotecas', 'Casinos']
+    }
+  };
+}
+
+// Generar datos contextuales para SEO
+const destinoDataRentals = {
+  'punta-cana': {
+    attractions: ['Playa Bávaro', 'Hoyo Azul', 'Isla Saona', 'Manatí Park']
+  },
+  'cap-cana': {
+    attractions: ['Marina Cap Cana', 'Punta Espada Golf', 'Juanillo Beach']
+  },
+  'las-terrenas': {
+    attractions: ['Playa Bonita', 'El Limón Waterfall', 'Playa Cosón']
+  },
+  'casa-de-campo': {
+    attractions: ['Teeth of the Dog Golf', 'Altos de Chavón', 'Marina Casa de Campo']
+  },
+  'samana': {
+    attractions: ['Bahía de Samaná', 'Cayo Levantado', 'Los Haitises']
+  },
+  'bavaro': {
+    attractions: ['Playa Bávaro', 'Scape Park', 'Manatí Park']
+  }
+};
+
+// Función para generar FAQs contextuales
+function generateContextualFAQs(destino, tipo, presupuesto, huespedes, totalProperties) {
+  const destinoLabels = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana',
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+
+  const tipoLabels = {
+    'villa': 'villas',
+    'apartamento': 'apartamentos',
+    'casa': 'casas',
+    'lujo': 'propiedades de lujo'
+  };
+
+  const currentDestino = destino ? destinoLabels[destino] : 'República Dominicana';
+  const currentTipo = tipo ? tipoLabels[tipo] : 'propiedades';
+
+  return [
+    {
+      id: 'costo-renta',
+      question: `¿Cuánto cuesta rentar ${currentTipo} en ${currentDestino}?`,
+      answer: `El costo para rentar ${currentTipo} en ${currentDestino} varía según la temporada, ubicación exacta y amenidades. En promedio, los precios van desde $150 hasta $600 por noche. Tenemos ${totalProperties} opciones disponibles que se ajustan a diferentes presupuestos.`,
+      category: 'precios',
+      tags: ['costo', 'precios', 'presupuesto']
+    },
+    {
+      id: 'mejor-epoca',
+      question: `¿Cuál es la mejor época para visitar ${currentDestino}?`,
+      answer: `${currentDestino} tiene clima tropical y se puede visitar todo el año. La temporada alta (diciembre-abril) ofrece menos lluvia pero más turistas. La temporada baja (mayo-noviembre) tiene mejores precios y menos multitudes.`,
+      category: 'viaje',
+      tags: ['temporada', 'clima', 'cuando-viajar']
+    },
+    {
+      id: 'que-incluye',
+      question: `¿Qué incluye la renta de ${currentTipo} en ${currentDestino}?`,
+      answer: `Nuestras ${currentTipo} incluyen WiFi gratuito, ropa de cama, toallas, limpieza inicial, y soporte 24/7. Dependiendo del tipo de propiedad, también pueden incluir piscina, cocina completa, parking, y servicios adicionales.`,
+      category: 'servicios',
+      tags: ['incluido', 'amenidades', 'servicios']
+    },
+    {
+      id: 'reserva-cancelacion',
+      question: '¿Cuáles son las políticas de reserva y cancelación?',
+      answer: 'Ofrecemos cancelación gratuita hasta 7 días antes del check-in para la mayoría de propiedades. Para reservas de temporada alta o último momento, las condiciones pueden variar. Recomendamos siempre revisar la política específica de cada propiedad.',
+      category: 'reservas',
+      tags: ['cancelacion', 'reserva', 'politicas']
+    },
+    {
+      id: 'actividades',
+      question: `¿Qué actividades puedo hacer en ${currentDestino}?`,
+      answer: `${currentDestino} ofrece actividades como deportes acuáticos, golf, spa, tours culturales, vida nocturna, y excursiones a parques naturales. Nuestro equipo puede ayudarte a organizar tours y actividades durante tu estadía.`,
+      category: 'actividades',
+      tags: ['actividades', 'tours', 'entretenimiento']
+    }
+  ];
+}
+
+// Función para generar testimonios contextuales
+function generateContextualTestimonials(destino, tipo) {
+  const destinoLabels = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana',
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+
+  const tipoLabels = {
+    'villa': 'Villa',
+    'apartamento': 'Apartamento',
+    'casa': 'Casa',
+    'lujo': 'Propiedad de Lujo'
+  };
+
+  const currentDestino = destino ? destinoLabels[destino] : 'República Dominicana';
+  const currentTipo = tipo ? tipoLabels[tipo] : 'Propiedad';
+
+  return [
+    {
+      id: 'familia-garcia',
+      category: 'rentas-familiares',
+      author: {
+        name: 'María García',
+        location: 'Madrid, España',
+        verified: true
+      },
+      rating: 5,
+      text: `Increíble experiencia en ${currentDestino}. La ${currentTipo.toLowerCase()} superó todas nuestras expectativas. Todo estaba impecable y la ubicación era perfecta para disfrutar en familia.`,
+      excerpt: `La mejor experiencia vacacional que hemos tenido. ${currentDestino} es realmente mágico.`,
+      propertyType: currentTipo,
+      location: currentDestino,
+      date: '2024-03-15',
+      views: '1,2K',
+      readTime: '3 min'
+    },
+    {
+      id: 'pareja-johnson',
+      category: 'lunas-de-miel',
+      author: {
+        name: 'David & Sophie Johnson',
+        location: 'Toronto, Canadá',
+        verified: true
+      },
+      rating: 5,
+      text: `Perfect honeymoon getaway! The ${currentTipo.toLowerCase()} was exactly what we were looking for in ${currentDestino}. CLIC made everything seamless and stress-free.`,
+      excerpt: `Our dream honeymoon became reality. ${currentDestino} is pure paradise.`,
+      propertyType: currentTipo,
+      location: currentDestino,
+      date: '2024-02-28',
+      views: '890',
+      readTime: '4 min'
+    },
+    {
+      id: 'grupo-friends',
+      category: 'grupos-amigos',
+      author: {
+        name: 'Carlos Mendoza',
+        location: 'Miami, FL',
+        verified: true
+      },
+      rating: 5,
+      text: `Organizamos un viaje con 8 amigos y la ${currentTipo.toLowerCase()} fue perfecta. El espacio, las amenidades, y la ubicación en ${currentDestino} hicieron que fuera una experiencia inolvidable.`,
+      excerpt: `El mejor viaje grupal que hemos hecho. Todo salió perfecto.`,
+      propertyType: currentTipo,
+      location: currentDestino,
+      date: '2024-01-20',
+      views: '1,5K',
+      readTime: '5 min'
+    }
+  ];
+}
+
+// Función para generar artículos contextuales
+function generateContextualArticles(destino, tipo) {
+  const destinoLabels = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana',
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+
+  const tipoLabels = {
+    'villa': 'Villas',
+    'apartamento': 'Apartamentos',
+    'casa': 'Casas',
+    'lujo': 'Propiedades de Lujo'
+  };
+
+  const currentDestino = destino ? destinoLabels[destino] : 'República Dominicana';
+  const currentTipo = tipo ? tipoLabels[tipo] : 'Propiedades';
+
+  return [
+    {
+      slug: `guia-completa-${destino || 'rentas-vacacionales'}-2024`,
+      title: `Guía Completa: ${currentTipo} en ${currentDestino} - Todo lo que Necesitas Saber`,
+      excerpt: `Descubre todo sobre ${currentTipo.toLowerCase()} en ${currentDestino}. Desde precios y ubicaciones hasta actividades y consejos de expertos para unas vacaciones perfectas.`,
+      featuredImage: `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop`,
+      author: {
+        name: 'Equipo CLIC',
+        avatar: '/images/team/clic-avatar.jpg'
+      },
+      publishedAt: '2024-03-10',
+      readTime: '8 min',
+      category: 'Guías de Viaje',
+      views: '2,3K',
+      featured: true
+    },
+    {
+      slug: `mejores-${tipo || 'propiedades'}-${destino || 'republica-dominicana'}`,
+      title: `Las Mejores ${currentTipo} en ${currentDestino} - Ranking 2024`,
+      excerpt: `Descubre las ${currentTipo.toLowerCase()} más exclusivas y mejor valoradas en ${currentDestino}. Selección curada por nuestros expertos locales.`,
+      featuredImage: `https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop`,
+      author: {
+        name: 'Ana Martínez',
+        avatar: '/images/team/ana-martinez.jpg'
+      },
+      publishedAt: '2024-03-05',
+      readTime: '12 min',
+      category: 'Rankings',
+      views: '1,8K'
+    },
+    {
+      slug: `actividades-${destino || 'vacaciones'}-familia`,
+      title: `Qué Hacer en ${currentDestino}: Actividades Imperdibles para Familias`,
+      excerpt: `Las mejores actividades familiares en ${currentDestino}. Desde aventuras acuáticas hasta experiencias culturales que todos disfrutarán.`,
+      featuredImage: `https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop`,
+      author: {
+        name: 'Roberto Delgado',
+        avatar: '/images/team/roberto-delgado.jpg'
+      },
+      publishedAt: '2024-02-28',
+      readTime: '10 min',
+      category: 'Actividades',
+      views: '1,4K'
+    }
+  ];
+}
+
+// Función para generar videos contextuales
+function generateContextualVideos(destino, tipo) {
+  const destinoLabels = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana',
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+
+  const tipoLabels = {
+    'villa': 'Villas',
+    'apartamento': 'Apartamentos',
+    'casa': 'Casas',
+    'lujo': 'Propiedades de Lujo'
+  };
+
+  const currentDestino = destino ? destinoLabels[destino] : 'República Dominicana';
+  const currentTipo = tipo ? tipoLabels[tipo] : 'Propiedades';
+
+  return [
+    {
+      id: `tour-${destino || 'propiedades'}-${tipo || 'lujo'}`,
+      title: `Tour Exclusivo: ${currentTipo} en ${currentDestino} | CLIC`,
+      description: `Recorrido completo por las mejores ${currentTipo.toLowerCase()} en ${currentDestino}. Ve cada detalle antes de reservar tu próxima escapada.`,
+      thumbnail: `https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop`,
+      duration: '15:42',
+      views: '45K vistas',
+      category: 'recorridos',
+      videoId: `tour-${destino}-${tipo}`,
+      videoSlug: `tour-exclusivo-${destino || 'propiedades'}-${tipo || 'lujo'}`,
+      featured: true
+    },
+    {
+      id: `consejos-${destino || 'rentas'}-${tipo || 'familiares'}`,
+      title: `5 Consejos de Expertos: ${currentTipo} en ${currentDestino}`,
+      description: `Tips profesionales para conseguir las mejores ${currentTipo.toLowerCase()} al mejor precio en ${currentDestino}. Consejos que solo los locales conocen.`,
+      thumbnail: `https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop`,
+      duration: '8:30',
+      views: '28K vistas',
+      category: 'tips',
+      videoId: `consejos-${destino}-${tipo}`,
+      videoSlug: `consejos-expertos-${destino || 'rentas'}-${tipo || 'familiares'}`
+    },
+    {
+      id: `experiencia-real-${destino || 'cliente'}-${tipo || 'villa'}`,
+      title: `Experiencia Real: Mi ${currentTipo.slice(0, -1)} en ${currentDestino}`,
+      description: `Testimonio auténtico de huéspedes reales sobre su experiencia en ${currentTipo.toLowerCase()} de ${currentDestino}. Historia real, sin guión.`,
+      thumbnail: `https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop`,
+      duration: '12:15',
+      views: '19K vistas',
+      category: 'entrevistas',
+      videoId: `experiencia-${destino}-${tipo}`,
+      videoSlug: `experiencia-real-${destino || 'cliente'}-${tipo || 'villa'}`
+    },
+    {
+      id: `destino-guia-${destino || 'rd'}`,
+      title: `Guía Completa de ${currentDestino}: Todo lo que Debes Saber`,
+      description: `La guía definitiva de ${currentDestino}: mejores zonas, actividades, restaurantes, y secretos que solo los expertos conocen.`,
+      thumbnail: `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop`,
+      duration: '20:35',
+      views: '67K vistas',
+      category: 'recorridos',
+      videoId: `guia-${destino || 'rd'}`,
+      videoSlug: `guia-completa-${destino || 'republica-dominicana'}`
+    }
+  ];
+}
+const { rental } = Astro.params;
+const segments = rental ? (Array.isArray(rental) ? rental : rental.split('/')) : [];
+
+// Obtener datos de la página
+const pageData = USE_MOCK_DATA 
+  ? await getRentalPageData(segments)
+  : {}; // Aquí iría la llamada real a Supabase
+
+// Configuración SEO dinámica
+const seoTitle = pageData.meta?.title || 'Rentas Vacacionales - CLIC';
+const seoDescription = pageData.meta?.description || 'Encuentra la propiedad vacacional perfecta en República Dominicana';
+
+// Función para capitalizar
+function capitalize(str: string): string {
+  return str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// Crear breadcrumb
+const breadcrumbNavegacion = [
+  { path: '/rentas-vacacionales', label: 'Rentas Vacacionales' }
+];
+
+if (segments[0]) {
+  breadcrumbNavegacion.push({ 
+    path: `/rentas-vacacionales/${segments[0]}`, 
+    label: capitalize(segments[0]) 
+  });
+}
+
+if (segments[1]) {
+  breadcrumbNavegacion.push({ 
+    path: `/rentas-vacacionales/${segments.slice(0, 2).join('/')}`, 
+    label: capitalize(segments[1]) 
+  });
+}
+
+if (segments[2]) {
+  breadcrumbNavegacion.push({ 
+    path: `/rentas-vacacionales/${segments.slice(0, 3).join('/')}`, 
+    label: capitalize(segments[2]) 
+  });
+}
+---
+
+<Layout title={seoTitle} description={seoDescription}>
+  <!-- Breadcrumbs -->
+  {breadcrumbNavegacion.length > 0 && (
+    <nav class="container mx-auto px-4 py-3" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2 text-sm">
+        <li>
+          <a href="/" class="text-gray-500 hover:text-[#f04e00] transition-colors">
+            Inicio
+          </a>
+        </li>
+        {breadcrumbNavegacion.map((crumb, index) => (
+          <Fragment key={index}>
+            <li class="text-gray-400">/</li>
+            <li>
+              {index === breadcrumbNavegacion.length - 1 ? (
+                <span class="text-gray-700">{crumb.label}</span>
+              ) : (
+                <a href={crumb.path} class="text-gray-500 hover:text-[#f04e00] transition-colors">
+                  {crumb.label}
+                </a>
+              )}
+            </li>
+          </Fragment>
+        ))}
+      </ol>
+    </nav>
+  )}
+
+  {pageData.type === 'rental-list' && (
+    <>
+      <!-- Header con buscador compacto -->
+      <div class="bg-gray-50 py-8">
+        <div class="container mx-auto px-4">          
+          <!-- Buscador compacto prellenado -->
+          <RentalSearchBox 
+            style="compact" 
+            showTitle={false}
+            currentDestination={pageData.searchParams?.destino || ''}
+            currentCategory={pageData.searchParams?.tipo || ''}
+            currentBudget={pageData.searchParams?.presupuesto || ''}
+            currentGuests={pageData.searchParams?.huespedes || ''}
+          />
+        </div>
+      </div>
+
+      <!-- SEO Content con información dinámica -->
+      <section class="container mx-auto px-4 py-12">
+        <SEODescription 
+          destino={pageData.searchParams?.destino || ''}
+          tipo={pageData.searchParams?.tipo || ''}
+          presupuesto={pageData.searchParams?.presupuesto || ''}
+          huespedes={pageData.searchParams?.huespedes || ''}
+          totalProperties={pageData.totalProperties || 0}
+        />
+      </section>
+
+      <!-- Resultados o mensaje de no resultados -->
+      {pageData.totalProperties > 0 ? (
+        <>
+          <!-- Lista de propiedades -->
+          <div class="container mx-auto px-4 pb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pageData.listings?.map((property: any) => (
+                <a 
+                  href={`/rentas-vacacionales/${property.tipo.toLowerCase().replace(/\s+/g, '-')}/${property.destino.toLowerCase().replace(/\s+/g, '-')}/${property.slug}`}
+                  class="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                >
+                  <div class="aspect-video overflow-hidden rounded-t-xl relative">
+                    <img 
+                      src={property.imagen} 
+                      alt={property.titulo}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {property.destacado && (
+                      <div class="absolute top-3 left-3 bg-[#f04e00] text-white px-2 py-1 rounded-md text-xs font-medium">
+                        Destacado
+                      </div>
+                    )}
+                    {property.nuevo && (
+                      <div class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                        Nuevo
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div class="p-6">
+                    <div class="flex items-center justify-between mb-2">
+                      <h3 class="text-lg font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-1">
+                        {property.titulo}
+                      </h3>
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        <span class="text-sm text-gray-600">{property.rating}</span>
+                      </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-600 mb-3 flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      {property.destino}
+                    </p>
+                    
+                    <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                      <span>{property.habitaciones} hab • {property.banos} baños</span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Hasta {property.capacidad} huéspedes
+                      </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-lg font-bold text-gray-900">{property.precio}</span>
+                        <span class="text-sm text-gray-600"> por noche</span>
+                      </div>
+                      {property.reviews && (
+                        <span class="text-xs text-gray-500">{property.reviews} reseñas</span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <!-- Estadísticas específicas de la categoría -->
+          <RentalStats 
+            background="light" 
+            animated={true}
+            stats={[
+              { 
+                number: `${pageData.totalProperties}`, 
+                label: 'Propiedades encontradas',
+                icon: 'properties',
+                color: 'text-[#f04e00]'
+              },
+              { 
+                number: '4.8/5', 
+                label: 'Rating promedio',
+                icon: 'rating',
+                color: 'text-yellow-500'
+              },
+              { 
+                number: pageData.category === 'villa' ? '$320' : pageData.category === 'apartamento' ? '$150' : '$200', 
+                label: 'Precio promedio/noche',
+                icon: 'price',
+                color: 'text-green-600'
+              },
+              { 
+                number: '24/7', 
+                label: 'Soporte incluido',
+                icon: 'support',
+                color: 'text-blue-600'
+              }
+            ]}
+          />
+        </>
+      ) : (
+        <!-- No results message -->
+        <section class="container mx-auto px-4 py-12 text-center">
+          <div class="max-w-2xl mx-auto">
+            <div class="bg-gray-100 rounded-lg p-8">
+              <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">No encontramos propiedades</h3>
+              <p class="text-gray-600 mb-6">
+                No hay propiedades que coincidan con tus criterios de búsqueda. 
+                Intenta ajustar los filtros o explora nuestras opciones disponibles.
+              </p>
+              <a 
+                href="/rentas-vacacionales"
+                class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+              >
+                Ver todas las propiedades
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <!-- Secciones adicionales para enriquecer el contenido -->
+      {!pageData.category && !pageData.destination && (
+        <RentalTypeGrid 
+          title="Explora otros tipos de propiedades"
+          subtitle="Encuentra la experiencia vacacional perfecta para ti"
+        />
+      )}
+
+      {!pageData.destination && (
+        <DestinationGrid 
+          title="Otros destinos populares"
+          subtitle="Descubre más lugares increíbles en República Dominicana"
+        />
+      )}
+
+      <!-- SEO Content profundo con componente especializado -->
+      <SEOContentRentals 
+        destino={pageData.searchParams?.destino || ''}
+        tipo={pageData.searchParams?.tipo || ''}
+        presupuesto={pageData.searchParams?.presupuesto || ''}
+        huespedes={pageData.searchParams?.huespedes || ''}
+        totalProperties={pageData.totalProperties || 0}
+        listings={pageData.listings || []}
+        seasonalData={pageData.seasonalData}
+        experienceData={pageData.experienceData}
+      />
+
+      <!-- FAQs contextuales -->
+      <DynamicFAQs 
+        faqs={generateContextualFAQs(
+          pageData.searchParams?.destino,
+          pageData.searchParams?.tipo,
+          pageData.searchParams?.presupuesto,
+          pageData.searchParams?.huespedes,
+          pageData.totalProperties || 0
+        )}
+        title={`Preguntas Frecuentes sobre ${pageData.searchParams?.tipo ? 
+          pageData.searchParams.tipo.charAt(0).toUpperCase() + pageData.searchParams.tipo.slice(1) + 's' : 
+          'Rentas Vacacionales'} ${pageData.searchParams?.destino ? 
+          'en ' + pageData.searchParams.destino.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 
+          ''}`}
+        context={{
+          location: pageData.searchParams?.destino,
+          propertyType: pageData.searchParams?.tipo
+        }}
+      />
+
+      <!-- Testimonios de huéspedes -->
+      <Testimonials 
+        testimonials={generateContextualTestimonials(
+          pageData.searchParams?.destino,
+          pageData.searchParams?.tipo
+        )}
+        title="Experiencias Reales de Nuestros Huéspedes"
+        subtitle={`Lo que dicen quienes han disfrutado ${pageData.searchParams?.tipo ? 
+          pageData.searchParams.tipo + 's' : 'propiedades'} ${pageData.searchParams?.destino ? 
+          'en ' + pageData.searchParams.destino.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 
+          'con CLIC'}`}
+        layout="default"
+        categoryPrefix="/testimonios/rentas-vacacionales"
+      />
+
+      <!-- Artículos relacionados -->
+      <RelatedArticles 
+        articles={generateContextualArticles(
+          pageData.searchParams?.destino,
+          pageData.searchParams?.tipo
+        )}
+        title="Guías y Consejos de Expertos"
+        subtitle={`Todo lo que necesitas saber sobre ${pageData.searchParams?.destino ? 
+          pageData.searchParams.destino.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 
+          'rentas vacacionales en República Dominicana'}`}
+        layout="grid"
+      />
+
+      <!-- Videos exclusivos del canal -->
+      <VideoGallery 
+        videos={generateContextualVideos(
+          pageData.searchParams?.destino,
+          pageData.searchParams?.tipo
+        )}
+        title="Videos Exclusivos de Nuestro Canal"
+        subtitle={`Recorridos, consejos y experiencias reales ${pageData.searchParams?.destino ? 
+          'en ' + pageData.searchParams.destino.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 
+          'en República Dominicana'}`}
+        layout="featured"
+        propertyRelated={true}
+      />
+    </>
+  )}
+
+  {pageData.type === 'rental-property' && pageData.property && (
+    <div class="container mx-auto px-4 py-8">
+      <div class="max-w-7xl mx-auto">
+        <!-- Galería de imágenes -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div class="aspect-[4/3] overflow-hidden rounded-lg">
+            <img 
+              src={pageData.property.imagen} 
+              alt={pageData.property.titulo}
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            {pageData.property.imagenes?.slice(1, 5).map((img: string, idx: number) => (
+              <div key={idx} class="aspect-[4/3] overflow-hidden rounded-lg">
+                <img 
+                  src={img} 
+                  alt={`${pageData.property.titulo} - Imagen ${idx + 2}`}
+                  class="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Información principal -->
+          <div class="lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h1 class="text-3xl font-bold text-gray-900">{pageData.property.titulo}</h1>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span class="font-medium">{pageData.property.rating}</span>
+                <span class="text-gray-600">({pageData.property.reviews} reseñas)</span>
+              </div>
+            </div>
+            
+            <p class="text-xl text-gray-600 mb-6">{pageData.property.destino}</p>
+            
+            <div class="flex flex-wrap gap-6 mb-8 text-gray-700">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>{pageData.property.habitaciones} habitaciones</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2m12 0V5a2 2 0 00-2-2M8 7V5a2 2 0 012-2"></path>
+                </svg>
+                <span>{pageData.property.banos} baños</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span>Hasta {pageData.property.capacidad} huéspedes</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"/>
+                </svg>
+                <span>{pageData.property.metros} m²</span>
+              </div>
+            </div>
+
+            <div class="prose max-w-none mb-8">
+              <h2 class="text-2xl font-semibold mb-4">Acerca de esta propiedad</h2>
+              <div id="descripcionCorta">
+                <p class="text-gray-700">{pageData.property.descripcion}</p>
+                {pageData.property.descripcionCompleta && (
+                  <button 
+                    onclick="toggleDescripcion()"
+                    class="text-[#f04e00] hover:text-[#d94400] font-medium mt-2 inline-flex items-center gap-1 transition-colors"
+                  >
+                    Leer más
+                    <svg class="w-4 h-4 transition-transform" id="arrowIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                )}
+              </div>
+              
+              {pageData.property.descripcionCompleta && (
+                <div id="descripcionCompleta" class="hidden">
+                  <div class="text-gray-700 whitespace-pre-line">{pageData.property.descripcionCompleta}</div>
+                  <button 
+                    onclick="toggleDescripcion()"
+                    class="text-[#f04e00] hover:text-[#d94400] font-medium mt-4 inline-flex items-center gap-1 transition-colors"
+                  >
+                    Leer menos
+                    <svg class="w-4 h-4 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                </div>
+              )}
+              
+              <script>
+                function toggleDescripcion() {
+                  const corta = document.getElementById('descripcionCorta');
+                  const completa = document.getElementById('descripcionCompleta');
+                  const arrow = document.getElementById('arrowIcon');
+                  
+                  if (completa.classList.contains('hidden')) {
+                    // Mostrar descripción completa
+                    corta.classList.add('hidden');
+                    completa.classList.remove('hidden');
+                    completa.classList.add('animate-fade-in');
+                  } else {
+                    // Mostrar descripción corta
+                    completa.classList.add('hidden');
+                    corta.classList.remove('hidden');
+                    corta.classList.add('animate-fade-in');
+                  }
+                }
+              </script>
+              
+              <style>
+                .animate-fade-in {
+                  animation: fadeIn 0.3s ease-in-out;
+                }
+                
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(-10px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              </style>
+            </div>
+
+            {pageData.property.amenidades && (
+              <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Amenidades</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {pageData.property.amenidades.map((amenidad: string, idx: number) => (
+                    <div key={idx} class="flex items-center gap-2 text-gray-700">
+                      <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      <span>{amenidad}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <!-- Sidebar con reserva -->
+          <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-lg p-6 sticky top-24 border">
+              <div class="mb-6">
+                <div class="text-3xl font-bold text-gray-900 mb-2">
+                  {pageData.property.precio}
+                  <span class="text-lg font-normal text-gray-600"> por noche</span>
+                </div>
+                {pageData.property.precioSemanal && (
+                  <div class="text-lg text-gray-600">
+                    {pageData.property.precioSemanal} por semana
+                  </div>
+                )}
+              </div>
+              
+              <!-- Formulario de reserva -->
+              <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Huéspedes</label>
+                  <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                    <option>1 huésped</option>
+                    <option>2 huéspedes</option>
+                    <option>3 huéspedes</option>
+                    <option>4 huéspedes</option>
+                    <option>5+ huéspedes</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="w-full bg-[#f04e00] text-white py-3 rounded-md hover:bg-[#d94400] transition-colors mb-3 font-semibold">
+                Reservar ahora
+              </button>
+              
+              <button class="w-full border border-gray-300 py-3 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mb-4">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                Consultar por WhatsApp
+              </button>
+
+              {pageData.property.caracteristicas && (
+                <div class="border-t pt-4">
+                  <h3 class="font-semibold text-gray-900 mb-3">Detalles de la estadía</h3>
+                  <div class="space-y-2 text-sm">
+                    {Object.entries(pageData.property.caracteristicas).map(([key, value], idx) => (
+                      <div key={idx} class="flex justify-between">
+                        <span class="text-gray-600">{key}:</span>
+                        <span class="font-medium">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <!-- PropertySeoContent específico para propiedades individuales -->
+        <PropertySeoContent 
+          property={pageData.property}
+          nearbyProperties={pageData.nearbyProperties || []}
+          destino={pageData.property.destino.toLowerCase().replace(/\s+/g, '-')}
+          tipo={pageData.property.tipo.toLowerCase().replace(/\s+/g, '-')}
+        />
+
+        <!-- Propiedades similares en renta -->
+        <section class="py-16 bg-gray-50">
+          <div class="container mx-auto px-4">
+            <div class="max-w-6xl mx-auto">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center">
+                Otras Propiedades Similares en {pageData.property.destino}
+              </h2>
+              <p class="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+                Si te gustó {pageData.property.titulo}, estas opciones también podrían interesarte para tus próximas vacaciones
+              </p>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pageData.nearbyProperties?.slice(0, 6).map((similarProperty: any) => (
+                  <a 
+                    href={`/rentas-vacacionales/${similarProperty.tipo.toLowerCase().replace(/\s+/g, '-')}/${similarProperty.destino.toLowerCase().replace(/\s+/g, '-')}/${similarProperty.slug}`}
+                    class="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                  >
+                    <div class="aspect-[4/3] overflow-hidden rounded-t-xl relative">
+                      <img 
+                        src={similarProperty.imagen || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop'} 
+                        alt={similarProperty.titulo}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div class="absolute top-3 right-3 bg-black/50 text-white px-2 py-1 rounded-md text-xs">
+                        Para Rentar
+                      </div>
+                    </div>
+                    
+                    <div class="p-4">
+                      <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm mb-2 line-clamp-2">
+                        {similarProperty.titulo}
+                      </h3>
+                      
+                      <div class="flex items-center justify-between text-xs text-gray-600 mb-3">
+                        <span>{similarProperty.habitaciones} hab • {similarProperty.banos} baños</span>
+                        <span class="flex items-center gap-1">
+                          <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.720c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                          </svg>
+                          {similarProperty.rating}
+                        </span>
+                      </div>
+                      
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold text-[#f04e00]">{similarProperty.precio}</span>
+                        <span class="text-xs text-gray-500">por noche</span>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Cross-selling: Propiedades en venta -->
+        <section class="py-16 bg-white border-t">
+          <div class="container mx-auto px-4">
+            <div class="max-w-7xl mx-auto">
+              <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                
+                <!-- Contenido principal de inversión -->
+                <div class="lg:col-span-3">
+                  <div class="max-w-4xl">
+                    <div class="flex items-center gap-3 mb-4">
+                      <div class="w-12 h-12 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H7m2 0v-3a1 1 0 011-1h1a1 1 0 011 1v3M9 7h6m-6 4h6m-6 4h6"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 class="text-2xl font-bold text-gray-900">
+                          ¿Te Enamoraste de {pageData.property.destino}?
+                        </h2>
+                        <p class="text-gray-600">Invierte en tu propio paraíso vacacional</p>
+                      </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg border border-orange-100 mb-6">
+                      <h3 class="font-semibold text-orange-900 mb-3">¿Por qué invertir en rentas vacacionales en {pageData.property.destino}?</h3>
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div class="flex items-start gap-2">
+                          <svg class="w-4 h-4 text-[#f04e00] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                          </svg>
+                          <span class="text-orange-800">ROI promedio 8-12% anual</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                          <svg class="w-4 h-4 text-[#f04e00] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                          </svg>
+                          <span class="text-orange-800">Apreciación constante del mercado</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                          <svg class="w-4 h-4 text-[#f04e00] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                          </svg>
+                          <span class="text-orange-800">Destino turístico consolidado</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p class="text-gray-700 leading-relaxed mb-6">
+                      Si disfrutaste la experiencia en {pageData.property.titulo}, imagínate tener tu propia propiedad 
+                      en {pageData.property.destino}. Podrías usarla para tus vacaciones familiares y generar ingresos 
+                      pasivos cuando no la uses. {pageData.property.destino} es uno de los mercados más estables para 
+                      inversión en rentas vacacionales del Caribe.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h4 class="font-semibold text-gray-900 mb-2">Gestión sin preocupaciones</h4>
+                        <p class="text-sm text-gray-600">Nos encargamos de todo: marketing, reservas, limpieza, mantenimiento y gestión de huéspedes.</p>
+                      </div>
+                      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h4 class="font-semibold text-gray-900 mb-2">Uso personal flexible</h4>
+                        <p class="text-sm text-gray-600">Usa tu propiedad cuando quieras y genera ingresos el resto del tiempo. El equilibrio perfecto.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sidebar con propiedades en venta -->
+                <div class="lg:col-span-1">
+                  <div class="sticky top-4 space-y-6">
+                    <div class="bg-gradient-to-br from-gray-50 to-orange-50 p-6 rounded-xl border border-gray-200">
+                      <h3 class="font-bold text-gray-900 mb-4 text-lg">Propiedades Disponibles</h3>
+                      <div class="space-y-4">
+                        <!-- Mock de propiedades en venta similares -->
+                        <a 
+                          href="/comprar/villa/punta-cana/villa-punta-cana-golf"
+                          class="block p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors group border border-gray-200"
+                        >
+                          <div class="flex gap-3">
+                            <img 
+                              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=80&h=60&fit=crop"
+                              alt="Villa Golf Punta Cana"
+                              class="w-12 h-9 object-cover rounded flex-shrink-0"
+                            />
+                            <div class="min-w-0 flex-1">
+                              <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm line-clamp-1">
+                                Villa Golf Vista
+                              </h4>
+                              <p class="text-xs text-gray-600">4 hab • ROI 9.2%</p>
+                              <p class="text-sm font-bold text-[#f04e00] mt-1">$485K</p>
+                            </div>
+                          </div>
+                        </a>
+
+                        <a 
+                          href="/comprar/apartamento/punta-cana/apartamento-blue-mall"
+                          class="block p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors group border border-gray-200"
+                        >
+                          <div class="flex gap-3">
+                            <img 
+                              src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=80&h=60&fit=crop"
+                              alt="Apartamento Frente al Mar"
+                              class="w-12 h-9 object-cover rounded flex-shrink-0"
+                            />
+                            <div class="min-w-0 flex-1">
+                              <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm line-clamp-1">
+                                Apto. Ocean View
+                              </h4>
+                              <p class="text-xs text-gray-600">2 hab • ROI 11.5%</p>
+                              <p class="text-sm font-bold text-[#f04e00] mt-1">$285K</p>
+                            </div>
+                          </div>
+                        </a>
+
+                        <a 
+                          href="/comprar/penthouse/distrito-nacional/penthouse-anacaona"
+                          class="block p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors group border border-gray-200"
+                        >
+                          <div class="flex gap-3">
+                            <img 
+                              src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=80&h=60&fit=crop"
+                              alt="Penthouse de Lujo"
+                              class="w-12 h-9 object-cover rounded flex-shrink-0"
+                            />
+                            <div class="min-w-0 flex-1">
+                              <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm line-clamp-1">
+                                Penthouse Luxury
+                              </h4>
+                              <p class="text-xs text-gray-600">3 hab • ROI 8.7%</p>
+                              <p class="text-sm font-bold text-[#f04e00] mt-1">$650K</p>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+
+                      <div class="mt-6 pt-4 border-t border-gray-200">
+                        <a 
+                          href={`/comprar/${pageData.property.destino.toLowerCase().replace(/\s+/g, '-')}`}
+                          class="block text-center text-sm text-[#f04e00] hover:text-[#d94400] font-medium"
+                        >
+                          Ver todas las opciones →
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- CTA de asesoría de inversión -->
+                    <div class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] p-6 rounded-xl text-white text-center">
+                      <svg class="w-8 h-8 mx-auto mb-3 text-orange-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                      </svg>
+                      <h3 class="font-bold mb-2 text-lg">Asesoría Gratuita</h3>
+                      <p class="text-sm mb-4 text-orange-100">
+                        Análisis personalizado de ROI y financiamiento
+                      </p>
+                      <a 
+                        href="/contacto-inversiones"
+                        class="inline-block px-4 py-2 bg-white text-[#f04e00] rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                      >
+                        Hablar con Experto
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  )}
+
+  {pageData.type === '404' && (
+    <div class="container mx-auto px-4 py-16 text-center">
+      <div class="max-w-2xl mx-auto">
+        <h1 class="text-6xl font-bold text-gray-300 mb-4">404</h1>
+        <h2 class="text-2xl font-semibold text-gray-900 mb-4">
+          Propiedad no encontrada
+        </h2>
+        <p class="text-lg text-gray-600 mb-8">
+          La propiedad vacacional que buscas no existe o ha sido removida.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/rentas-vacacionales" class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors">
+            Ver todas las rentas
+          </a>
+          <a href="/" class="inline-block px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+            Volver al inicio
+          </a>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>

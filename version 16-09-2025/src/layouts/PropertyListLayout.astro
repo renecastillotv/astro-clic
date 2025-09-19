@@ -1,0 +1,531 @@
+---
+// src/layouts/PropertyListLayout.astro - OPTIMIZED VERSION - NO API CALLS
+import Layout from './Layout.astro';
+import PropertyList from '../components/PropertyList.astro';
+
+// Importar componentes modulares
+import PropertyListHeader from '../components/propertylist/PropertyListHeader.astro';
+import PropertyListCTA from '../components/propertylist/PropertyListCTA.astro';
+
+// Importar componentes especializados
+import SectorHighlights from '../components/propertylist/SectorHighlights.astro';
+import InteractiveNeighborhoodMap from '../components/propertylist/InteractiveNeighborhoodMap.astro';
+
+// Importar componentes para contenido enriquecido
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+import DynamicFAQs from '../components/DynamicFAQs.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import PropertySeoContent from '../components/PropertySeoContent.astro';
+import SEOInsightsSection from '../components/SEOInsightsSection.astro';
+
+// Importar PopularLocations y Testimonials
+import PopularLocations from '../components/PopularLocations.astro';
+import Testimonials from '../components/Testimonials.astro';
+
+// ===================================================================
+// RECIBIR DATA DEL ROUTER - NO MÁS LLAMADAS API
+// ===================================================================
+
+// Recibir data ya procesada del router
+const data = Astro.props.data || {};
+const language = Astro.props.language || data.language || 'es';
+
+console.log('🎯 PropertyListLayout optimized - receiving data:', {
+  hasData: !!data,
+  language: language,
+  pageType: data.pageType || data.type,
+  totalProperties: data.totalProperties || data.pagination?.total_properties || 0,
+  propertiesCount: data.properties?.length || 0
+});
+
+// Fallback data si no se recibe nada (caso de error)
+const fallbackData = {
+  pageType: 'property-list',
+  totalProperties: 0,
+  properties: [],
+  relatedContent: {
+    articles: [],
+    videos: [],
+    faqs: [],
+    carousels: [],
+    testimonials: []
+  },
+  content: {
+    faqs: [],
+    articles: []
+  },
+  featuredProperties: [],
+  hotItems: {
+    properties: [],
+    cities: [],
+    sectors: [],
+    agents: [],
+    projects: [],
+    custom: []
+  },
+  seo: {
+    title: 'Propiedades',
+    description: 'Encuentra tu próxima propiedad',
+    h1: 'Propiedades disponibles',
+    h2: 'El inmueble que buscas, a un CLIC de distancia!'
+  },
+  pagination: {
+    page: 1,
+    limit: 32,
+    total_properties: 0,
+    total_pages: 0,
+    has_next_page: false,
+    has_prev_page: false
+  },
+  tags: [],
+  language: language,
+  country: null,
+  hreflangData: {},
+  seo_content: null,
+  globalConfig: {}
+};
+
+// Usar data recibida o fallback
+const finalData = Object.keys(data).length > 0 ? data : fallbackData;
+
+// ===================================================================
+// EXTRAER DATOS COMPLETOS DE SEO Y CONFIGURACIÓN
+// ===================================================================
+
+// Extraer idioma y país
+const country = finalData.country || {};
+
+// Datos principales
+const properties = finalData.properties || [];
+const totalProperties = finalData.totalProperties || finalData.pagination?.total_properties || 0;
+const pagination = finalData.pagination || {};
+const tags = finalData.tags || [];
+
+// SEO completo desde la edge function
+const seo = finalData.seo || {};
+const seoContent = seo.seo_content || finalData.seo_content || null;
+
+// Extraer todos los campos SEO
+const title = seo.title || 'Propiedades';
+const description = seo.description || 'Encuentra tu próxima propiedad';
+const seoH1 = seo.h1 || title;
+const seoH2 = seo.h2 || 'El inmueble que buscas, a un CLIC de distancia!';
+const keywords = seo.keywords || '';
+const canonicalUrl = seo.canonical_url || Astro.url.pathname;
+const breadcrumbs = seo.breadcrumbs || [];
+
+// Open Graph
+const openGraph = seo.open_graph || {
+  title: title,
+  description: description,
+  url: Astro.url.href,
+  type: 'website',
+  site_name: 'CLIC Inmobiliaria',
+  locale: language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR',
+  image: seo.open_graph?.image || '/og-default.jpg'
+};
+
+// Twitter Card
+const twitterCard = seo.twitter_card || {
+  card: 'summary_large_image',
+  site: '@clic.do',
+  creator: '@renecastillotv',
+  title: title,
+  description: description,
+  image: openGraph.image,
+  imageAlt: `${totalProperties} propiedades disponibles en República Dominicana`
+};
+
+// Meta tags adicionales
+const metaTags = seo.meta_tags || seo.additional_meta_tags || {};
+
+// Hreflang
+const hreflangData = seo.hreflang || finalData.hreflangData || {};
+
+// Structured data - mantener todos los schemas
+const structuredData = seo.structured_data || [];
+
+// Configuración global
+const globalConfig = finalData.globalConfig || {};
+
+// Contenido relacionado
+const relatedContent = finalData.relatedContent || {};
+const articles = relatedContent.articles || [];
+const videos = relatedContent.videos || [];
+const faqs = relatedContent.faqs || finalData.content?.faqs || [];
+const carousels = relatedContent.carousels || [];
+const testimonials = relatedContent.testimonials || [];
+
+// Hot items
+const hotItems = finalData.hotItems || {
+  cities: [],
+  sectors: [],
+  properties: [],
+  agents: [],
+  projects: [],
+  custom: []
+};
+
+// Propiedades destacadas
+const featuredProperties = finalData.featuredProperties || [];
+
+// ===================================================================
+// FUNCIONES UTILITARIAS
+// ===================================================================
+
+// Extraer información de búsqueda de los tags
+function extractSearchInfo(tags) {
+  const info = {
+    location: null,
+    propertyType: null,
+    operation: null,
+    sector: null,
+    features: [],
+    country: null
+  };
+
+  tags.forEach(tag => {
+    switch(tag.category) {
+      case 'pais':
+        info.country = tag.display_name || tag.name;
+        break;
+      case 'ciudad':
+        info.location = tag.display_name || tag.name;
+        break;
+      case 'sector': 
+        info.sector = tag.display_name || tag.name;
+        break;
+      case 'categoria':
+      case 'property_type':
+        info.propertyType = tag.display_name || tag.name;
+        break;
+      case 'operacion':
+      case 'operation':
+        info.operation = tag.display_name || tag.name;
+        break;
+      case 'caracteristica':
+      case 'amenity':
+        info.features.push(tag.display_name || tag.name);
+        break;
+    }
+  });
+
+  return info;
+}
+
+// ===================================================================
+// CONFIGURACIÓN DE COMPONENTES
+// ===================================================================
+
+const searchInfo = extractSearchInfo(tags);
+
+// Determinar qué tipo de contenido mostrar en PopularLocations
+function getPopularLocationsShowType(searchInfo, hotItems) {
+  const hasCities = hotItems.cities && hotItems.cities.length > 0;
+  const hasSectors = hotItems.sectors && hotItems.sectors.length > 0;
+  
+  if (searchInfo.location && hasSectors) {
+    return 'sectors';
+  } else if (hasCities && hasSectors) {
+    return 'mixed';
+  } else if (hasCities) {
+    return 'cities';
+  } else if (hasSectors) {
+    return 'sectors';
+  }
+  
+  return 'mixed';
+}
+
+// Determinar layout de testimonials
+function getTestimonialsLayout(searchInfo, totalProperties) {
+  if (totalProperties > 20) {
+    return 'grid';
+  }
+  return 'minimal';
+}
+
+// Configuración de componentes
+const shouldShowPopularLocations = (hotItems.cities && hotItems.cities.length > 0) || (hotItems.sectors && hotItems.sectors.length > 0);
+const popularLocationsShowType = shouldShowPopularLocations ? getPopularLocationsShowType(searchInfo, hotItems) : 'mixed';
+const showTestimonials = testimonials && testimonials.length > 0;
+const testimonialsLayout = showTestimonials ? getTestimonialsLayout(searchInfo, totalProperties) : 'minimal';
+
+// Debug log
+console.log('✅ PropertyListLayout - Data procesada exitosamente:', {
+  language: language,
+  country: country.name || 'República Dominicana',
+  totalProperties,
+  seo: {
+    title,
+    description,
+    keywords: keywords ? 'yes' : 'no',
+    canonical: canonicalUrl,
+    openGraph: openGraph ? 'configured' : 'missing',
+    twitterCard: twitterCard ? 'configured' : 'missing',
+    structuredDataCount: structuredData.length,
+    hreflangCount: Object.keys(hreflangData).length,
+    metaTagsCount: Object.keys(metaTags).length
+  },
+  seoContent: {
+    hasMarketInsights: seoContent?.market_insights?.length > 0,
+    hasTips: seoContent?.tips?.length > 0,
+    hasInvestmentData: seoContent?.investment_data ? true : false,
+    hasNeighborhoodInfo: seoContent?.neighborhood_info ? true : false
+  },
+  globalConfig: {
+    hasContact: globalConfig.contact ? true : false,
+    hasSocial: globalConfig.social ? true : false,
+    hasTranslations: globalConfig.translations ? true : false
+  }
+});
+---
+
+<Layout 
+  title={title} 
+  description={description}
+  keywords={keywords}
+  canonicalUrl={canonicalUrl}
+  ogImage={openGraph.image}
+  ogTitle={openGraph.title}
+  ogDescription={openGraph.description}
+  ogUrl={openGraph.url}
+  ogType={openGraph.type}
+  ogSiteName={openGraph.site_name}
+  ogLocale={openGraph.locale}
+  twitterCard={twitterCard.card}
+  twitterSite={twitterCard.site}
+  twitterCreator={twitterCard.creator}
+  twitterTitle={twitterCard.title}
+  twitterDescription={twitterCard.description}
+  twitterImage={twitterCard.image}
+  twitterImageAlt={twitterCard.imageAlt}
+  breadcrumbs={breadcrumbs}
+  hreflangData={hreflangData}
+  robots={metaTags.robots}
+  author={metaTags.author}
+  publisher={metaTags.publisher}
+  geoRegion={metaTags.geoRegion}
+  geoPlacename={metaTags.geoPlacename}
+  geoPosition={metaTags.geoPosition}
+  rating={metaTags.rating}
+  distribution={metaTags.distribution}
+  revisitAfter={metaTags.revisitAfter}
+  expires={metaTags.expires}
+  priceRange={metaTags.priceRange}
+  mobileWebAppCapable={metaTags.mobileWebAppCapable}
+  appleMobileWebAppCapable={metaTags.appleMobileWebAppCapable}
+  appleMobileWebAppStatusBarStyle={metaTags.appleMobileWebAppStatusBarStyle}
+  formatDetection={metaTags.formatDetection}
+  businessContactEmail={metaTags.businessContactEmail}
+  businessContactTelephone={metaTags.businessContactTelephone}
+  businessContactWhatsapp={metaTags.businessContactWhatsapp}
+  globalConfig={globalConfig}
+  country={country}
+  language={language}
+>
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- Header con SEO completo y Breadcrumb -->
+    <PropertyListHeader 
+      seoH1={seoH1}
+      seoH2={seoH2}
+      totalProperties={totalProperties}
+      seoContent={seoContent}
+      language={language}
+      country={country}
+      tags={tags}
+      searchInfo={searchInfo}
+      breadcrumbs={breadcrumbs}
+    />
+
+    <!-- Listado Principal de Propiedades -->
+    <PropertyList 
+      listings={properties} 
+      meta={{
+        title: seoH1,
+        description: seoH2,
+        keywords: keywords
+      }}
+      totalCount={totalProperties}
+      currentPage={pagination.page || 1}
+      totalPages={pagination.total_pages || 1}
+      itemsPerPage={pagination.limit || 32}
+      hasNextPage={pagination.has_next_page || false}
+      hasPreviousPage={pagination.has_prev_page || false}
+      language={language}
+      country={country}
+      globalConfig={globalConfig}
+    />
+
+    <!-- TESTIMONIALS - Después del listado principal cuando hay propiedades -->
+    {showTestimonials && totalProperties > 0 && (
+      <div class="py-8">
+        <Testimonials 
+          testimonials={testimonials}
+          showTitle={true}
+          layout={testimonialsLayout}
+          maxItems={4}
+          language={language}
+          context={{
+            location: searchInfo.location,
+            sector: searchInfo.sector,
+            propertyType: searchInfo.propertyType,
+            totalProperties: totalProperties,
+            country: searchInfo.country
+          }}
+        />
+      </div>
+    )}
+
+    <!-- PopularLocations con contexto completo -->
+    {shouldShowPopularLocations && (
+      <PopularLocations 
+        hotItems={hotItems}
+        showType={popularLocationsShowType}
+        dataSource="edge_function"
+        showBadges={true}
+        language={language}
+        context={{
+          location: searchInfo.location,
+          sector: searchInfo.sector,
+          hasSectors: hotItems.sectors?.length > 0,
+          hasCities: hotItems.cities?.length > 0,
+          country: searchInfo.country
+        }}
+      />
+    )}
+
+    <!-- Contenido SEO Enriquecido con datos completos -->
+    {seoContent && (
+      <SEOInsightsSection 
+        seoContent={seoContent}
+        searchInfo={searchInfo}
+        language={language}
+        country={country}
+      />
+    )}
+
+    <!-- Carruseles de Propiedades -->
+    {carousels.length > 0 && carousels.map((carousel) => (
+      <PropertyCarousel 
+        title={carousel.title}
+        subtitle={carousel.description || carousel.subtitle}
+        properties={carousel.properties || []}
+        viewAllLink={carousel.carousel_url || carousel.viewAllLink || '#'}
+        theme="default"
+        language={language}
+        country={country}
+      />
+    ))}
+
+    <!-- Propiedades Destacadas Adicionales -->
+    {featuredProperties.length > 0 && (
+      <PropertyCarousel 
+        properties={featuredProperties}
+        viewAllLink="/destacadas"
+        theme="featured"
+        language={language}
+        country={country}
+      />
+    )}
+
+    <!-- FAQs con contexto SEO -->
+    {faqs.length > 0 && (
+      <DynamicFAQs 
+        faqs={faqs}
+        context={{
+          location: searchInfo.location || searchInfo.sector,
+          propertyType: searchInfo.propertyType,
+          features: searchInfo.features || [],
+          country: searchInfo.country
+        }}
+        language={language}
+      />
+    )}
+
+    <!-- Artículos -->
+    {articles.length > 0 && (
+      <RelatedArticles 
+        articles={articles}
+        layout="featured"
+        articlesStats={{
+          total_articles: articles.length
+        }}
+        language={language}
+        country={country}
+      />
+    )}
+
+    <!-- Videos -->
+    {videos.length > 0 && (
+      <VideoGallery 
+        videos={videos}
+        layout="featured"
+        propertyRelated={true}
+        language={language}
+        country={country}
+      />
+    )}
+
+    <!-- TESTIMONIALS - Cuando no hay propiedades pero sí contenido -->
+    {showTestimonials && totalProperties === 0 && (
+      <div class="py-8">
+        <Testimonials 
+          testimonials={testimonials}
+          showTitle={true}
+          layout="minimal"
+          maxItems={6}
+          language={language}
+          context={{
+            location: searchInfo.location,
+            sector: searchInfo.sector,
+            propertyType: searchInfo.propertyType,
+            totalProperties: 0,
+            country: searchInfo.country
+          }}
+        />
+      </div>
+    )}
+
+    <!-- Contenido SEO adicional con todos los datos -->
+    <PropertySeoContent 
+      data={finalData}
+      language={language}
+      country={country}
+      seoContent={seoContent}
+    />
+
+    <!-- CTA Final con configuración global -->
+    <PropertyListCTA 
+      searchInfo={searchInfo}
+      language={language}
+      globalConfig={globalConfig}
+      country={country}
+    />
+  </div>
+
+  <!-- Todos los Structured Data -->
+  {structuredData && structuredData.length > 0 && structuredData.map((schema) => (
+    <script type="application/ld+json" set:html={JSON.stringify(schema)}></script>
+  ))}
+</Layout>
+
+<style>
+  .transform {
+    transition: transform 0.3s ease;
+  }
+  
+  .bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+  }
+  
+  .bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+</style>

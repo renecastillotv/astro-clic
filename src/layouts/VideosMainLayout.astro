@@ -1,0 +1,461 @@
+---
+// src/layouts/VideosMainLayout.astro - Layout para página principal de videos
+import Layout from './Layout.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let videosData = data;
+
+// Si no hay datos, usar fallback estático
+if (!videosData || !videosData.categories) {
+  console.log('📹 VideosMainLayout: Usando datos estáticos de fallback');
+  
+  videosData = {
+    language: language,
+    categories: [
+      {
+        id: 'casa-famosos',
+        slug: 'la-casa-de-los-famosos',
+        title: language === 'es' ? 'La Casa de los Famosos' :
+               language === 'en' ? 'Celebrity Homes' :
+               'Maisons des Célébrités',
+        description: language === 'es' ? 'Tours exclusivos por las propiedades de las celebridades dominicanas' :
+                     language === 'en' ? 'Exclusive tours of Dominican celebrities\' properties' :
+                     'Visites exclusives des propriétés des célébrités dominicaines',
+        thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        videoCount: 24,
+        featured: true,
+        popularVideos: [
+          language === 'es' ? 'Casa de Luz García en Cacicazgos' :
+          language === 'en' ? 'Luz García\'s House in Cacicazgos' :
+          'Maison de Luz García à Cacicazgos',
+          language === 'es' ? 'Penthouse de Romeo Santos' :
+          language === 'en' ? 'Romeo Santos\' Penthouse' :
+          'Penthouse de Romeo Santos',
+          language === 'es' ? 'Villa de Juan Luis Guerra' :
+          language === 'en' ? 'Juan Luis Guerra\'s Villa' :
+          'Villa de Juan Luis Guerra'
+        ]
+      },
+      {
+        id: 'decoracion',
+        slug: 'tips-de-decoracion',
+        title: language === 'es' ? 'Tips de Decoración' :
+               language === 'en' ? 'Decoration Tips' :
+               'Conseils de Décoration',
+        description: language === 'es' ? 'Consejos profesionales para transformar tu hogar en un espacio de ensueño' :
+                     language === 'en' ? 'Professional tips to transform your home into a dream space' :
+                     'Conseils professionnels pour transformer votre maison en un espace de rêve',
+        thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
+        videoCount: 18,
+        popularVideos: [
+          language === 'es' ? '5 Tips para decorar como profesional' :
+          language === 'en' ? '5 Tips to decorate like a professional' :
+          '5 Conseils pour décorer comme un professionnel',
+          language === 'es' ? 'Transforma tu villa con $1000' :
+          language === 'en' ? 'Transform your villa with $1000' :
+          'Transformez votre villa avec 1000$',
+          language === 'es' ? 'Decoración minimalista moderna' :
+          language === 'en' ? 'Modern minimalist decoration' :
+          'Décoration minimaliste moderne'
+        ]
+      },
+      {
+        id: 'proyectos',
+        slug: 'proyectos-nuevos',
+        title: language === 'es' ? 'Proyectos Nuevos' :
+               language === 'en' ? 'New Projects' :
+               'Nouveaux Projets',
+        description: language === 'es' ? 'Recorridos virtuales por los desarrollos más exclusivos de República Dominicana' :
+                     language === 'en' ? 'Virtual tours of the most exclusive developments in Dominican Republic' :
+                     'Visites virtuelles des développements les plus exclusifs de République dominicaine',
+        thumbnail: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop',
+        videoCount: 32,
+        featured: true,
+        popularVideos: [
+          language === 'es' ? 'Vista Cana - Lo mejor de Bávaro' :
+          language === 'en' ? 'Vista Cana - The best of Bávaro' :
+          'Vista Cana - Le meilleur de Bávaro',
+          'Cap Cana Heritage',
+          'Torre Anacaona 27'
+        ]
+      },
+      {
+        id: 'recorridos',
+        slug: 'recorridos-de-propiedades',
+        title: language === 'es' ? 'Recorridos de Propiedades' :
+               language === 'en' ? 'Property Tours' :
+               'Visites de Propriétés',
+        description: language === 'es' ? 'Tours detallados por propiedades disponibles para venta y alquiler' :
+                     language === 'en' ? 'Detailed tours of properties available for sale and rent' :
+                     'Visites détaillées de propriétés disponibles à la vente et à la location',
+        thumbnail: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+        videoCount: 45,
+        popularVideos: [
+          language === 'es' ? 'Villa frente al mar en Punta Cana' :
+          language === 'en' ? 'Oceanfront villa in Punta Cana' :
+          'Villa en bord de mer à Punta Cana',
+          language === 'es' ? 'Penthouse de lujo en Naco' :
+          language === 'en' ? 'Luxury penthouse in Naco' :
+          'Penthouse de luxe à Naco',
+          language === 'es' ? 'Casa moderna en Arroyo Hondo' :
+          language === 'en' ? 'Modern house in Arroyo Hondo' :
+          'Maison moderne à Arroyo Hondo'
+        ]
+      },
+      {
+        id: 'entrevistas',
+        slug: 'entrevistas-exclusivas',
+        title: language === 'es' ? 'Entrevistas Exclusivas' :
+               language === 'en' ? 'Exclusive Interviews' :
+               'Entretiens Exclusifs',
+        description: language === 'es' ? 'Conversaciones con personalidades sobre sus hogares y estilo de vida' :
+                     language === 'en' ? 'Conversations with personalities about their homes and lifestyle' :
+                     'Conversations avec des personnalités sur leurs maisons et leur style de vie',
+        thumbnail: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
+        videoCount: 15,
+        popularVideos: [
+          language === 'es' ? 'Juan Luis Guerra habla de su nueva casa' :
+          language === 'en' ? 'Juan Luis Guerra talks about his new house' :
+          'Juan Luis Guerra parle de sa nouvelle maison',
+          language === 'es' ? 'El Mayor Clásico y su penthouse' :
+          language === 'en' ? 'El Mayor Clásico and his penthouse' :
+          'El Mayor Clásico et son penthouse',
+          language === 'es' ? 'Natti Natasha: Mi refugio en RD' :
+          language === 'en' ? 'Natti Natasha: My refuge in DR' :
+          'Natti Natasha: Mon refuge en RD'
+        ]
+      },
+      {
+        id: 'tips',
+        slug: 'tips-de-inversion',
+        title: language === 'es' ? 'Tips de Inversión' :
+               language === 'en' ? 'Investment Tips' :
+               'Conseils d\'Investissement',
+        description: language === 'es' ? 'Guías expertas para maximizar tu inversión inmobiliaria' :
+                     language === 'en' ? 'Expert guides to maximize your real estate investment' :
+                     'Guides d\'experts pour maximiser votre investissement immobilier',
+        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+        videoCount: 28,
+        popularVideos: [
+          language === 'es' ? 'ROI en Airbnb: Caso real 2024' :
+          language === 'en' ? 'Airbnb ROI: Real case 2024' :
+          'ROI Airbnb: Cas réel 2024',
+          language === 'es' ? 'Cómo evaluar una propiedad' :
+          language === 'en' ? 'How to evaluate a property' :
+          'Comment évaluer une propriété',
+          language === 'es' ? 'Mejores zonas para invertir' :
+          language === 'en' ? 'Best areas to invest' :
+          'Meilleures zones pour investir'
+        ]
+      }
+    ],
+    stats: {
+      subscribers: '200K+',
+      totalVideos: 162,
+      totalViews: '10M+',
+      avgRating: 4.8
+    },
+    seo: {
+      title: language === 'es' ? 'Videos Inmobiliarios - CLIC' :
+             language === 'en' ? 'Real Estate Videos - CLIC' :
+             'Vidéos Immobilières - CLIC',
+      description: language === 'es' ? 'Explora nuestra colección de videos: tours de propiedades, casas de famosos, tips de decoración e inversión inmobiliaria en República Dominicana' :
+                   language === 'en' ? 'Explore our video collection: property tours, celebrity homes, decoration and real estate investment tips in Dominican Republic' :
+                   'Explorez notre collection de vidéos: visites de propriétés, maisons de célébrités, conseils de décoration et d\'investissement immobilier en République dominicaine'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const categories = videosData.categories || [];
+const featuredCategories = categories.filter(cat => cat.featured);
+const regularCategories = categories.filter(cat => !cat.featured);
+const stats = videosData.stats || {};
+
+// Calcular total de videos
+const totalVideos = categories.reduce((sum, cat) => sum + cat.videoCount, 0);
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Centro de Videos CLIC Inmobiliaria',
+    subtitle: 'Descubre propiedades, conoce las casas de los famosos, aprende tips de decoración e inversión con el canal inmobiliario #1 de República Dominicana',
+    featuredTitle: 'Categorías Destacadas',
+    allCategoriesTitle: 'Todas las Categorías',
+    ctaTitle: '¿No encuentras lo que buscas?',
+    ctaSubtitle: 'Suscríbete a nuestro canal de YouTube para no perderte ningún video nuevo',
+    ctaButton1: 'Suscribirse al canal',
+    ctaButton2: 'Solicitar un video personalizado',
+    viewCategory: 'Ver categoría',
+    viewAll: 'Ver todos',
+    videos: 'videos',
+    videosAvailable: 'videos disponibles',
+    popularVideos: 'Videos populares:',
+    statsLabels: {
+      subscribers: 'Suscriptores',
+      videos: 'Videos disponibles',
+      views: 'Visualizaciones'
+    }
+  },
+  en: {
+    title: 'CLIC Real Estate Video Center',
+    subtitle: 'Discover properties, explore celebrity homes, learn decoration and investment tips with the #1 real estate channel in Dominican Republic',
+    featuredTitle: 'Featured Categories',
+    allCategoriesTitle: 'All Categories',
+    ctaTitle: 'Can\'t find what you\'re looking for?',
+    ctaSubtitle: 'Subscribe to our YouTube channel to never miss a new video',
+    ctaButton1: 'Subscribe to channel',
+    ctaButton2: 'Request a personalized video',
+    viewCategory: 'View category',
+    viewAll: 'View all',
+    videos: 'videos',
+    videosAvailable: 'videos available',
+    popularVideos: 'Popular videos:',
+    statsLabels: {
+      subscribers: 'Subscribers',
+      videos: 'Videos available',
+      views: 'Views'
+    }
+  },
+  fr: {
+    title: 'Centre Vidéo CLIC Immobilier',
+    subtitle: 'Découvrez des propriétés, explorez les maisons de célébrités, apprenez des conseils de décoration et d\'investissement avec la chaîne immobilière #1 de République dominicaine',
+    featuredTitle: 'Catégories en Vedette',
+    allCategoriesTitle: 'Toutes les Catégories',
+    ctaTitle: 'Vous ne trouvez pas ce que vous cherchez?',
+    ctaSubtitle: 'Abonnez-vous à notre chaîne YouTube pour ne manquer aucune nouvelle vidéo',
+    ctaButton1: 'S\'abonner à la chaîne',
+    ctaButton2: 'Demander une vidéo personnalisée',
+    viewCategory: 'Voir la catégorie',
+    viewAll: 'Voir tout',
+    videos: 'vidéos',
+    videosAvailable: 'vidéos disponibles',
+    popularVideos: 'Vidéos populaires:',
+    statsLabels: {
+      subscribers: 'Abonnés',
+      videos: 'Vidéos disponibles',
+      views: 'Vues'
+    }
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    videosBase: '/videos'
+  },
+  en: {
+    contact: '/en/contact',
+    videosBase: '/en/videos'
+  },
+  fr: {
+    contact: '/fr/contact',
+    videosBase: '/fr/videos'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ VideosMainLayout preparado:', {
+  language,
+  categoriesCount: categories.length,
+  featuredCount: featuredCategories.length,
+  totalVideos: totalVideos
+});
+---
+
+<Layout 
+  title={videosData.seo?.title || text.title}
+  description={videosData.seo?.description || text.subtitle}
+  language={language}
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-16">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          {text.title}
+        </h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+          {text.subtitle}
+        </p>
+        
+        <!-- Stats -->
+        <div class="flex flex-wrap justify-center gap-8">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">{stats.subscribers || '200K+'}</div>
+            <div class="text-sm text-gray-600">{text.statsLabels.subscribers}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">{stats.totalVideos || totalVideos}</div>
+            <div class="text-sm text-gray-600">{text.statsLabels.videos}</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-[#f04e00]">{stats.totalViews || '10M+'}</div>
+            <div class="text-sm text-gray-600">{text.statsLabels.views}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Categories -->
+  {featuredCategories.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.featuredTitle}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredCategories.map((category) => (
+            <a 
+              href={`${currentRoutes.videosBase}/${category.slug}`}
+              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div class="aspect-[16/9] relative">
+                <img 
+                  src={category.thumbnail} 
+                  alt={category.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                
+                <!-- Content overlay -->
+                <div class="absolute bottom-0 left-0 right-0 p-8">
+                  <h3 class="text-3xl font-bold text-white mb-2">{category.title}</h3>
+                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/80">
+                      {category.videoCount} {text.videosAvailable}
+                    </span>
+                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                      {text.viewCategory}
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
+                  
+                  <!-- Popular videos preview -->
+                  <div class="mt-4 pt-4 border-t border-white/20">
+                    <p class="text-sm text-white/70 mb-2">{text.popularVideos}</p>
+                    <ul class="text-sm text-white/90 space-y-1">
+                      {category.popularVideos.slice(0, 3).map(video => (
+                        <li class="flex items-center gap-2">
+                          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                          {video}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Regular Categories -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularCategories.map((category) => (
+          <a 
+            href={`${currentRoutes.videosBase}/${category.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+          >
+            <div class="aspect-video relative overflow-hidden rounded-t-lg">
+              <img 
+                src={category.thumbnail} 
+                alt={category.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg class="w-8 h-8 text-[#f04e00] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div class="p-6">
+              <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                {category.title}
+              </h3>
+              <p class="text-gray-600 mb-4">{category.description}</p>
+              
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-500">
+                  {category.videoCount} {text.videos}
+                </span>
+                <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  {text.viewAll}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+        {text.ctaTitle}
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        {text.ctaSubtitle}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href="https://youtube.com/@clicinmobiliaria" 
+          target="_blank"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+          {text.ctaButton1}
+        </a>
+        <a 
+          href={currentRoutes.contact} 
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors"
+        >
+          {text.ctaButton2}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

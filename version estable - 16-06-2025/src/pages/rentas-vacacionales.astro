@@ -1,0 +1,910 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RentalCarousel from '../components/RentalCarousel.astro';
+import RentalSearchBox from '../components/RentalSearchBox.astro';
+import RentalTypeGrid from '../components/RentalTypeGrid.astro';
+import DestinationGrid from '../components/DestinationGrid.astro';
+import RentalStats from '../components/RentalStats.astro';
+import RentalFeatures from '../components/RentalFeatures.astro';
+import SEODescription from '../components/SEODescription.astro';
+import DynamicFAQs from '../components/DynamicFAQs.astro';
+import Testimonials from '../components/Testimonials.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+
+// Función para extraer parámetros de la URL
+function extractSearchParams(url) {
+  const pathname = url.pathname;
+  
+  // Si estamos en una página de búsqueda, extraer parámetros de la URL
+  if (pathname.includes('/rentas-vacacionales')) {
+    const pathParts = pathname.split('/').filter(part => part !== '' && part !== 'rentas-vacacionales');
+    
+    let destino = '';
+    let tipo = '';
+    let presupuesto = '';
+    let huespedes = '';
+    
+    // Mapeos inversos para convertir de URL SEO a valores
+    const tipoMap = {
+      'villa': 'villa',
+      'apartamento': 'apartamento', 
+      'casa': 'casa',
+      'lujo': 'lujo'
+    };
+    
+    const destinoMap = {
+      'punta-cana': 'punta-cana',
+      'cap-cana': 'cap-cana',
+      'las-terrenas': 'las-terrenas',
+      'casa-de-campo': 'casa-de-campo',
+      'samana': 'samana',
+      'bavaro': 'bavaro'
+    };
+    
+    const presupuestoMap = {
+      'menos-de-100-por-noche': '0-100',
+      'de-100-a-200-por-noche': '100-200',
+      'de-200-a-400-por-noche': '200-400', 
+      'de-400-a-600-por-noche': '400-600',
+      'mas-de-600-por-noche': '600+'
+    };
+    
+    const huespedesMap = {
+      'para-1-persona': '1',
+      'para-2-personas': '2',
+      'para-3-personas': '3',
+      'para-4-personas': '4', 
+      'para-5-personas': '5',
+      'para-6-o-mas-personas': '6+'
+    };
+    
+    // Procesar cada parte de la URL
+    pathParts.forEach(part => {
+      if (tipoMap[part]) {
+        tipo = tipoMap[part];
+      } else if (destinoMap[part]) {
+        destino = destinoMap[part];
+      } else if (presupuestoMap[part]) {
+        presupuesto = presupuestoMap[part];
+      } else if (huespedesMap[part]) {
+        huespedes = huespedesMap[part];
+      }
+    });
+    
+    // También revisar query parameters como fallback
+    const searchParams = url.searchParams;
+    if (!destino && searchParams.get('destino')) destino = searchParams.get('destino');
+    if (!tipo && searchParams.get('tipo')) tipo = searchParams.get('tipo');
+    if (!presupuesto && searchParams.get('presupuesto')) presupuesto = searchParams.get('presupuesto');
+    if (!huespedes && searchParams.get('huespedes')) huespedes = searchParams.get('huespedes');
+    
+    return { destino, tipo, presupuesto, huespedes, isSearchPage: pathParts.length > 0 || url.search !== '' };
+  }
+  
+  return { destino: '', tipo: '', presupuesto: '', huespedes: '', isSearchPage: false };
+}
+
+// Extraer parámetros de búsqueda de la URL actual
+const searchParams = extractSearchParams(Astro.url);
+const { destino, tipo, presupuesto, huespedes, isSearchPage } = searchParams;
+
+// Función para filtrar propiedades basado en los parámetros de búsqueda
+function filterProperties(properties, filters) {
+  return properties.filter(property => {
+    // Filtrar por destino
+    if (filters.destino) {
+      const destinoMap = {
+        'punta-cana': ['Punta Cana'],
+        'cap-cana': ['Cap Cana'],
+        'las-terrenas': ['Las Terrenas'], 
+        'casa-de-campo': ['Casa de Campo'],
+        'samana': ['Samaná'],
+        'bavaro': ['Bávaro']
+      };
+      const allowedSectors = destinoMap[filters.destino] || [];
+      if (!allowedSectors.includes(property.sector)) return false;
+    }
+    
+    // Filtrar por tipo
+    if (filters.tipo) {
+      const tipoMap = {
+        'villa': ['Villa', 'Villa de Lujo'],
+        'apartamento': ['Apartamento', 'Penthouse'],
+        'casa': ['Casa'],
+        'lujo': ['Villa de Lujo', 'Penthouse de Lujo']
+      };
+      const allowedTypes = tipoMap[filters.tipo] || [];
+      if (!allowedTypes.some(allowedType => property.tipo.includes(allowedType))) return false;
+    }
+    
+    // Filtrar por presupuesto (extraer número del precio)
+    if (filters.presupuesto) {
+      const priceNumber = parseInt(property.precio.replace(/[^\d]/g, ''));
+      const [min, max] = filters.presupuesto.split('-').map(p => p === '+' ? Infinity : parseInt(p));
+      if (max === undefined) {
+        if (priceNumber < min) return false;
+      } else {
+        if (priceNumber < min || priceNumber > max) return false;
+      }
+    }
+    
+    // Filtrar por huéspedes
+    if (filters.huespedes) {
+      const guestCount = filters.huespedes === '6+' ? 6 : parseInt(filters.huespedes);
+      if (filters.huespedes === '6+') {
+        if (property.capacidad < 6) return false;
+      } else {
+        if (property.capacidad < guestCount) return false;
+      }
+    }
+    
+    return true;
+  });
+}
+
+// Propiedades destacadas (base de datos simulada)
+const todasLasPropiedades = [
+  {
+    slug: 'villa-paradiso',
+    titulo: 'Villa Paradiso - Punta Cana',
+    precio: '$320/noche',
+    imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    sector: 'Punta Cana',
+    habitaciones: 4,
+    banos: 4,
+    capacidad: 8,
+    tipo: 'Villa',
+    rating: 4.9,
+    destacado: true,
+    descuento: 'Disponible ahora'
+  },
+  {
+    slug: 'penthouse-bavaro',
+    titulo: 'Penthouse Bávaro Beach',
+    precio: '$180/noche',
+    imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    sector: 'Bávaro',
+    habitaciones: 3,
+    banos: 2,
+    capacidad: 6,
+    tipo: 'Apartamento',
+    rating: 4.7,
+    nuevo: true
+  },
+  {
+    slug: 'villa-lujo-cap-cana',
+    titulo: 'Villa de Lujo Cap Cana',
+    precio: '$580/noche',
+    imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+    sector: 'Cap Cana',
+    habitaciones: 5,
+    banos: 5,
+    capacidad: 10,
+    tipo: 'Villa de Lujo',
+    rating: 5.0
+  },
+  {
+    slug: 'apartamento-las-terrenas',
+    titulo: 'Apartamento Frente al Mar Las Terrenas',
+    precio: '$150/noche',
+    imagen: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop',
+    sector: 'Las Terrenas',
+    habitaciones: 2,
+    banos: 2,
+    capacidad: 4,
+    tipo: 'Apartamento',
+    rating: 4.6
+  },
+  {
+    slug: 'casa-samana-playa',
+    titulo: 'Casa Familiar Samaná',
+    precio: '$280/noche',
+    imagen: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+    sector: 'Samaná',
+    habitaciones: 3,
+    banos: 3,
+    capacidad: 6,
+    tipo: 'Casa',
+    rating: 4.8
+  }
+];
+
+// Filtrar propiedades si estamos en una página de búsqueda
+const propiedadesParaMostrar = isSearchPage 
+  ? filterProperties(todasLasPropiedades, { destino, tipo, presupuesto, huespedes })
+  : todasLasPropiedades.slice(0, 3); // Solo las primeras 3 para la página principal
+
+const totalProperties = propiedadesParaMostrar.length;
+
+// Generar título y descripción dinámicos para SEO
+function generatePageTitle() {
+  if (!isSearchPage) {
+    return "Rentas Vacacionales en República Dominicana - CLIC";
+  }
+  
+  let title = "";
+  const destinoLabels = {
+    'punta-cana': 'Punta Cana',
+    'cap-cana': 'Cap Cana', 
+    'las-terrenas': 'Las Terrenas',
+    'casa-de-campo': 'Casa de Campo',
+    'samana': 'Samaná',
+    'bavaro': 'Bávaro'
+  };
+  
+  const tipoLabels = {
+    'villa': 'Villas',
+    'apartamento': 'Apartamentos',
+    'casa': 'Casas',
+    'lujo': 'Propiedades de Lujo'
+  };
+  
+  if (tipo) {
+    title += tipoLabels[tipo];
+  } else {
+    title += "Rentas Vacacionales";
+  }
+  
+  if (destino) {
+    title += ` en ${destinoLabels[destino]}`;
+  } else {
+    title += " en República Dominicana";
+  }
+  
+  title += " - CLIC";
+  return title;
+}
+
+function generatePageDescription() {
+  if (!isSearchPage) {
+    return "Encuentra la propiedad vacacional perfecta en Punta Cana, Cap Cana, Las Terrenas y más. Villas, apartamentos y casas de lujo para tus vacaciones.";
+  }
+  
+  let description = "Encuentra ";
+  
+  if (tipo) {
+    const tipoLabels = {
+      'villa': 'villas',
+      'apartamento': 'apartamentos',
+      'casa': 'casas', 
+      'lujo': 'propiedades de lujo'
+    };
+    description += tipoLabels[tipo];
+  } else {
+    description += "propiedades vacacionales";
+  }
+  
+  if (destino) {
+    const destinoLabels = {
+      'punta-cana': 'Punta Cana',
+      'cap-cana': 'Cap Cana',
+      'las-terrenas': 'Las Terrenas',
+      'casa-de-campo': 'Casa de Campo', 
+      'samana': 'Samaná',
+      'bavaro': 'Bávaro'
+    };
+    description += ` en ${destinoLabels[destino]}`;
+  }
+  
+  description += ". Rentas vacacionales verificadas con los mejores precios y atención personalizada.";
+  return description;
+}
+
+// Data para FAQs específicas de rentas vacacionales
+const rentalFAQs = [
+  {
+    id: 'que-incluye-renta-vacacional',
+    question: '¿Qué incluye una renta vacacional en República Dominicana?',
+    answer: 'Nuestras rentas vacacionales incluyen WiFi gratuito, ropa de cama y toallas de calidad hotelera, limpieza inicial, aire acondicionado, cocina equipada, y soporte 24/7 en español. Dependiendo de la propiedad, también incluyen piscina, parking, servicios de conserjería y amenidades premium.',
+    category: 'servicios',
+    tags: ['incluido', 'amenidades', 'servicios']
+  },
+  {
+    id: 'mejor-epoca-visitar-rd',
+    question: '¿Cuál es la mejor época para rentar vacacional en RD?',
+    answer: 'República Dominicana tiene clima tropical todo el año. La temporada alta (diciembre-abril) ofrece menos lluvia pero más demanda. La temporada baja (mayo-noviembre) tiene precios hasta 40% más económicos y menos turistas, ideal para quienes buscan tranquilidad.',
+    category: 'viaje',
+    tags: ['temporada', 'clima', 'precios']
+  },
+  {
+    id: 'diferencia-hotel-renta-vacacional',
+    question: '¿Cuál es la diferencia entre hotel y renta vacacional?',
+    answer: 'Las rentas vacacionales ofrecen más espacio privado, cocina completa para preparar tus comidas, flexibilidad de horarios, y mejor valor para grupos o familias. Los hoteles ofrecen servicios diarios y amenidades compartidas. Para estadías de 3+ noches, las rentas suelen ser más económicas.',
+    category: 'comparacion',
+    tags: ['hotel', 'diferencias', 'ventajas']
+  },
+  {
+    id: 'reserva-cancelacion-rentas',
+    question: '¿Cómo funciona la reserva y cancelación?',
+    answer: 'El proceso es simple: selecciona fechas, confirma disponibilidad, realiza el depósito (generalmente 30-50% del total), y recibe confirmación con detalles de check-in. Ofrecemos cancelación gratuita hasta 7-14 días antes según la propiedad.',
+    category: 'reservas',
+    tags: ['cancelacion', 'reserva', 'politicas']
+  },
+  {
+    id: 'seguridad-rentas-vacacionales',
+    question: '¿Qué tan seguras son las rentas vacacionales?',
+    answer: 'Todas nuestras propiedades están verificadas personalmente por nuestro equipo. Incluyen sistemas de seguridad, están ubicadas en zonas turísticas seguras, y ofrecemos soporte local 24/7. Además, trabajamos solo con propietarios de confianza con historial comprobado.',
+    category: 'seguridad',
+    tags: ['seguridad', 'verificacion', 'confianza']
+  }
+];
+
+// Data para testimonios de rentas vacacionales
+const rentalTestimonials = [
+  {
+    id: 'familia-garcia-punta-cana',
+    category: 'familias',
+    author: {
+      name: 'María García',
+      location: 'Madrid, España',
+      verified: true,
+      avatar: 'https://i.pravatar.cc/150?img=7'
+    },
+    rating: 5,
+    text: 'Increíble experiencia en Villa Paradiso, Punta Cana. La propiedad superó todas nuestras expectativas. La piscina privada fue perfecta para los niños y la ubicación nos permitió caminar a la playa. CLIC nos ayudó desde el primer contacto hasta el check-out.',
+    excerpt: 'La mejor experiencia vacacional que hemos tenido. Punta Cana es realmente mágico.',
+    propertyType: 'Villa',
+    location: 'Punta Cana',
+    date: '2024-03-15',
+    views: '1,2K',
+    readTime: '3 min',
+    stayDuration: '7 noches',
+    groupSize: '6 personas'
+  },
+  {
+    id: 'pareja-johnson-cap-cana',
+    category: 'lunas-de-miel',
+    author: {
+      name: 'David & Sophie Johnson',
+      location: 'Toronto, Canadá',
+      verified: true,
+      avatar: 'https://i.pravatar.cc/150?img=8'
+    },
+    rating: 5,
+    text: 'Perfect honeymoon getaway in Cap Cana! The luxury villa was exactly what we dreamed of. Private beach access, infinity pool, and the concierge service made everything seamless. CLIC made our dream honeymoon become reality.',
+    excerpt: 'Our dream honeymoon became reality. Cap Cana is pure paradise.',
+    propertyType: 'Villa de Lujo',
+    location: 'Cap Cana',
+    date: '2024-02-28',
+    views: '890',
+    readTime: '4 min',
+    stayDuration: '5 noches',
+    groupSize: '2 personas'
+  },
+  {
+    id: 'grupo-mendoza-bavaro',
+    category: 'grupos-amigos',
+    author: {
+      name: 'Carlos Mendoza',
+      location: 'Miami, FL',
+      verified: true,
+      avatar: 'https://i.pravatar.cc/150?img=9'
+    },
+    rating: 5,
+    text: 'Organizamos un viaje con 8 amigos para celebrar un cumpleaños y el penthouse en Bávaro fue perfecto. Las amenidades del edificio, la vista al mar desde la terraza, y la cercanía a restaurantes y vida nocturna hicieron que fuera inolvidable.',
+    excerpt: 'El mejor viaje grupal que hemos hecho. Bávaro tiene de todo.',
+    propertyType: 'Penthouse',
+    location: 'Bávaro',
+    date: '2024-01-20',
+    views: '1,5K',
+    readTime: '5 min',
+    stayDuration: '4 noches',
+    groupSize: '8 personas'
+  }
+];
+
+// Data para videos de rentas vacacionales
+const rentalVideos = [
+  {
+    id: 'tour-virtual-propiedades-rd',
+    title: 'Tour Virtual: Las Mejores Rentas Vacacionales de RD 2024',
+    description: 'Recorrido exclusivo por nuestras propiedades más solicitadas en Punta Cana, Cap Cana, Las Terrenas y más. Ve cada detalle antes de reservar.',
+    thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=450&fit=crop',
+    duration: '12:45',
+    views: '125K vistas',
+    category: 'tours',
+    videoId: 'tour-virtual-rd-2024',
+    videoSlug: 'tour-virtual-rentas-vacacionales-rd',
+    featured: true
+  },
+  {
+    id: 'consejos-expertos-rentas',
+    title: '7 Consejos de Expertos para Elegir tu Renta Vacacional Perfecta',
+    description: 'Tips profesionales que solo los locales conocen: ubicación, temporadas, precios, y secretos para conseguir las mejores ofertas.',
+    thumbnail: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=450&fit=crop',
+    duration: '8:30',
+    views: '89K vistas',
+    category: 'consejos',
+    videoId: 'consejos-expertos-rentas',
+    videoSlug: 'consejos-expertos-rentas-vacacionales'
+  },
+  {
+    id: 'temporadas-precios-rd',
+    title: 'Guía de Temporadas y Precios en República Dominicana',
+    description: 'Todo sobre las mejores épocas para viajar, diferencias de precios entre temporadas, y cómo ahorrar hasta 40% en tu próxima renta.',
+    thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=450&fit=crop',
+    duration: '10:15',
+    views: '67K vistas',
+    category: 'guias',
+    videoId: 'temporadas-precios-rd',
+    videoSlug: 'guia-temporadas-precios-rd'
+  },
+  {
+    id: 'experiencias-huespedes-reales',
+    title: 'Experiencias Reales: Huéspedes Cuentan sus Vacaciones',
+    description: 'Testimonios auténticos de familias, parejas y grupos que han disfrutado nuestras rentas. Historias reales, sin guión.',
+    thumbnail: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=450&fit=crop',
+    duration: '15:20',
+    views: '43K vistas',
+    category: 'testimonios',
+    videoId: 'experiencias-huespedes-reales',
+    videoSlug: 'experiencias-reales-huespedes-clic'
+  }
+];
+
+// Data para artículos relacionados
+const rentalArticles = [
+  {
+    slug: 'guia-completa-rentas-vacacionales-rd-2024',
+    title: 'Guía Completa de Rentas Vacacionales en República Dominicana 2024',
+    excerpt: 'Todo lo que necesitas saber para elegir la renta vacacional perfecta: destinos, tipos de propiedades, precios, temporadas y consejos de expertos locales.',
+    featuredImage: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=450&fit=crop',
+    author: {
+      name: 'Equipo CLIC',
+      avatar: 'https://i.pravatar.cc/150?img=1'
+    },
+    publishedAt: '2024-03-20',
+    readTime: '12 min',
+    category: 'Guías Completas',
+    views: '8,5K',
+    featured: true,
+    tags: ['guía', 'rentas', 'república dominicana', '2024']
+  },
+  {
+    slug: 'punta-cana-vs-cap-cana-donde-hospedarse',
+    title: 'Punta Cana vs Cap Cana: ¿Dónde Hospedarse para tus Vacaciones?',
+    excerpt: 'Comparativa completa entre los dos destinos más exclusivos del este: precios, amenidades, actividades y qué tipo de viajero se adapta mejor a cada zona.',
+    featuredImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=450&fit=crop',
+    author: {
+      name: 'Ana Martínez',
+      avatar: 'https://i.pravatar.cc/150?img=2'
+    },
+    publishedAt: '2024-03-15',
+    readTime: '8 min',
+    category: 'Comparativas',
+    views: '6,2K',
+    tags: ['punta cana', 'cap cana', 'comparación', 'destinos']
+  },
+  {
+    slug: 'presupuesto-vacaciones-familia-rd',
+    title: 'Presupuesto para Vacaciones Familiares en RD: Guía 2024',
+    excerpt: 'Desglose completo de costos para unas vacaciones familiares en República Dominicana: alojamiento, comida, actividades y tips para ahorrar sin sacrificar calidad.',
+    featuredImage: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=450&fit=crop',
+    author: {
+      name: 'Roberto Delgado',
+      avatar: 'https://i.pravatar.cc/150?img=3'
+    },
+    publishedAt: '2024-03-10',
+    readTime: '10 min',
+    category: 'Presupuestos',
+    views: '4,8K',
+    tags: ['presupuesto', 'familia', 'costos', 'ahorro']
+  },
+  {
+    slug: 'actividades-imperdibles-rentas-vacacionales',
+    title: 'Las 15 Actividades Imperdibles desde tu Renta Vacacional',
+    excerpt: 'Desde snorkeling en aguas cristalinas hasta tours culturales únicos: las mejores experiencias que puedes vivir durante tu estadía en República Dominicana.',
+    featuredImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=450&fit=crop',
+    author: {
+      name: 'Carmen Núñez',
+      avatar: 'https://i.pravatar.cc/150?img=4'
+    },
+    publishedAt: '2024-03-05',
+    readTime: '15 min',
+    category: 'Actividades',
+    views: '7,1K',
+    tags: ['actividades', 'tours', 'experiencias', 'vacaciones']
+  }
+];
+
+const pageTitle = generatePageTitle();
+const pageDescription = generatePageDescription();
+---
+
+<Layout 
+  title={pageTitle}
+  description={pageDescription}
+>
+  <!-- Hero Section with Search (solo en página principal) -->
+  {!isSearchPage && (
+    <section class="relative h-[700px] flex items-center justify-center">
+      <!-- Background Image -->
+      <div class="absolute inset-0">
+        <img 
+          src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2073&q=80" 
+          alt="Playa tropical paradisíaca con aguas cristalinas"
+          class="w-full h-full object-cover"
+        />
+        <div class="absolute inset-0 bg-black/30"></div>
+      </div>
+      
+      <!-- Content -->
+      <div class="relative z-10 container mx-auto px-4">
+        <RentalSearchBox style="hero" />
+      </div>
+    </section>
+  )}
+
+  <!-- Search Results Header (solo en páginas de búsqueda) -->
+  {isSearchPage && (
+    <section class="bg-gray-50 py-8">
+      <div class="container mx-auto px-4">
+        <!-- Buscador compacto -->
+        <RentalSearchBox 
+          style="compact" 
+          showTitle={false}
+          currentDestination={destino}
+          currentCategory={tipo}
+          currentBudget={presupuesto}
+          currentGuests={huespedes}
+        />
+      </div>
+    </section>
+  )}
+
+  <!-- SEO Content (solo en páginas de búsqueda) -->
+  {isSearchPage && (
+    <section class="container mx-auto px-4 py-12">
+      <SEODescription 
+        destino={destino}
+        tipo={tipo}
+        presupuesto={presupuesto}
+        huespedes={huespedes}
+        totalProperties={totalProperties}
+      />
+    </section>
+  )}
+
+  <!-- Stats Section (solo en página principal) -->
+  {!isSearchPage && (
+    <RentalStats background="light" animated={true} />
+  )}
+
+  <!-- Featured Properties / Search Results -->
+  <RentalCarousel 
+    title={isSearchPage ? "Resultados de búsqueda" : "Propiedades Destacadas"}
+    subtitle={isSearchPage 
+      ? `Encontramos ${totalProperties} ${totalProperties === 1 ? 'propiedad' : 'propiedades'} que coinciden con tu búsqueda`
+      : "Las rentas vacacionales más populares y mejor valoradas"
+    }
+    properties={propiedadesParaMostrar}
+    viewAllLink={isSearchPage ? null : "/rentas-vacacionales/destacadas"}
+    showAll={isSearchPage}
+  />
+
+  <!-- No results message -->
+  {isSearchPage && totalProperties === 0 && (
+    <section class="container mx-auto px-4 py-12 text-center">
+      <div class="max-w-2xl mx-auto">
+        <div class="bg-gray-100 rounded-lg p-8">
+          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">No encontramos propiedades</h3>
+          <p class="text-gray-600 mb-6">
+            No hay propiedades que coincidan con tus criterios de búsqueda. 
+            Intenta ajustar los filtros o explora nuestras opciones disponibles.
+          </p>
+          <a 
+            href="/rentas-vacacionales"
+            class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+          >
+            Ver todas las propiedades
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Types Section (solo en página principal) -->
+  {!isSearchPage && (
+    <RentalTypeGrid />
+  )}
+
+  <!-- Destinations Section (solo en página principal) -->
+  {!isSearchPage && (
+    <DestinationGrid layout="grid" />
+  )}
+
+  <!-- Why Choose Us MEJORADO con datos reales y diferenciadores -->
+  {!isSearchPage && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">
+              ¿Por qué CLIC es #1 en Rentas Vacacionales en República Dominicana?
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              Más de 15 años especializados en el mercado dominicano nos han enseñado qué necesitan realmente los huéspedes
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Ventaja 1: Verificación Personal -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                100% Verificadas Personalmente
+              </h3>
+              <p class="text-gray-600">
+                Nuestro equipo visita y verifica cada propiedad. No subimos nada que no hayamos visto con nuestros propios ojos. Garantía de lo que ves es lo que obtienes.
+              </p>
+            </div>
+
+            <!-- Ventaja 2: Soporte Local Real -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                Soporte Local 24/7 Real
+              </h3>
+              <p class="text-gray-600">
+                No call centers en el extranjero. Equipo dominicano que conoce cada rincón del país y puede resolver cualquier situación en tiempo real durante tu estadía.
+              </p>
+            </div>
+
+            <!-- Ventaja 3: Precios Directos -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                Precios Directos del Propietario
+              </h3>
+              <p class="text-gray-600">
+                Sin intermediarios ni comisiones ocultas. Trabajamos directamente con propietarios para ofrecerte los mejores precios, hasta 30% menos que otras plataformas.
+              </p>
+            </div>
+
+            <!-- Ventaja 4: Conocimiento Local -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                15+ Años de Experiencia Local
+              </h3>
+              <p class="text-gray-600">
+                Conocemos cada playa, cada restaurante, cada actividad. Te damos recomendaciones que solo los locales conocen para que vivas RD como un dominicano.
+              </p>
+            </div>
+
+            <!-- Ventaja 5: Flexibilidad Total -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                Check-in Flexible y Personalizado
+              </h3>
+              <p class="text-gray-600">
+                Llegadas tarde, vuelos demorados, cambios de último momento. Nos adaptamos a tu horario, no al revés. Servicio personalizado que los grandes sitios no pueden ofrecer.
+              </p>
+            </div>
+
+            <!-- Ventaja 6: Experiencias Exclusivas -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-amber-500 to-amber-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                Acceso a Experiencias Exclusivas
+              </h3>
+              <p class="text-gray-600">
+                Tours privados, restaurantes locales auténticos, playas secretas, actividades VIP. Nuestra red de contactos te abre puertas que el turismo masivo no conoce.
+              </p>
+            </div>
+          </div>
+
+          <!-- Stats de credibilidad -->
+          <div class="mt-16 bg-gray-50 rounded-2xl p-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              <div>
+                <div class="text-3xl font-bold text-[#f04e00] mb-2">15+</div>
+                <div class="text-sm text-gray-600">Años de experiencia</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-[#f04e00] mb-2">98%</div>
+                <div class="text-sm text-gray-600">Huéspedes satisfechos</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-[#f04e00] mb-2">500+</div>
+                <div class="text-sm text-gray-600">Propiedades verificadas</div>
+              </div>
+              <div>
+                <div class="text-3xl font-bold text-[#f04e00] mb-2">24/7</div>
+                <div class="text-sm text-gray-600">Soporte local real</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- FAQs específicas y completas -->
+  {!isSearchPage && (
+    <DynamicFAQs 
+      faqs={rentalFAQs}
+      title="Preguntas Frecuentes sobre Rentas Vacacionales en República Dominicana"
+      subtitle="Resolvemos todas tus dudas para que tengas las mejores vacaciones"
+      context={{
+        location: 'República Dominicana',
+        propertyType: 'Rentas Vacacionales'
+      }}
+    />
+  )}
+
+  <!-- Testimonios con experiencias reales -->
+  {!isSearchPage && (
+    <Testimonials 
+      testimonials={rentalTestimonials}
+      title="Experiencias Reales de Nuestros Huéspedes"
+      subtitle="Miles de familias han creado recuerdos inolvidables con CLIC"
+      layout="carousel"
+      categoryPrefix="/testimonios/rentas-vacacionales"
+    />
+  )}
+
+  <!-- Videos del canal con contenido valioso -->
+  {!isSearchPage && (
+    <VideoGallery 
+      videos={rentalVideos}
+      title="🎬 Contenido Exclusivo de Nuestro Canal"
+      subtitle="200K+ suscriptores nos siguen para consejos y tours exclusivos"
+      layout="featured"
+      propertyRelated={true}
+    />
+  )}
+
+  <!-- Artículos de blog con contenido profundo -->
+  {!isSearchPage && (
+    <RelatedArticles 
+      articles={rentalArticles}
+      title="Guías y Consejos de Expertos"
+      subtitle="Todo lo que necesitas saber para unas vacaciones perfectas en RD"
+      layout="grid"
+    />
+  )}
+
+  <!-- Owners CTA -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">
+          ¿Tienes una propiedad vacacional?
+        </h2>
+        <p class="text-lg text-gray-600 mb-6">
+          Únete a nuestra plataforma y maximiza tus ingresos por rentas vacacionales
+        </p>
+        <a 
+          href="/planes-rentas-vacacionales"
+          class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+        >
+          Conocer nuestros planes
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {isSearchPage ? "¿No encontraste lo que buscabas?" : "¿Listo para unas vacaciones inolvidables?"}
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {isSearchPage 
+            ? "Contáctanos y te ayudamos a encontrar la propiedad perfecta para tus vacaciones"
+            : "Encuentra y reserva la propiedad vacacional perfecta en República Dominicana"
+          }
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          {isSearchPage ? (
+            <>
+              <a 
+                href="/contacto?servicio=rentas-huesped"
+                class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                Ayuda personalizada
+              </a>
+              <a 
+                href="/rentas-vacacionales"
+                class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+              >
+                Ver todas las propiedades
+              </a>
+            </>
+          ) : (
+            <>
+              <a 
+                href="#tipos-propiedades"
+                class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                Ver todas las propiedades
+              </a>
+              <a 
+                href="/contacto?servicio=rentas-huesped"
+                class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+              >
+                Ayuda personalizada
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schema.org estructurado para SEO -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": pageTitle,
+    "description": pageDescription,
+    "url": `https://clicinmobiliaria.com${Astro.url.pathname}`,
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "CLIC Inmobiliaria",
+      "description": "Especialistas en rentas vacacionales en República Dominicana",
+      "foundingDate": "2009",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Rentas Vacacionales",
+        "itemListElement": todasLasPropiedades.map(property => ({
+          "@type": "Offer",
+          "name": property.titulo,
+          "price": property.precio,
+          "category": property.tipo,
+          "areaServed": property.sector
+        }))
+      }
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": "https://clicinmobiliaria.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Rentas Vacacionales",
+          "item": "https://clicinmobiliaria.com/rentas-vacacionales"
+        }
+      ]
+    }
+  })} />
+</Layout>

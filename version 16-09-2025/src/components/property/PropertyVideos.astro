@@ -1,0 +1,238 @@
+---
+// src/components/property/PropertyVideos.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+
+// ✅ USAR VIDEOS DEL RELATEDCONTENT
+const videosFromAPI = data.relatedContent?.videos || [];
+// Solo mostrar videos que tengan slug válido (ya viene procesado del servidor)
+const validVideos = videosFromAPI.filter(video => video.slug && video.slug.trim() !== '');
+const mainVideo = validVideos.length > 0 ? validVideos[0] : null;
+const additionalVideos = validVideos.slice(1) || [];
+
+// ✅ Logs del servidor
+console.log('🎬 === PropertyVideos SERVER LOGS ===');
+console.log('📦 Total videos from API:', videosFromAPI.length);
+console.log('✅ Valid videos:', validVideos.length);
+console.log('🎯 MainVideo:', !!mainVideo);
+console.log('🎬 AdditionalVideos:', additionalVideos.length);
+
+if (validVideos.length < videosFromAPI.length) {
+  console.log(`⚠️ ${videosFromAPI.length - validVideos.length} videos excluidos por falta de slug válido`);
+}
+
+// ✅ Fallback simple
+const fallbackVideo = {
+  id: 'psoIb7wi5_4',
+  title: `Recorrido Virtual - ${property.name || 'Propiedad'}`,
+  slug: '/videos/entrevistas/video-bienvenida-rene-castillo',
+  description: 'Descubre cada detalle de esta increíble propiedad en un recorrido virtual completo.',
+  duration: '5:23',
+  thumbnail: 'https://img.youtube.com/vi/psoIb7wi5_4/maxresdefault.jpg',
+  source: 'fallback'
+};
+
+// ✅ Usar videos del provider o fallback
+const videoToShow = mainVideo || fallbackVideo;
+const hasVideos = validVideos.length > 0;
+---
+
+<!-- Tour Virtual y Videos -->
+{(hasVideos || !mainVideo) && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      Videos de la Propiedad
+    </h2>
+    
+    <div class="space-y-6">
+      {/* Video Principal - ✅ CAMBIO: Ahora navega a página interna */}
+      <div class="space-y-4">
+        <a 
+          href={videoToShow.slug || '#'} 
+          class="block group"
+        >
+          <div class="relative w-full aspect-video rounded-2xl overflow-hidden shadow-xl bg-gray-900 border border-gray-200 group-hover:shadow-2xl transition-all duration-300">
+            {/* Thumbnail del video principal */}
+            <img 
+              src={videoToShow.thumbnail}
+              alt={videoToShow.title}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+            
+            {/* Overlay de play */}
+            <div class="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+              <div class="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-white transition-all duration-300">
+                <i class="fas fa-play text-[#f04e00] text-2xl ml-1"></i>
+              </div>
+            </div>
+            
+            {/* Duración */}
+            {videoToShow.duration && (
+              <div class="absolute bottom-4 right-4 bg-black/80 text-white text-sm px-3 py-2 rounded-lg font-medium">
+                {videoToShow.duration}
+              </div>
+            )}
+            
+            {/* Indicador de enlace */}
+            <div class="absolute top-4 right-4 bg-white/90 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium group-hover:bg-white transition-colors">
+              Ver video completo
+            </div>
+          </div>
+        </a>
+        
+        {/* Información mejorada del video principal */}
+        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <h3 class="text-lg font-bold text-gray-900 mb-2">
+                {videoToShow.title}
+              </h3>
+              {videoToShow.description && (
+                <p class="text-gray-600 text-sm leading-relaxed mb-3">
+                  {videoToShow.description.length > 150 ? 
+                    `${videoToShow.description.substring(0, 150)}...` : 
+                    videoToShow.description
+                  }
+                </p>
+              )}
+            </div>
+            
+            <div class="flex flex-col items-end gap-2 flex-shrink-0">
+              {videoToShow.duration && (
+                <div class="flex items-center gap-2 text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+                  <i class="fas fa-clock text-xs"></i>
+                  <span>{videoToShow.duration}</span>
+                </div>
+              )}
+              
+              <div class="flex items-center gap-2 text-sm text-red-600 bg-white px-3 py-1 rounded-full">
+                <i class="fab fa-youtube text-sm"></i>
+                <span>YouTube</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Videos Adicionales - ✅ CAMBIO: Ahora usan URLs reales */}
+      {additionalVideos.length > 0 && (
+        <div class="space-y-4">
+          <h4 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-video text-[#f04e00]"></i>
+            Videos Relacionados
+            <span class="text-sm text-gray-500 font-normal">({additionalVideos.length})</span>
+          </h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {additionalVideos.map((video, index) => (
+              <a 
+                href={video.slug || '#'} 
+                class="group block bg-white rounded-xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300"
+              >
+                <div class="relative aspect-video bg-gray-900">
+                  {/* Thumbnail */}
+                  <img 
+                    src={video.thumbnail}
+                    alt={video.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    onerror={`this.src='https://img.youtube.com/vi/${video.id}/hqdefault.jpg'`}
+                  />
+                  
+                  {/* Overlay de play */}
+                  <div class="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                    <div class="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:bg-white transition-all duration-300">
+                      <i class="fas fa-play text-[#f04e00] text-lg ml-0.5"></i>
+                    </div>
+                  </div>
+                  
+                  {/* Duración */}
+                  {video.duration && (
+                    <div class="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded-md font-medium">
+                      {video.duration}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Información del video */}
+                <div class="p-4">
+                  <h5 class="font-semibold text-gray-900 text-sm group-hover:text-[#f04e00] transition-colors mb-2 line-clamp-2 leading-tight">
+                    {video.title}
+                  </h5>
+                  
+                  {video.description && (
+                    <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">
+                      {video.description.length > 60 ? 
+                        `${video.description.substring(0, 60)}...` : 
+                        video.description
+                      }
+                    </p>
+                  )}
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-xs text-gray-400">
+                      <i class="fab fa-youtube"></i>
+                      <span>YouTube</span>
+                    </div>
+                    
+                    <span class="text-xs text-[#f04e00] font-medium flex items-center gap-1">
+                      Ver video
+                      <i class="fas fa-arrow-right text-xs"></i>
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Call to Action */}
+      <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+        <div class="text-center space-y-4">
+          <div class="flex items-center justify-center gap-2 text-[#f04e00]">
+            <i class="fas fa-video text-xl"></i>
+            <span class="font-bold text-lg">¿Quieres ver más?</span>
+          </div>
+          
+          <p class="text-gray-600 text-sm max-w-md mx-auto">
+            Agenda una visita personalizada o solicita un video tour privado de esta increíble propiedad
+          </p>
+          
+          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onclick="requestPropertyVisit()"
+              class="inline-flex items-center justify-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-all duration-300 hover:shadow-lg"
+            >
+              <i class="fas fa-calendar-check"></i>
+              <span>Agendar Visita</span>
+            </button>
+            
+            <a 
+              href="tel:+18295148080"
+              class="inline-flex items-center justify-center gap-2 border-2 border-[#f04e00] text-[#f04e00] px-6 py-3 rounded-lg font-semibold hover:bg-[#f04e00] hover:text-white transition-all duration-300"
+            >
+              <i class="fas fa-phone"></i>
+              <span>Llamar Ahora</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

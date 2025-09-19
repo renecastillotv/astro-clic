@@ -1,0 +1,203 @@
+---
+import MiniSearchBar from '../MiniSearchBar.astro';
+
+export interface Props {
+  seoH1: string;
+  seoH2?: string;
+  totalProperties: number;
+  seoContent?: any;
+  language?: string;
+  country?: any;
+  tags?: any[];
+  searchInfo?: any;
+  breadcrumbs?: Array<{
+    name: string;
+    url?: string;
+    is_active?: boolean;
+    current?: boolean;
+  }>;
+}
+
+const { 
+  seoH1, 
+  seoH2, 
+  totalProperties, 
+  seoContent,
+  language = 'es',
+  country,
+  tags = [],
+  searchInfo,
+  breadcrumbs = []
+} = Astro.props;
+
+// Función para extraer stats del mercado desde seoContent
+function extractMarketStats(seoContent: any) {
+  if (!seoContent) return [];
+  
+  const stats = [];
+  const marketInsights = seoContent.market_insights || [];
+  const operationInsights = marketInsights.filter(insight => insight.content_type === 'operacion');
+  
+  operationInsights.forEach(insight => {
+    if (insight.market_growth) {
+      const growthMatch = insight.market_growth.match(/(\d+\.?\d*)%/);
+      if (growthMatch) {
+        stats.push({
+          value: growthMatch[1] + '%',
+          label: language === 'es' ? 'Crecimiento del mercado' : 
+                 language === 'en' ? 'Market growth' : 
+                 'Croissance du marché'
+        });
+      }
+    }
+    
+    if (insight.average_appreciation) {
+      const appreciationMatch = insight.average_appreciation.match(/(\d+-?\d*)%/);
+      if (appreciationMatch) {
+        stats.push({
+          value: appreciationMatch[1] + '%',
+          label: language === 'es' ? 'Apreciación anual' : 
+                 language === 'en' ? 'Annual appreciation' : 
+                 'Appréciation annuelle'
+        });
+      }
+    }
+    
+    if (insight.foreign_investment) {
+      const foreignMatch = insight.foreign_investment.match(/(\d+)%/);
+      if (foreignMatch) {
+        stats.push({
+          value: foreignMatch[1] + '%',
+          label: language === 'es' ? 'Compradores extranjeros' : 
+                 language === 'en' ? 'Foreign buyers' : 
+                 'Acheteurs étrangers'
+        });
+      }
+    }
+  });
+  
+  return stats.slice(0, 3);
+}
+
+const marketStats = extractMarketStats(seoContent);
+---
+
+<!-- Header Hero compacto con Breadcrumb SEO -->
+<section class="relative bg-cover bg-center h-[50vh] min-h-[400px]" style="background-image: url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');">
+  <!-- Overlay oscuro para mejorar legibilidad -->
+  <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+  
+  <!-- Contenido -->
+  <div class="relative z-10 h-full flex flex-col justify-center">
+    <div class="container mx-auto px-4">
+      
+      <!-- Título SEO -->
+      <div class="text-center mb-8">
+        <h1 class="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-4">
+          {seoH1}
+        </h1>
+        
+        {seoH2 && (
+          <h2 class="text-sm md:text-base text-gray-200 max-w-3xl mx-auto leading-relaxed">
+            {seoH2}
+          </h2>
+        )}
+      </div>
+
+      <!-- Barra de búsqueda -->
+      <div class="w-full max-w-6xl mx-auto px-2 mb-6">
+        <div class="bg-white rounded-lg shadow-lg p-4 overflow-hidden">
+          <MiniSearchBar />
+        </div>
+      </div>
+
+      <!-- Stats del mercado SIN ICONOS -->
+      {marketStats.length > 0 && (
+        <div class="flex flex-wrap justify-center gap-8 text-center mb-4">
+          {marketStats.map((stat) => (
+            <div class="text-white">
+              <div class="text-2xl font-bold">{stat.value}</div>
+              <div class="text-sm text-gray-200">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <!-- Breadcrumb SEO completo (con Inicio) -->
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav aria-label="Breadcrumb" class="mt-2">
+          <ol class="flex items-center justify-center flex-wrap gap-1 text-xs">
+            {breadcrumbs.map((crumb, index) => (
+              <li class="flex items-center">
+                {index > 0 && (
+                  <span class="mx-2 text-gray-400">›</span>
+                )}
+                {crumb.is_active || crumb.current ? (
+                  <span class="text-gray-300 font-medium">
+                    {crumb.name}
+                  </span>
+                ) : (
+                  <a 
+                    href={crumb.url} 
+                    class="text-gray-400 hover:text-white transition-colors duration-200"
+                    aria-label={`Ir a ${crumb.name}`}
+                  >
+                    {crumb.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      
+      <!-- Microdata Schema para Breadcrumb (invisible pero SEO) -->
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <div class="hidden" itemscope itemtype="https://schema.org/BreadcrumbList">
+          {breadcrumbs.map((crumb, index) => (
+            <div itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+              <a itemprop="item" href={crumb.url || '#'}>
+                <span itemprop="name">{crumb.name}</span>
+              </a>
+              <meta itemprop="position" content={(index + 1).toString()} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Animación sutil para el breadcrumb */
+  nav ol li a {
+    position: relative;
+  }
+  
+  nav ol li a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.6);
+    transition: width 0.3s ease;
+  }
+  
+  nav ol li a:hover::after {
+    width: 100%;
+  }
+  
+  /* Para móviles, hacer el breadcrumb más compacto */
+  @media (max-width: 640px) {
+    nav ol {
+      font-size: 0.625rem;
+    }
+    
+    nav ol li span.mx-2 {
+      margin-left: 0.375rem;
+      margin-right: 0.375rem;
+    }
+  }
+</style>

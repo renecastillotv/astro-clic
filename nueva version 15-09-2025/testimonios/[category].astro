@@ -1,0 +1,560 @@
+---
+export const prerender = false;
+import Layout from '../../layouts/Layout.astro';
+import PropertyCarousel from '../../components/PropertyCarousel.astro';
+
+// Mock de datos para la categoría
+const { category } = Astro.params;
+
+// Datos de ejemplo para categorías
+const categoryData = {
+  'compradores': {
+    title: 'Compradores Exitosos',
+    description: 'Historias reales de familias y personas que encontraron su hogar ideal con la ayuda de nuestros expertos asesores.',
+    testimonials: [
+      {
+        id: '1',
+        slug: 'juan-luis-guerra-casa-de-campo',
+        author: {
+          name: 'Juan Luis Guerra',
+          avatar: 'https://i.pravatar.cc/150?img=8',
+          location: 'Casa de Campo',
+          verified: true,
+          isCelebrity: true
+        },
+        rating: 5,
+        title: 'Mi experiencia comprando en Casa de Campo',
+        excerpt: 'CLIC me ayudó a encontrar la propiedad perfecta en Casa de Campo. El equipo fue profesional desde el primer día hasta la entrega de llaves.',
+        featuredImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop',
+        propertyType: 'Villa de Lujo',
+        location: 'Casa de Campo',
+        date: '2024-02-28',
+        featured: true,
+        purchaseValue: '$2,500,000',
+        processTime: '45 días',
+        views: '15.2K',
+        readTime: '4 min'
+      },
+      {
+        id: '2',
+        slug: 'familia-martinez-punta-cana',
+        author: {
+          name: 'Familia Martínez',
+          avatar: 'https://i.pravatar.cc/150?img=12',
+          location: 'Miami, USA',
+          verified: true
+        },
+        rating: 5,
+        title: 'Nuestra villa de ensueño en Punta Cana',
+        excerpt: 'Después de años buscando, CLIC nos ayudó a encontrar nuestra villa de ensueño. El proceso fue muy transparente y nos acompañaron en cada paso.',
+        featuredImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=450&fit=crop',
+        propertyType: 'Villa Familiar',
+        location: 'Punta Cana',
+        date: '2024-03-15',
+        featured: true,
+        purchaseValue: '$485,000',
+        processTime: '30 días',
+        views: '8.7K',
+        readTime: '3 min'
+      },
+      {
+        id: '3',
+        slug: 'carlos-rodriguez-primer-apartamento',
+        author: {
+          name: 'Carlos Rodríguez',
+          avatar: 'https://i.pravatar.cc/150?img=11',
+          location: 'Santo Domingo',
+          verified: true
+        },
+        rating: 5,
+        title: 'Mi primer apartamento: una experiencia increíble',
+        excerpt: 'Como primer comprador, estaba nervioso. El equipo de CLIC me explicó todo el proceso y me ayudó a encontrar el apartamento perfecto.',
+        featuredImage: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=450&fit=crop',
+        propertyType: 'Apartamento',
+        location: 'Naco',
+        date: '2024-03-10',
+        purchaseValue: '$185,000',
+        processTime: '25 días',
+        views: '6.3K',
+        readTime: '3 min'
+      },
+      {
+        id: '4',
+        slug: 'roberto-carmen-garcia-retiro',
+        author: {
+          name: 'Roberto y Carmen García',
+          avatar: 'https://i.pravatar.cc/150?img=14',
+          location: 'Nueva York, USA',
+          verified: true
+        },
+        rating: 5,
+        title: 'Nuestra casa de retiro en Las Terrenas',
+        excerpt: 'Compramos nuestra casa de retiro desde Nueva York. CLIC manejó todo, incluyendo la documentación legal. Increíble servicio.',
+        featuredImage: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=450&fit=crop',
+        propertyType: 'Casa de Playa',
+        location: 'Las Terrenas',
+        date: '2024-02-20',
+        purchaseValue: '$395,000',
+        processTime: '40 días',
+        views: '9.1K',
+        readTime: '5 min'
+      },
+      {
+        id: '5',
+        slug: 'sophie-laurent-villa-cabarete',
+        author: {
+          name: 'Sophie Laurent',
+          avatar: 'https://i.pravatar.cc/150?img=16',
+          location: 'Montreal, Canadá',
+          verified: true
+        },
+        rating: 5,
+        title: 'Ma villa parfaite à Cabarete',
+        excerpt: 'Je suis très satisfaite de mon achat. L\'équipe parle français et a compris exactement ce que je cherchais.',
+        featuredImage: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=450&fit=crop',
+        propertyType: 'Villa',
+        location: 'Cabarete',
+        date: '2024-01-30',
+        purchaseValue: '$325,000',
+        processTime: '35 días',
+        views: '5.8K',
+        readTime: '4 min'
+      },
+      {
+        id: '6',
+        slug: 'mikhail-petrov-inversion-exitosa',
+        author: {
+          name: 'Mikhail Petrov',
+          avatar: 'https://i.pravatar.cc/150?img=13',
+          location: 'Moscú, Rusia',
+          verified: true
+        },
+        rating: 5,
+        title: 'Inversión exitosa en el Caribe',
+        excerpt: 'Mi portafolio de propiedades en RD ha superado todas las expectativas. CLIC me asesoró perfectamente.',
+        featuredImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=450&fit=crop',
+        propertyType: 'Apartamentos',
+        location: 'Bávaro',
+        date: '2024-01-15',
+        purchaseValue: '$850,000',
+        processTime: '60 días',
+        views: '7.2K',
+        readTime: '6 min'
+      }
+    ],
+    relatedProperties: [
+      {
+        slug: 'villa-familiar-punta-cana',
+        titulo: 'Villa perfecta para familias en Punta Cana',
+        precio: '$485,000',
+        imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 3,
+        banos: 3,
+        metros: 250,
+        tipo: 'Villa',
+        destacado: true,
+        descuento: 'Lista para mudarse'
+      },
+      {
+        slug: 'apartamento-primer-comprador',
+        titulo: 'Apartamento ideal para primer comprador',
+        precio: '$165,000',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 2,
+        banos: 2,
+        metros: 120,
+        tipo: 'Apartamento',
+        nuevo: true
+      },
+      {
+        slug: 'casa-retiro-las-terrenas',
+        titulo: 'Casa de retiro frente al mar',
+        precio: '$395,000',
+        imagen: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=600&fit=crop',
+        sector: 'Las Terrenas',
+        habitaciones: 3,
+        banos: 2,
+        metros: 180,
+        tipo: 'Casa de Playa'
+      }
+    ]
+  },
+  'vendedores': {
+    title: 'Vendedores Satisfechos',
+    description: 'Propietarios que vendieron sus propiedades de manera rápida, eficiente y al mejor precio del mercado.',
+    testimonials: [
+      {
+        id: '1',
+        slug: 'maria-fernandez-villa-cap-cana',
+        author: {
+          name: 'María Fernández',
+          avatar: 'https://i.pravatar.cc/150?img=5',
+          location: 'Cap Cana',
+          verified: true
+        },
+        rating: 5,
+        title: 'Vendí mi villa en tiempo récord',
+        excerpt: 'Vendí mi villa en Cap Cana en tiempo récord. CLIC consiguió un comprador serio en solo 15 días y el precio fue excelente.',
+        featuredImage: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=450&fit=crop',
+        propertyType: 'Villa de Lujo',
+        location: 'Cap Cana',
+        date: '2024-03-01',
+        featured: true,
+        saleValue: '$1,850,000',
+        processTime: '15 días',
+        views: '12.4K',
+        readTime: '4 min'
+      }
+    ]
+  }
+};
+
+const currentCategory = categoryData[category] || categoryData['compradores'];
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// Separar testimonios destacados
+const featuredTestimonials = currentCategory.testimonials.filter(t => t.featured);
+const regularTestimonials = currentCategory.testimonials.filter(t => !t.featured);
+
+// Estadísticas de la categoría
+const categoryStats = {
+  compradores: {
+    avgSatisfaction: '4.9/5',
+    avgProcessTime: '32 días',
+    successRate: '98%',
+    totalClients: '280+'
+  },
+  vendedores: {
+    avgSatisfaction: '4.8/5',
+    avgProcessTime: '25 días',
+    successRate: '96%',
+    totalClients: '150+'
+  }
+};
+
+const stats = categoryStats[category] || categoryStats['compradores'];
+---
+
+<Layout 
+  title={`${currentCategory.title} - Testimonios CLIC`} 
+  description={currentCategory.description}
+>
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-12">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600 mb-6">
+        <a href="/testimonios" class="hover:text-[#f04e00]">Testimonios</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{currentCategory.title}</span>
+      </nav>
+      
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        {currentCategory.title}
+      </h1>
+      <p class="text-xl text-gray-600 max-w-3xl">
+        {currentCategory.description}
+      </p>
+    </div>
+  </section>
+
+  <!-- Category Stats -->
+  <section class="py-8 bg-white border-b">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-[#f04e00]">{stats.avgSatisfaction}</div>
+          <div class="text-sm text-gray-600">Satisfacción promedio</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-[#f04e00]">{stats.avgProcessTime}</div>
+          <div class="text-sm text-gray-600">Tiempo promedio</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-[#f04e00]">{stats.successRate}</div>
+          <div class="text-sm text-gray-600">Tasa de éxito</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-[#f04e00]">{stats.totalClients}</div>
+          <div class="text-sm text-gray-600">Clientes atendidos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Testimonials -->
+  {featuredTestimonials.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">Testimonios Destacados</h2>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {featuredTestimonials.map((testimonial) => (
+            <a 
+              href={`/testimonios/${category}/${testimonial.slug}`}
+              class="group block"
+            >
+              <div class="relative aspect-video overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
+                <img 
+                  src={testimonial.featuredImage} 
+                  alt={testimonial.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                
+                {/* Author info overlay */}
+                <div class="absolute top-4 left-4 flex items-center gap-3">
+                  <img 
+                    src={testimonial.author.avatar} 
+                    alt={testimonial.author.name}
+                    class="w-10 h-10 rounded-full border-2 border-white"
+                  />
+                  <div>
+                    <div class="text-white font-medium text-sm">{testimonial.author.name}</div>
+                    <div class="text-white/80 text-xs">{testimonial.author.location}</div>
+                  </div>
+                </div>
+                
+                {/* Rating */}
+                <div class="absolute top-4 right-4 bg-black/60 rounded-lg px-2 py-1 flex items-center gap-1">
+                  <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  <span class="text-white text-sm">{testimonial.rating}</span>
+                </div>
+                
+                {/* Featured badge */}
+                <span class="absolute bottom-16 left-4 bg-[#f04e00] text-white px-3 py-1 rounded text-sm font-medium">
+                  Destacado
+                </span>
+                
+                {/* Badges */}
+                <div class="absolute bottom-4 left-4 flex flex-wrap gap-2">
+                  {testimonial.author.verified && (
+                    <span class="bg-green-500/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      Verificado
+                    </span>
+                  )}
+                  {testimonial.author.isCelebrity && (
+                    <span class="bg-yellow-500/90 text-white px-2 py-1 rounded text-xs font-medium">
+                      ⭐ Celebridad
+                    </span>
+                  )}
+                </div>
+                
+                {/* Read time */}
+                <span class="absolute bottom-4 right-4 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                  {testimonial.readTime} de lectura
+                </span>
+              </div>
+              
+              <div class="mt-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
+                    {testimonial.propertyType}
+                  </span>
+                  <span class="text-xs text-gray-500">
+                    {testimonial.views} lecturas
+                  </span>
+                  <span class="text-xs text-gray-500">•</span>
+                  <span class="text-xs text-gray-500">
+                    {formatDate(testimonial.date)}
+                  </span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors">
+                  {testimonial.title}
+                </h3>
+                <p class="text-gray-600 mt-2">{testimonial.excerpt}</p>
+                <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                  <span>{testimonial.purchaseValue || testimonial.saleValue}</span>
+                  <span>•</span>
+                  <span>Proceso: {testimonial.processTime}</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Regular Testimonials Grid -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">Todos los Testimonios</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularTestimonials.map((testimonial) => (
+          <a 
+            href={`/testimonios/${category}/${testimonial.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          >
+            <div class="relative aspect-video overflow-hidden rounded-t-lg">
+              <img 
+                src={testimonial.featuredImage} 
+                alt={testimonial.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+              
+              {/* Author avatar */}
+              <div class="absolute top-3 left-3 flex items-center gap-2">
+                <img 
+                  src={testimonial.author.avatar} 
+                  alt={testimonial.author.name}
+                  class="w-8 h-8 rounded-full border-2 border-white"
+                />
+                {testimonial.author.verified && (
+                  <span class="bg-green-500 text-white p-1 rounded-full">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </span>
+                )}
+              </div>
+              
+              {/* Rating */}
+              <div class="absolute top-3 right-3 bg-black/60 rounded px-2 py-1 flex items-center gap-1">
+                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span class="text-white text-xs">{testimonial.rating}</span>
+              </div>
+              
+              {/* Read indicator */}
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg class="w-6 h-6 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Read time */}
+              <span class="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                {testimonial.readTime}
+              </span>
+            </div>
+            
+            <div class="p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
+                  {testimonial.propertyType}
+                </span>
+                <span class="text-xs text-gray-500">{testimonial.views} lecturas</span>
+              </div>
+              
+              <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                {testimonial.title}
+              </h3>
+              <p class="text-sm text-gray-600 mt-2 line-clamp-2">{testimonial.excerpt}</p>
+              
+              <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
+                <span>Por {testimonial.author.name}</span>
+                <span>{formatDate(testimonial.date)}</span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  {currentCategory.relatedProperties && (
+    <PropertyCarousel 
+      title={`Propiedades similares a las de nuestros ${currentCategory.title.toLowerCase()}`}
+      subtitle="Encuentra tu próxima oportunidad en las mismas zonas donde otros han tenido éxito"
+      properties={currentCategory.relatedProperties}
+      viewAllLink={`/comprar?categoria=${category}`}
+    />
+  )}
+
+  <!-- Process Section -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">
+          Cómo logramos estos resultados
+        </h2>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+          Nuestro proceso probado que ha llevado al éxito a cientos de clientes
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl text-white font-bold">1</span>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Consulta Inicial</h3>
+          <p class="text-sm text-gray-600">Entendemos tus necesidades y objetivos específicos</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl text-white font-bold">2</span>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Búsqueda Personalizada</h3>
+          <p class="text-sm text-gray-600">Seleccionamos las mejores opciones para ti</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl text-white font-bold">3</span>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Acompañamiento</h3>
+          <p class="text-sm text-gray-600">Te guiamos en visitas y negociaciones</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl text-white font-bold">4</span>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Cierre Exitoso</h3>
+          <p class="text-sm text-gray-600">Completamos todo el proceso legal y entrega</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">
+        ¿Listo para vivir tu propia historia de éxito?
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        Únete a nuestros {currentCategory.title.toLowerCase()} satisfechos
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/contacto" class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium">
+          Empezar mi proceso
+        </a>
+        <a href="/comprar" class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium">
+          Ver propiedades disponibles
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

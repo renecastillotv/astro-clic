@@ -1,0 +1,244 @@
+---
+// SEOInsightsSection.astro - Versión horizontal compacta con multiidioma
+export interface Props {
+  seoContent: any;
+  searchInfo: any;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { seoContent, searchInfo, language = 'es' } = Astro.props;
+
+// Traducciones para textos estáticos
+const translations = {
+  es: {
+    marketData: "Datos del mercado",
+    updatedInfo: "Información actualizada",
+    yield: "Rendimiento",
+    financing: "Financiamiento",
+    upTo: "Hasta",
+    process: "Proceso",
+    days: "días",
+    tourism: "Turismo",
+    annualVisitors: "anuales",
+    gdp: "PIB",
+    security: "Seguridad",
+    safeZones: "Zonas seguras",
+    legalRequirements: "Requisitos legales",
+    // Valores específicos
+    millionPlus: "M+ anuales",
+    percentageRange: "8-15%"
+  },
+  en: {
+    marketData: "Market Data",
+    updatedInfo: "Updated information",
+    yield: "Yield",
+    financing: "Financing",
+    upTo: "Up to",
+    process: "Process",
+    days: "days",
+    tourism: "Tourism",
+    annualVisitors: "annual",
+    gdp: "GDP",
+    security: "Security",
+    safeZones: "Safe areas",
+    legalRequirements: "Legal requirements",
+    millionPlus: "M+ annual",
+    percentageRange: "8-15%"
+  },
+  fr: {
+    marketData: "Données du marché",
+    updatedInfo: "Information mise à jour",
+    yield: "Rendement",
+    financing: "Financement",
+    upTo: "Jusqu'à",
+    process: "Processus",
+    days: "jours",
+    tourism: "Tourisme",
+    annualVisitors: "annuels",
+    gdp: "PIB",
+    security: "Sécurité",
+    safeZones: "Zones sûres",
+    legalRequirements: "Exigences légales",
+    millionPlus: "M+ annuels",
+    percentageRange: "8-15%"
+  }
+};
+
+// Obtener las traducciones para el idioma actual
+const t = translations[language] || translations.es;
+
+// Si no hay seoContent, no renderizar nada
+if (!seoContent) {
+  return null;
+}
+
+const marketInsights = seoContent.market_insights || [];
+const tips = seoContent.tips || [];
+const investmentData = seoContent.investment_data;
+const neighborhoodInfo = seoContent.neighborhood_info;
+
+// Filtrar insights por relevancia
+const operationInsights = marketInsights.filter(insight => insight.content_type === 'operacion');
+const countryInsights = marketInsights.filter(insight => insight.content_type === 'pais');
+const operationTips = tips.filter(tip => tip.content_type === 'operacion');
+
+// Extraer datos clave en formato compacto
+const keyInsights = [];
+
+// Rendimiento de alquiler
+if (investmentData?.rental_yields) {
+  keyInsights.push({
+    icon: 'fas fa-percentage',
+    label: t.yield,
+    value: t.percentageRange,
+    color: 'text-green-600'
+  });
+}
+
+// Financiamiento
+operationTips.forEach(tip => {
+  if (tip.financing && tip.financing.includes('80%')) {
+    keyInsights.push({
+      icon: 'fas fa-university',
+      label: t.financing,
+      value: `${t.upTo} 80%`,
+      color: 'text-blue-600'
+    });
+  }
+});
+
+// Proceso de compra
+operationTips.forEach(tip => {
+  if (tip.buying_process) {
+    // Buscar números en diferentes formatos
+    const match = tip.buying_process.match(/(\d+-?\d+)\s*(días|days|jours)/i);
+    if (match) {
+      keyInsights.push({
+        icon: 'fas fa-clock',
+        label: t.process,
+        value: `${match[1]} ${t.days}`,
+        color: 'text-orange-600'
+      });
+    }
+  }
+});
+
+// Turismo
+countryInsights.forEach(insight => {
+  if (insight.tourism_boost && (insight.tourism_boost.includes('millones') || insight.tourism_boost.includes('million'))) {
+    // Extraer el número si está disponible
+    const match = insight.tourism_boost.match(/(\d+\.?\d*)\s*(millones|million)/i);
+    if (match) {
+      keyInsights.push({
+        icon: 'fas fa-plane',
+        label: t.tourism,
+        value: `${match[1]}${t.millionPlus}`,
+        color: 'text-purple-600'
+      });
+    } else {
+      keyInsights.push({
+        icon: 'fas fa-plane',
+        label: t.tourism,
+        value: `12${t.millionPlus}`,
+        color: 'text-purple-600'
+      });
+    }
+  }
+});
+
+// Economía
+countryInsights.forEach(insight => {
+  if (insight.economic_growth && insight.economic_growth.includes('%')) {
+    const match = insight.economic_growth.match(/(\d+\.?\d*)%/);
+    if (match) {
+      keyInsights.push({
+        icon: 'fas fa-chart-line',
+        label: t.gdp,
+        value: `+${match[1]}%`,
+        color: 'text-indigo-600'
+      });
+    }
+  }
+});
+
+// Seguridad/Calidad de vida
+if (neighborhoodInfo?.safety) {
+  keyInsights.push({
+    icon: 'fas fa-shield-alt',
+    label: t.security,
+    value: t.safeZones,
+    color: 'text-teal-600'
+  });
+}
+
+// Limitar a máximo 6 insights para mantener diseño compacto
+const displayInsights = keyInsights.slice(0, 6);
+
+// Función para obtener requisitos legales según el idioma
+function getLegalRequirementsText() {
+  const legalTip = operationTips.find(tip => tip.legal_requirements);
+  if (!legalTip) return null;
+  
+  // Si el contenido ya viene traducido desde la edge function, usarlo
+  // Si no, usar el contenido por defecto
+  let text = legalTip.legal_requirements;
+  
+  // Limitar la longitud del texto
+  if (text.length > 150) {
+    text = text.substring(0, 150) + '...';
+  }
+  
+  return text;
+}
+
+const legalRequirementsText = getLegalRequirementsText();
+---
+
+{displayInsights.length > 0 && (
+  <section class="bg-white py-6 border-t border-gray-100">
+    <div class="container mx-auto px-4">
+      
+      <!-- Header minimalista -->
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">{t.marketData}</h2>
+        <span class="text-sm text-gray-500">{t.updatedInfo}</span>
+      </div>
+
+      <!-- Grid horizontal adaptativo -->
+      <div class={`grid gap-4 ${
+        displayInsights.length === 1 ? 'grid-cols-1 justify-center' :
+        displayInsights.length === 2 ? 'grid-cols-2' :
+        displayInsights.length === 3 ? 'grid-cols-3' :
+        displayInsights.length === 4 ? 'grid-cols-2 md:grid-cols-4' :
+        displayInsights.length === 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' :
+        displayInsights.length === 6 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' :
+        displayInsights.length === 7 ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-7' :
+        'grid-cols-2 md:grid-cols-4 lg:grid-cols-8'
+      }`}>
+        {displayInsights.map((insight) => (
+          <div class="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <i class={`${insight.icon} ${insight.color} text-lg mb-2`}></i>
+            <div class="text-sm font-semibold text-gray-900">{insight.value}</div>
+            <div class="text-xs text-gray-600">{insight.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Línea de información adicional si hay consejos importantes -->
+      {legalRequirementsText && (
+        <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-info-circle text-blue-600 text-sm mt-0.5"></i>
+            <div class="text-sm">
+              <span class="font-medium text-blue-900">{t.legalRequirements}: </span>
+              <span class="text-blue-800">
+                {legalRequirementsText}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  </section>
+)}

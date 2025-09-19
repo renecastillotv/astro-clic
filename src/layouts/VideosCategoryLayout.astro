@@ -1,0 +1,413 @@
+---
+// src/layouts/VideosCategoryLayout.astro - Layout para categorías de videos
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+const categorySlug = data?.category || data?.categorySlug;
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let categoryData = data;
+
+// Si no hay datos, usar fallback estático
+if (!categoryData || !categoryData.videos) {
+  console.log('📹 VideosCategoryLayout: Usando datos estáticos de fallback');
+  
+  // Configurar datos según la categoría
+  const categoryConfigs = {
+    'la-casa-de-los-famosos': {
+      title: language === 'es' ? 'La Casa de los Famosos' :
+             language === 'en' ? 'Celebrity Homes' :
+             'Maisons des Célébrités',
+      description: language === 'es' ? 'Tours exclusivos por las propiedades más impresionantes de las celebridades dominicanas. Descubre cómo viven las estrellas y encuentra inspiración para tu próximo hogar.' :
+                   language === 'en' ? 'Exclusive tours of the most impressive properties of Dominican celebrities. Discover how the stars live and find inspiration for your next home.' :
+                   'Visites exclusives des propriétés les plus impressionnantes des célébrités dominicaines. Découvrez comment vivent les stars et trouvez l\'inspiration pour votre prochaine maison.'
+    },
+    'tips-de-decoracion': {
+      title: language === 'es' ? 'Tips de Decoración' :
+             language === 'en' ? 'Decoration Tips' :
+             'Conseils de Décoration',
+      description: language === 'es' ? 'Consejos profesionales para transformar tu hogar en un espacio de ensueño con técnicas de diseño interior y decoración moderna.' :
+                   language === 'en' ? 'Professional tips to transform your home into a dream space with interior design and modern decoration techniques.' :
+                   'Conseils professionnels pour transformer votre maison en un espace de rêve avec des techniques de design d\'intérieur et de décoration moderne.'
+    },
+    'proyectos-nuevos': {
+      title: language === 'es' ? 'Proyectos Nuevos' :
+             language === 'en' ? 'New Projects' :
+             'Nouveaux Projets',
+      description: language === 'es' ? 'Recorridos virtuales por los desarrollos más exclusivos y proyectos inmobiliarios de vanguardia en República Dominicana.' :
+                   language === 'en' ? 'Virtual tours of the most exclusive developments and cutting-edge real estate projects in Dominican Republic.' :
+                   'Visites virtuelles des développements les plus exclusifs et des projets immobiliers de pointe en République dominicaine.'
+    }
+  };
+
+  const currentConfig = categoryConfigs[categorySlug] || categoryConfigs['la-casa-de-los-famosos'];
+  
+  categoryData = {
+    language: language,
+    category: categorySlug,
+    categorySlug: categorySlug,
+    title: currentConfig.title,
+    description: currentConfig.description,
+    videos: [
+      {
+        slug: 'la-casa-de-luz-garcia',
+        title: language === 'es' ? 'La Casa de Luz García en Cacicazgos - Tour Completo' :
+                language === 'en' ? 'Luz García\'s House in Cacicazgos - Complete Tour' :
+                'La Maison de Luz García à Cacicazgos - Visite Complète',
+        description: language === 'es' ? 'Recorrido exclusivo por la espectacular villa de Luz García' :
+                     language === 'en' ? 'Exclusive tour of Luz García\'s spectacular villa' :
+                     'Visite exclusive de la villa spectaculaire de Luz García',
+        thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=450&fit=crop',
+        duration: '18:45',
+        views: '342K',
+        publishedAt: '2024-03-15',
+        featured: true
+      },
+      {
+        slug: 'penthouse-romeo-santos',
+        title: language === 'es' ? 'El Penthouse de Romeo Santos en Naco' :
+                language === 'en' ? 'Romeo Santos\' Penthouse in Naco' :
+                'Le Penthouse de Romeo Santos à Naco',
+        description: language === 'es' ? 'Conoce el lujoso penthouse donde vivió el Rey de la Bachata' :
+                     language === 'en' ? 'Discover the luxurious penthouse where the King of Bachata lived' :
+                     'Découvrez le penthouse luxueux où a vécu le Roi de la Bachata',
+        thumbnail: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=450&fit=crop',
+        duration: '22:30',
+        views: '289K',
+        publishedAt: '2024-03-10'
+      },
+      {
+        slug: 'villa-juan-luis-guerra',
+        title: language === 'es' ? 'La Villa de Juan Luis Guerra en Casa de Campo' :
+                language === 'en' ? 'Juan Luis Guerra\'s Villa in Casa de Campo' :
+                'La Villa de Juan Luis Guerra à Casa de Campo',
+        description: language === 'es' ? 'Tour por la impresionante propiedad del maestro Juan Luis Guerra' :
+                     language === 'en' ? 'Tour of the impressive property of maestro Juan Luis Guerra' :
+                     'Visite de l\'impressionnante propriété du maestro Juan Luis Guerra',
+        thumbnail: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=450&fit=crop',
+        duration: '25:12',
+        views: '567K',
+        publishedAt: '2024-03-05',
+        featured: true
+      }
+    ],
+    relatedProperties: [
+      {
+        slug: 'villa-estilo-luz-garcia',
+        titulo: language === 'es' ? 'Villa estilo Luz García disponible' :
+                language === 'en' ? 'Luz García style villa available' :
+                'Villa style Luz García disponible',
+        precio: '$850,000',
+        imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        sector: 'Cacicazgos',
+        habitaciones: 5,
+        banos: 5,
+        metros: 450,
+        tipo: language === 'es' ? 'Villa de Lujo' : language === 'en' ? 'Luxury Villa' : 'Villa de Luxe',
+        destacado: true
+      },
+      {
+        slug: 'penthouse-naco-celebridad',
+        titulo: language === 'es' ? 'Penthouse en Torre Exclusiva Naco' :
+                language === 'en' ? 'Penthouse in Exclusive Naco Tower' :
+                'Penthouse dans Tour Exclusive Naco',
+        precio: '$1,200,000',
+        imagen: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=600&fit=crop',
+        sector: 'Naco',
+        habitaciones: 4,
+        banos: 4,
+        metros: 380,
+        tipo: 'Penthouse'
+      }
+    ],
+    seo: {
+      title: `${currentConfig.title} - Videos CLIC`,
+      description: currentConfig.description
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const videos = categoryData.videos || [];
+const featuredVideos = videos.filter(v => v.featured);
+const regularVideos = videos.filter(v => !v.featured);
+const relatedProperties = categoryData.relatedProperties || [];
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    breadcrumbVideos: 'Videos',
+    featuredTitle: 'Videos Destacados',
+    allTitle: 'Todos los Videos',
+    propertiesTitle: 'Propiedades similares a las de los famosos',
+    propertiesSubtitle: 'Vive como una estrella en estas exclusivas propiedades disponibles',
+    ctaTitle: '¿Te gustaría vivir como los famosos?',
+    ctaSubtitle: 'Nuestros asesores pueden ayudarte a encontrar la propiedad perfecta',
+    ctaButton: 'Hablar con un asesor',
+    featured: 'Destacado',
+    views: 'vistas',
+    duration: 'Duración'
+  },
+  en: {
+    breadcrumbVideos: 'Videos',
+    featuredTitle: 'Featured Videos',
+    allTitle: 'All Videos',
+    propertiesTitle: 'Properties similar to those of celebrities',
+    propertiesSubtitle: 'Live like a star in these exclusive available properties',
+    ctaTitle: 'Would you like to live like celebrities?',
+    ctaSubtitle: 'Our advisors can help you find the perfect property',
+    ctaButton: 'Talk to an advisor',
+    featured: 'Featured',
+    views: 'views',
+    duration: 'Duration'
+  },
+  fr: {
+    breadcrumbVideos: 'Vidéos',
+    featuredTitle: 'Vidéos en Vedette',
+    allTitle: 'Toutes les Vidéos',
+    propertiesTitle: 'Propriétés similaires à celles des célébrités',
+    propertiesSubtitle: 'Vivez comme une star dans ces propriétés exclusives disponibles',
+    ctaTitle: 'Aimeriez-vous vivre comme les célébrités?',
+    ctaSubtitle: 'Nos conseillers peuvent vous aider à trouver la propriété parfaite',
+    ctaButton: 'Parler à un conseiller',
+    featured: 'En vedette',
+    views: 'vues',
+    duration: 'Durée'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    properties: '/comprar',
+    videosBase: '/videos'
+  },
+  en: {
+    contact: '/en/contact',
+    properties: '/en/buy',
+    videosBase: '/en/videos'
+  },
+  fr: {
+    contact: '/fr/contact',
+    properties: '/fr/acheter',
+    videosBase: '/fr/videos'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const months = {
+    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+  };
+  
+  const monthNames = months[language] || months.es;
+  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+console.log('✅ VideosCategoryLayout preparado:', {
+  language,
+  category: categorySlug,
+  title: categoryData.title,
+  videosCount: videos.length,
+  featuredCount: featuredVideos.length
+});
+---
+
+<Layout 
+  title={categoryData.seo?.title || `${categoryData.title} - Videos CLIC`}
+  description={categoryData.seo?.description || categoryData.description}
+  language={language}
+>
+  <!-- Breadcrumbs -->
+  <section class="bg-gray-50 py-4">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-600">
+        <a href={currentRoutes.videosBase} class="hover:text-[#f04e00]">{text.breadcrumbVideos}</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900">{categoryData.title}</span>
+      </nav>
+    </div>
+  </section>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gray-50 to-white py-12">
+    <div class="container mx-auto px-4">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        {categoryData.title}
+      </h1>
+      <p class="text-xl text-gray-600 max-w-3xl">
+        {categoryData.description}
+      </p>
+    </div>
+  </section>
+
+  <!-- Featured Videos -->
+  {featuredVideos.length > 0 && (
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.featuredTitle}</h2>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {featuredVideos.map((video) => (
+            <a 
+              href={`${currentRoutes.videosBase}/${categorySlug}/${video.slug}`}
+              class="group block"
+            >
+              <div class="relative aspect-video overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
+                <img 
+                  src={video.thumbnail} 
+                  alt={video.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                
+                <!-- Play button -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-20 h-20 bg-red-600/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- Duration -->
+                <span class="absolute top-4 right-4 bg-black/80 text-white px-3 py-1 rounded text-sm">
+                  {video.duration}
+                </span>
+                
+                <!-- Featured badge -->
+                <span class="absolute top-4 left-4 bg-[#f04e00] text-white px-3 py-1 rounded text-sm font-medium">
+                  {text.featured}
+                </span>
+              </div>
+              
+              <div class="mt-4">
+                <h3 class="text-xl font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors">
+                  {video.title}
+                </h3>
+                <p class="text-gray-600 mt-2">{video.description}</p>
+                <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                  <span>{video.views} {text.views}</span>
+                  <span>•</span>
+                  <span>{formatDate(video.publishedAt)}</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Regular Videos Grid -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.allTitle}</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {regularVideos.map((video) => (
+          <a 
+            href={`${currentRoutes.videosBase}/${categorySlug}/${video.slug}`}
+            class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          >
+            <div class="relative aspect-video overflow-hidden rounded-t-lg">
+              <img 
+                src={video.thumbnail} 
+                alt={video.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+              
+              <!-- Play button -->
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg class="w-7 h-7 text-red-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Duration -->
+              <span class="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-xs">
+                {video.duration}
+              </span>
+            </div>
+            
+            <div class="p-4">
+              <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                {video.title}
+              </h3>
+              <p class="text-sm text-gray-600 mt-2 line-clamp-2">{video.description}</p>
+              <div class="flex items-center gap-3 mt-3 text-xs text-gray-500">
+                <span>{video.views} {text.views}</span>
+                <span>•</span>
+                <span>{formatDate(video.publishedAt)}</span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Properties -->
+  {relatedProperties.length > 0 && (
+    <PropertyCarousel 
+      title={text.propertiesTitle}
+      subtitle={text.propertiesSubtitle}
+      properties={relatedProperties}
+      viewAllLink={`${currentRoutes.properties}?estilo=celebridad`}
+      language={language}
+    />
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">
+        {text.ctaTitle}
+      </h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+        {text.ctaSubtitle}
+      </p>
+      <a 
+        href={currentRoutes.contact} 
+        class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+      >
+        {text.ctaButton}
+      </a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

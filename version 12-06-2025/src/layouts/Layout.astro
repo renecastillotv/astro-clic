@@ -1,0 +1,155 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const { title, description = 'Encuentra tu próxima propiedad en República Dominicana con CLIC Inmobiliaria', ogImage = '/og-default.jpg' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- SEO Meta Tags -->
+    <title>{title} | CLIC Inmobiliaria</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="CLIC Inmobiliaria" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={ogImage} />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={Astro.url.href} />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+      <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo -->
+          <a href="/" class="flex items-center">
+            <img src="/logo.png" alt="CLIC Inmobiliaria" class="h-10 w-auto" />
+          </a>
+          
+          <!-- Navigation -->
+          <nav class="hidden md:flex items-center gap-8">
+            <a href="/comprar" class="text-gray-700 hover:text-[#f04e00] transition-colors">Comprar</a>
+            <a href="/alquilar" class="text-gray-700 hover:text-[#f04e00] transition-colors">Alquilar</a>
+            <a href="/vender" class="text-gray-700 hover:text-[#f04e00] transition-colors">Vender</a>
+            <a href="/rentas-vacacionales" class="text-gray-700 hover:text-[#f04e00] transition-colors">Rentas Vacacionales</a>
+            <a href="/asesores" class="text-gray-700 hover:text-[#f04e00] transition-colors">Asesores</a>
+            <a href="/videos" class="text-gray-700 hover:text-[#f04e00] transition-colors">Videos</a>
+            <a href="/articulos" class="text-gray-700 hover:text-[#f04e00] transition-colors">Blog</a>
+          </nav>
+          
+          <!-- CTA Button -->
+          <div class="flex items-center gap-4">
+            <button class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </button>
+            <a href="/contacto" class="hidden sm:inline-block px-4 py-2 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors">
+              Contáctanos
+            </a>
+            
+            <!-- Mobile menu button -->
+            <button class="md:hidden p-2 text-gray-700">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="min-h-screen">
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-16">
+      <div class="container mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <!-- Company Info -->
+          <div>
+            <h3 class="text-lg font-semibold mb-4">CLIC Inmobiliaria</h3>
+            <p class="text-gray-400 text-sm">
+              Tu socio de confianza en el mercado inmobiliario de República Dominicana.
+            </p>
+          </div>
+          
+          <!-- Quick Links -->
+          <div>
+            <h4 class="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
+            <ul class="space-y-2 text-sm">
+              <li><a href="/comprar" class="text-gray-400 hover:text-white transition-colors">Comprar</a></li>
+              <li><a href="/alquilar" class="text-gray-400 hover:text-white transition-colors">Alquilar</a></li>
+              <li><a href="/vender" class="text-gray-400 hover:text-white transition-colors">Vender</a></li>
+              <li><a href="/rentas-vacacionales" class="text-gray-400 hover:text-white transition-colors">Rentas Vacacionales</a></li>
+              <li><a href="/asesores" class="text-gray-400 hover:text-white transition-colors">Asesores</a></li>
+              <li><a href="/videos" class="text-gray-400 hover:text-white transition-colors">Videos</a></li>
+            </ul>
+          </div>
+          
+          <!-- Popular Locations -->
+          <div>
+            <h4 class="text-lg font-semibold mb-4">Ubicaciones Populares</h4>
+            <ul class="space-y-2 text-sm">
+              <li><a href="/comprar/apartamento/distrito-nacional" class="text-gray-400 hover:text-white transition-colors">Distrito Nacional</a></li>
+              <li><a href="/comprar/villa/punta-cana" class="text-gray-400 hover:text-white transition-colors">Punta Cana</a></li>
+              <li><a href="/comprar/apartamento/santiago" class="text-gray-400 hover:text-white transition-colors">Santiago</a></li>
+              <li><a href="/comprar/villa/casa-de-campo" class="text-gray-400 hover:text-white transition-colors">Casa de Campo</a></li>
+            </ul>
+          </div>
+          
+          <!-- Contact -->
+          <div>
+            <h4 class="text-lg font-semibold mb-4">Contacto</h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li>Tel: +1 (809) 555-0123</li>
+              <li>Email: info@clicinmobiliaria.com</li>
+              <li>Lun-Vie: 9:00 AM - 6:00 PM</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+          <p>&copy; 2024 CLIC Inmobiliaria. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+  
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+</style>

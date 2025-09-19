@@ -1,11 +1,12 @@
-﻿// @ts-check
+﻿// astro.config.mjs
 import { defineConfig } from 'astro/config';
+import vercel from '@astrojs/vercel'; // Sin /serverless
 import tailwind from '@astrojs/tailwind';
-import vercel from '@astrojs/vercel/serverless'; // 👈 ESTE ES CLAVE
 
 export default defineConfig({
-    integrations: [tailwind()],
-    output: 'server',
-    adapter: vercel(), // 👈 AGREGA EL ADAPTER
-    site: 'https://clicinmobiliaria.com',
+    output: 'server', // Cambiar de 'hybrid' a 'server' por ahora
+    adapter: vercel(),
+    integrations: [
+        tailwind()
+    ]
 });

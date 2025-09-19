@@ -1,0 +1,104 @@
+---
+// src/components/property/PropertySimilar.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+---
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<!-- Propiedades Similares -->
+{data.hasSimilarProperties && data.similarProperties && data.similarProperties.length > 0 && (
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+        Propiedades Similares
+      </h2>
+    </div>
+    
+    <!-- Grid 2 columnas compacto -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {data.similarProperties.slice(0, 6).map((similar) => (
+        <a 
+          href={similar.url.startsWith('/') ? similar.url : `/${similar.url}`}
+          class="group bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#f04e00]/40 hover:shadow-[#f04e00]/10 flex h-28"
+        >
+          <!-- Imagen compacta -->
+          <div class="relative w-32 flex-shrink-0 overflow-hidden">
+            <img 
+              src={similar.imagen || '/images/placeholder-property.jpg'}
+              alt={similar.titulo}
+              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              onerror="this.src='/images/placeholder-property.jpg'"
+            />
+            <!-- Overlay de imagen con gradiente sutil -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+          
+          <!-- Contenido ultra compacto -->
+          <div class="flex-1 p-3 flex flex-col justify-between min-w-0 relative">
+            <!-- Badge micro reposicionado - más como etiqueta -->
+            <div class="absolute top-2 right-2">
+              <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-sm text-xs font-normal border border-gray-200">
+                En Venta
+              </span>
+            </div>
+            
+            <!-- Precio -->
+            <div class="mb-1">
+              <span class="text-lg font-bold text-[#f04e00] leading-none group-hover:text-[#e03400] transition-colors duration-300">
+                {similar.precio}
+              </span>
+            </div>
+            
+            <!-- Título con 2 líneas máximo -->
+            <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2 group-hover:text-[#f04e00] transition-colors duration-300 leading-tight">
+              {similar.titulo}
+            </h3>
+            
+            <!-- Ubicación con pin -->
+            {similar.sector && (
+              <div class="flex items-center gap-1 mb-1">
+                <i class="fas fa-map-marker-alt text-[#f04e00] text-xs"></i>
+                <span class="text-xs text-gray-600 truncate">{similar.sector}</span>
+              </div>
+            )}
+            
+            <!-- Características en línea horizontal con Font Awesome naranjas -->
+            <div class="flex items-center gap-3 text-xs text-gray-700">
+              <div class="flex items-center gap-1">
+                <i class="fas fa-bed text-[#f04e00] text-xs"></i>
+                <span class="font-medium">{similar.habitaciones}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-shower text-[#f04e00] text-xs"></i>
+                <span class="font-medium">{similar.banos}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-car text-[#f04e00] text-xs"></i>
+                <span class="font-medium">{similar.parking_spots || 1}</span>
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <i class="fas fa-ruler-combined text-[#f04e00] text-xs"></i>
+                <span class="font-medium">{similar.metros}m²</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+)}
