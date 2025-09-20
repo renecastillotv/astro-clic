@@ -1,151 +1,173 @@
 ---
-// src/layouts/ContactLayout.astro - Layout para página de contacto
+// src/layouts/ContactLayout.astro - Layout para página de contacto con validación defensiva
 import Layout from './Layout.astro';
 
 // ===================================================================
-// EXTRACCIÓN DE DATOS DEL PROP
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const { data } = Astro.props;
-const language = data?.language || 'es';
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
 
-// ===================================================================
-// DATOS ESTÁTICOS DE FALLBACK 
-// ===================================================================
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
 
-let contactData = data;
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
 
-// Si no hay datos, usar fallback estático
-if (!contactData || !contactData.contactInfo) {
-  console.log('📞 ContactLayout: Usando datos estáticos de fallback');
-  
-  contactData = {
-    language: language,
-    contactInfo: {
-      phone: '+1 809 555 0100',
-      whatsapp: '18095550100',
-      email: 'hola@clic.do',
-      address: language === 'es' ? 'Av. Winston Churchill, Plaza de la Salud, Torre 2, Piso 8' :
-               language === 'en' ? 'Winston Churchill Ave, Plaza de la Salud, Tower 2, Floor 8' :
-               'Av. Winston Churchill, Plaza de la Salud, Tour 2, Étage 8',
-      city: language === 'es' ? 'Santo Domingo, República Dominicana' :
-            language === 'en' ? 'Santo Domingo, Dominican Republic' :
-            'Santo Domingo, République dominicaine',
-      hours: {
-        weekdays: language === 'es' ? 'Lunes - Viernes: 8:00 AM - 6:00 PM' :
-                  language === 'en' ? 'Monday - Friday: 8:00 AM - 6:00 PM' :
-                  'Lundi - Vendredi: 8:00 AM - 6:00 PM',
-        saturday: language === 'es' ? 'Sábado: 9:00 AM - 2:00 PM' :
-                  language === 'en' ? 'Saturday: 9:00 AM - 2:00 PM' :
-                  'Samedi: 9:00 AM - 2:00 PM',
-        sunday: language === 'es' ? 'Domingo: Cerrado' :
-                language === 'en' ? 'Sunday: Closed' :
-                'Dimanche: Fermé'
-      }
-    },
-    services: [
-      { 
-        value: 'vender', 
-        label: language === 'es' ? 'Quiero vender mi propiedad' :
-               language === 'en' ? 'I want to sell my property' :
-               'Je veux vendre ma propriété'
-      },
-      { 
-        value: 'desarrollo', 
-        label: language === 'es' ? 'Tengo un proyecto para desarrollar' :
-               language === 'en' ? 'I have a project to develop' :
-               'J\'ai un projet à développer'
-      },
-      { 
-        value: 'comprar', 
-        label: language === 'es' ? 'Quiero comprar una propiedad' :
-               language === 'en' ? 'I want to buy a property' :
-               'Je veux acheter une propriété'
-      },
-      { 
-        value: 'rentas', 
-        label: language === 'es' ? 'Interesado en rentas vacacionales' :
-               language === 'en' ? 'Interested in vacation rentals' :
-               'Intéressé par les locations de vacances'
-      },
-      { 
-        value: 'evaluacion', 
-        label: language === 'es' ? 'Evaluación gratuita' :
-               language === 'en' ? 'Free evaluation' :
-               'Évaluation gratuite'
-      },
-      { 
-        value: 'asesor', 
-        label: language === 'es' ? 'Quiero ser asesor inmobiliario' :
-               language === 'en' ? 'I want to be a real estate advisor' :
-               'Je veux être conseiller immobilier'
-      },
-      { 
-        value: 'otro', 
-        label: language === 'es' ? 'Otro motivo' :
-               language === 'en' ? 'Other reason' :
-               'Autre raison'
-      }
-    ],
-    team: [
-      {
-        name: 'María González',
-        title: language === 'es' ? 'Directora Comercial' :
-               language === 'en' ? 'Commercial Director' :
-               'Directrice Commerciale',
-        phone: '+1 809 555 0101',
-        email: 'maria@clic.do',
-        specialties: [
-          language === 'es' ? 'Ventas' : language === 'en' ? 'Sales' : 'Ventes',
-          language === 'es' ? 'Propiedades de lujo' : language === 'en' ? 'Luxury properties' : 'Propriétés de luxe'
-        ],
-        avatar: 'https://i.pravatar.cc/150?img=5'
-      },
-      {
-        name: 'Carlos Rodríguez',
-        title: language === 'es' ? 'Especialista en Proyectos' :
-               language === 'en' ? 'Projects Specialist' :
-               'Spécialiste des Projets',
-        phone: '+1 809 555 0102',
-        email: 'carlos@clic.do',
-        specialties: [
-          language === 'es' ? 'Desarrollos' : language === 'en' ? 'Developments' : 'Développements',
-          language === 'es' ? 'Comercialización' : language === 'en' ? 'Marketing' : 'Commercialisation'
-        ],
-        avatar: 'https://i.pravatar.cc/150?img=8'
-      },
-      {
-        name: 'Ana Martínez',
-        title: language === 'es' ? 'Asesora de Ventas' :
-               language === 'en' ? 'Sales Advisor' :
-               'Conseillère de Ventes',
-        phone: '+1 809 555 0103',
-        email: 'ana@clic.do',
-        specialties: [
-          language === 'es' ? 'Primeros compradores' : language === 'en' ? 'First-time buyers' : 'Premiers acheteurs',
-          language === 'es' ? 'Asesoría' : language === 'en' ? 'Advisory' : 'Conseil'
-        ],
-        avatar: 'https://i.pravatar.cc/150?img=16'
-      }
-    ],
-    seo: {
-      title: language === 'es' ? 'Contacto - CLIC Inmobiliaria' :
-             language === 'en' ? 'Contact - CLIC Real Estate' :
-             'Contact - CLIC Immobilier',
-      description: language === 'es' ? 'Contáctanos para vender tu propiedad, desarrollar tu proyecto o encontrar tu hogar ideal. Estamos aquí para ayudarte.' :
-                   language === 'en' ? 'Contact us to sell your property, develop your project or find your ideal home. We are here to help you.' :
-                   'Contactez-nous pour vendre votre propriété, développer votre projet ou trouver votre maison idéale. Nous sommes là pour vous aider.'
-    }
-  };
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const contactInfo = contactData.contactInfo;
-const services = contactData.services || [];
-const team = contactData.team || [];
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let contactData = safeObject(data);
+
+// Crear contactInfo seguro combinando múltiples fuentes
+const rawContactInfo = safeObject(contactData.contactInfo);
+const globalContact = safeGet(contactData, 'globalConfig.contact', {});
+const globalOffice = safeGet(contactData, 'globalConfig.office', {});
+
+const safeContactInfo = {
+  phone: rawContactInfo.phone || safeGet(rawContactInfo, 'main.phone') || globalContact.phone || '+1 809 555 0100',
+  whatsapp: rawContactInfo.whatsapp || safeGet(rawContactInfo, 'main.whatsapp') || globalContact.whatsapp || '18095550100',
+  email: rawContactInfo.email || safeGet(rawContactInfo, 'main.email') || globalContact.email || 'info@clic.do',
+  address: rawContactInfo.address || safeGet(rawContactInfo, 'main.address') || globalContact.address || 
+           (language === 'es' ? 'Av. Winston Churchill, Plaza de la Salud, Torre 2, Piso 8' :
+            language === 'en' ? 'Winston Churchill Ave, Plaza de la Salud, Tower 2, Floor 8' :
+            'Av. Winston Churchill, Plaza de la Salud, Tour 2, Étage 8'),
+  city: rawContactInfo.city || 
+        (language === 'es' ? 'Santo Domingo, República Dominicana' :
+         language === 'en' ? 'Santo Domingo, Dominican Republic' :
+         'Santo Domingo, République dominicaine'),
+  hours: rawContactInfo.hours || globalOffice.hours || {
+    weekdays: language === 'es' ? 'Lunes - Viernes: 8:00 AM - 6:00 PM' :
+              language === 'en' ? 'Monday - Friday: 8:00 AM - 6:00 PM' :
+              'Lundi - Vendredi: 8:00 AM - 6:00 PM',
+    saturday: language === 'es' ? 'Sábado: 9:00 AM - 2:00 PM' :
+              language === 'en' ? 'Saturday: 9:00 AM - 2:00 PM' :
+              'Samedi: 9:00 AM - 2:00 PM',
+    sunday: language === 'es' ? 'Domingo: Cerrado' :
+            language === 'en' ? 'Sunday: Closed' :
+            'Dimanche: Fermé'
+  }
+};
+
+// Servicios con fallback
+const services = safeArray(contactData.services, [
+  { 
+    value: 'vender', 
+    label: language === 'es' ? 'Quiero vender mi propiedad' :
+           language === 'en' ? 'I want to sell my property' :
+           'Je veux vendre ma propriété'
+  },
+  { 
+    value: 'desarrollo', 
+    label: language === 'es' ? 'Tengo un proyecto para desarrollar' :
+           language === 'en' ? 'I have a project to develop' :
+           'J\'ai un projet à développer'
+  },
+  { 
+    value: 'comprar', 
+    label: language === 'es' ? 'Quiero comprar una propiedad' :
+           language === 'en' ? 'I want to buy a property' :
+           'Je veux acheter une propriété'
+  },
+  { 
+    value: 'rentas', 
+    label: language === 'es' ? 'Interesado en rentas vacacionales' :
+           language === 'en' ? 'Interested in vacation rentals' :
+           'Intéressé par les locations de vacances'
+  },
+  { 
+    value: 'evaluacion', 
+    label: language === 'es' ? 'Evaluación gratuita' :
+           language === 'en' ? 'Free evaluation' :
+           'Évaluation gratuite'
+  },
+  { 
+    value: 'asesor', 
+    label: language === 'es' ? 'Quiero ser asesor inmobiliario' :
+           language === 'en' ? 'I want to be a real estate advisor' :
+           'Je veux être conseiller immobilier'
+  },
+  { 
+    value: 'otro', 
+    label: language === 'es' ? 'Otro motivo' :
+           language === 'en' ? 'Other reason' :
+           'Autre raison'
+  }
+]);
+
+// Team con fallback
+const team = safeArray(safeGet(contactData, 'team.advisors') || contactData.team, [
+  {
+    name: 'María González',
+    title: language === 'es' ? 'Directora Comercial' :
+           language === 'en' ? 'Commercial Director' :
+           'Directrice Commerciale',
+    phone: '+1 809 555 0101',
+    email: 'maria@clic.do',
+    specialties: [
+      language === 'es' ? 'Ventas' : language === 'en' ? 'Sales' : 'Ventes',
+      language === 'es' ? 'Propiedades de lujo' : language === 'en' ? 'Luxury properties' : 'Propriétés de luxe'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=5'
+  },
+  {
+    name: 'Carlos Rodríguez',
+    title: language === 'es' ? 'Especialista en Proyectos' :
+           language === 'en' ? 'Projects Specialist' :
+           'Spécialiste des Projets',
+    phone: '+1 809 555 0102',
+    email: 'carlos@clic.do',
+    specialties: [
+      language === 'es' ? 'Desarrollos' : language === 'en' ? 'Developments' : 'Développements',
+      language === 'es' ? 'Comercialización' : language === 'en' ? 'Marketing' : 'Commercialisation'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=8'
+  },
+  {
+    name: 'Ana Martínez',
+    title: language === 'es' ? 'Asesora de Ventas' :
+           language === 'en' ? 'Sales Advisor' :
+           'Conseillère de Ventes',
+    phone: '+1 809 555 0103',
+    email: 'ana@clic.do',
+    specialties: [
+      language === 'es' ? 'Primeros compradores' : language === 'en' ? 'First-time buyers' : 'Premiers acheteurs',
+      language === 'es' ? 'Asesoría' : language === 'en' ? 'Advisory' : 'Conseil'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=16'
+  }
+]);
+
+// SEO con fallback
+const seo = safeObject(contactData.seo, {
+  title: language === 'es' ? 'Contacto - CLIC Inmobiliaria' :
+         language === 'en' ? 'Contact - CLIC Real Estate' :
+         'Contact - CLIC Immobilier',
+  description: language === 'es' ? 'Contáctanos para vender tu propiedad, desarrollar tu proyecto o encontrar tu hogar ideal. Estamos aquí para ayudarte.' :
+               language === 'en' ? 'Contact us to sell your property, develop your project or find your ideal home. We are here to help you.' :
+               'Contactez-nous pour vendre votre propriété, développer votre projet ou trouver votre maison idéale. Nous sommes là pour vous aider.'
+});
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -333,17 +355,18 @@ const TEXTS = {
 
 const text = TEXTS[language] || TEXTS.es;
 
-console.log('✅ ContactLayout preparado:', {
+console.log('✅ ContactLayout preparado con validación defensiva:', {
   language,
   servicesCount: services.length,
   teamCount: team.length,
-  hasContactInfo: !!contactInfo
+  hasContactInfo: !!safeContactInfo.phone,
+  hasHours: !!safeContactInfo.hours.weekdays
 });
 ---
 
 <Layout 
-  title={contactData.seo?.title || text.heroTitle}
-  description={contactData.seo?.description || text.heroSubtitle}
+  title={seo.title || text.heroTitle}
+  description={seo.description || text.heroSubtitle}
   language={language}
 >
   <!-- Hero Section -->
@@ -413,8 +436,8 @@ console.log('✅ ContactLayout preparado:', {
                 id="servicioSelect"
               >
                 <option value="">{text.formFields.selectOption}</option>
-                {services.map((servicio) => (
-                  <option value={servicio.value}>{servicio.label}</option>
+                {safeArray(services).map((servicio) => (
+                  <option value={safeString(servicio.value, 'otro')}>{safeString(servicio.label, 'Servicio')}</option>
                 ))}
               </select>
             </div>
@@ -464,7 +487,7 @@ console.log('✅ ContactLayout preparado:', {
             
             <div class="space-y-4">
               <a 
-                href={`tel:${contactInfo.phone}`}
+                href={`tel:${safeContactInfo.phone}`}
                 class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
               >
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -472,12 +495,12 @@ console.log('✅ ContactLayout preparado:', {
                 </svg>
                 <div>
                   <div class="font-medium">{text.quickActions.callNow}</div>
-                  <div class="text-sm text-white/80">{contactInfo.phone}</div>
+                  <div class="text-sm text-white/80">{safeContactInfo.phone}</div>
                 </div>
               </a>
               
               <a 
-                href={`https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(language === 'es' ? 'Hola, estoy interesado en sus servicios inmobiliarios' : language === 'en' ? 'Hello, I am interested in your real estate services' : 'Bonjour, je suis intéressé par vos services immobiliers')}`}
+                href={`https://wa.me/${safeContactInfo.whatsapp}?text=${encodeURIComponent(language === 'es' ? 'Hola, estoy interesado en sus servicios inmobiliarios' : language === 'en' ? 'Hello, I am interested in your real estate services' : 'Bonjour, je suis intéressé par vos services immobiliers')}`}
                 target="_blank"
                 class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
               >
@@ -491,7 +514,7 @@ console.log('✅ ContactLayout preparado:', {
               </a>
               
               <a 
-                href={`mailto:${contactInfo.email}`}
+                href={`mailto:${safeContactInfo.email}`}
                 class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
               >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,7 +522,7 @@ console.log('✅ ContactLayout preparado:', {
                 </svg>
                 <div>
                   <div class="font-medium">{text.quickActions.email}</div>
-                  <div class="text-sm text-white/80">{contactInfo.email}</div>
+                  <div class="text-sm text-white/80">{safeContactInfo.email}</div>
                 </div>
               </a>
             </div>
@@ -516,8 +539,8 @@ console.log('✅ ContactLayout preparado:', {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 <div>
-                  <div class="font-medium">{contactInfo.address}</div>
-                  <div class="text-sm">{contactInfo.city}</div>
+                  <div class="font-medium">{safeContactInfo.address}</div>
+                  <div class="text-sm">{safeContactInfo.city}</div>
                 </div>
               </div>
               
@@ -526,35 +549,35 @@ console.log('✅ ContactLayout preparado:', {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <div class="text-sm">
-                  <div>{contactInfo.hours.weekdays}</div>
-                  <div>{contactInfo.hours.saturday}</div>
-                  <div>{contactInfo.hours.sunday}</div>
+                  <div>{safeContactInfo.hours.weekdays}</div>
+                  <div>{safeContactInfo.hours.saturday}</div>
+                  <div>{safeContactInfo.hours.sunday}</div>
                 </div>
               </div>
             </div>
           </div>
           
           <!-- Team -->
-          {team.length > 0 && (
+          {safeArray(team).length > 0 && (
             <div class="bg-white rounded-lg shadow-md p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-4">{text.teamTitle}</h3>
               
               <div class="space-y-4">
-                {team.map((persona) => (
-                  <div class="flex items-center gap-3">
+                {safeArray(team).map((persona, index) => (
+                  <div class="flex items-center gap-3" key={persona.id || index}>
                     <img 
-                      src={persona.avatar} 
-                      alt={persona.name}
+                      src={safeString(persona.avatar, 'https://i.pravatar.cc/150?img=1')} 
+                      alt={safeString(persona.name, 'Asesor')}
                       class="w-12 h-12 rounded-full object-cover"
                     />
                     <div class="flex-1">
-                      <div class="font-medium text-gray-900">{persona.name}</div>
-                      <div class="text-sm text-gray-600">{persona.title}</div>
-                      <div class="text-xs text-gray-500">{persona.specialties.join(', ')}</div>
+                      <div class="font-medium text-gray-900">{safeString(persona.name, 'Asesor')}</div>
+                      <div class="text-sm text-gray-600">{safeString(persona.title, 'Especialista')}</div>
+                      <div class="text-xs text-gray-500">{safeArray(persona.specialties).join(', ')}</div>
                     </div>
                     <div class="flex gap-2">
                       <a 
-                        href={`tel:${persona.phone}`}
+                        href={`tel:${safeString(persona.phone, safeContactInfo.phone)}`}
                         class="p-2 text-[#f04e00] hover:bg-gray-100 rounded"
                         title={text.quickActions.callNow}
                       >
@@ -563,7 +586,7 @@ console.log('✅ ContactLayout preparado:', {
                         </svg>
                       </a>
                       <a 
-                        href={`mailto:${persona.email}`}
+                        href={`mailto:${safeString(persona.email, safeContactInfo.email)}`}
                         class="p-2 text-[#f04e00] hover:bg-gray-100 rounded"
                         title={text.quickActions.email}
                       >
@@ -594,8 +617,8 @@ console.log('✅ ContactLayout preparado:', {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            <p class="text-sm">{contactInfo.address.split(',')[0]}</p>
-            <p class="text-sm">{contactInfo.city}</p>
+            <p class="text-sm">{safeContactInfo.address.split(',')[0]}</p>
+            <p class="text-sm">{safeContactInfo.city}</p>
           </div>
         </div>
       </div>
@@ -617,12 +640,12 @@ console.log('✅ ContactLayout preparado:', {
           <div class="bg-gray-50 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.workOffer.title}</h3>
             <ul class="space-y-2">
-              {text.workOffer.items.map(item => (
-                <li class="flex items-start gap-2">
+              {safeArray(text.workOffer.items).map((item, index) => (
+                <li class="flex items-start gap-2" key={index}>
                   <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span class="text-gray-700">{item}</span>
+                  <span class="text-gray-700">{safeString(item, 'Beneficio')}</span>
                 </li>
               ))}
             </ul>
@@ -631,12 +654,12 @@ console.log('✅ ContactLayout preparado:', {
           <div class="bg-gray-50 rounded-lg p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.workLooking.title}</h3>
             <ul class="space-y-2">
-              {text.workLooking.items.map(item => (
-                <li class="flex items-start gap-2">
+              {safeArray(text.workLooking.items).map((item, index) => (
+                <li class="flex items-start gap-2" key={index}>
                   <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span class="text-gray-700">{item}</span>
+                  <span class="text-gray-700">{safeString(item, 'Requisito')}</span>
                 </li>
               ))}
             </ul>
@@ -673,7 +696,7 @@ console.log('✅ ContactLayout preparado:', {
         // If it's asesor, scroll to the work with us section
         if (servicio === 'asesor') {
           setTimeout(() => {
-            const workSection = document.querySelector('[href="#contactForm"]').closest('section');
+            const workSection = document.querySelector('[href="#contactForm"]')?.closest('section');
             if (workSection) {
               workSection.scrollIntoView({ behavior: 'smooth' });
             }
@@ -684,35 +707,38 @@ console.log('✅ ContactLayout preparado:', {
   });
 
   // Simple form handling
-  document.getElementById('contactForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const servicio = formData.get('servicio');
-    
-    // Different messages based on service type and language
-    const userLang = document.documentElement.lang || 'es';
-    let message = userLang === 'es' ? '¡Gracias por tu mensaje! Te contactaremos pronto.' :
-                  userLang === 'en' ? 'Thank you for your message! We will contact you soon.' :
-                  'Merci pour votre message! Nous vous contacterons bientôt.';
-    
-    if (servicio === 'asesor') {
-      message = userLang === 'es' ? '¡Gracias por tu interés en trabajar con nosotros! Revisaremos tu aplicación y te contactaremos pronto.' :
-                userLang === 'en' ? 'Thank you for your interest in working with us! We will review your application and contact you soon.' :
-                'Merci pour votre intérêt à travailler avec nous! Nous examinerons votre candidature et vous contacterons bientôt.';
-    } else if (servicio === 'vender') {
-      message = userLang === 'es' ? '¡Gracias por contactarnos! Te llamaremos pronto para hablar sobre tu propiedad.' :
-                userLang === 'en' ? 'Thank you for contacting us! We will call you soon to talk about your property.' :
-                'Merci de nous avoir contactés! Nous vous appellerons bientôt pour parler de votre propriété.';
-    } else if (servicio === 'desarrollo') {
-      message = userLang === 'es' ? '¡Gracias por tu interés! Nos pondremos en contacto contigo para discutir tu proyecto.' :
-                userLang === 'en' ? 'Thank you for your interest! We will contact you to discuss your project.' :
-                'Merci pour votre intérêt! Nous vous contacterons pour discuter de votre projet.';
-    }
-    
-    alert(message);
-    
-    // Reset form
-    this.reset();
-  });
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const servicio = formData.get('servicio');
+      
+      // Different messages based on service type and language
+      const userLang = document.documentElement.lang || 'es';
+      let message = userLang === 'es' ? '¡Gracias por tu mensaje! Te contactaremos pronto.' :
+                    userLang === 'en' ? 'Thank you for your message! We will contact you soon.' :
+                    'Merci pour votre message! Nous vous contacterons bientôt.';
+      
+      if (servicio === 'asesor') {
+        message = userLang === 'es' ? '¡Gracias por tu interés en trabajar con nosotros! Revisaremos tu aplicación y te contactaremos pronto.' :
+                  userLang === 'en' ? 'Thank you for your interest in working with us! We will review your application and contact you soon.' :
+                  'Merci pour votre intérêt à travailler avec nous! Nous examinerons votre candidature et vous contacterons bientôt.';
+      } else if (servicio === 'vender') {
+        message = userLang === 'es' ? '¡Gracias por contactarnos! Te llamaremos pronto para hablar sobre tu propiedad.' :
+                  userLang === 'en' ? 'Thank you for contacting us! We will call you soon to talk about your property.' :
+                  'Merci de nous avoir contactés! Nous vous appellerons bientôt pour parler de votre propriété.';
+      } else if (servicio === 'desarrollo') {
+        message = userLang === 'es' ? '¡Gracias por tu interés! Nos pondremos en contacto contigo para discutir tu proyecto.' :
+                  userLang === 'en' ? 'Thank you for your interest! We will contact you to discuss your project.' :
+                  'Merci pour votre intérêt! Nous vous contacterons pour discuter de votre projet.';
+      }
+      
+      alert(message);
+      
+      // Reset form
+      this.reset();
+    });
+  }
 </script>

@@ -1,282 +1,180 @@
 ---
-// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos
+// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos con validación defensiva
 import Layout from './Layout.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
 
 // ===================================================================
-// EXTRACCIÓN DE DATOS DEL PROP
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const { data } = Astro.props;
-const language = data?.language || 'es';
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
 
-// ===================================================================
-// DATOS ESTÁTICOS DE FALLBACK 
-// ===================================================================
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
 
-let articlesData = data;
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
 
-// Si no hay datos, usar fallback estático
-if (!articlesData || !articlesData.categories) {
-  console.log('📋 ArticlesMainLayout: Usando datos estáticos de fallback');
-  
-  articlesData = {
-    language: language,
-    categories: [
-      {
-        id: 'guias-de-compra',
-        slug: 'guias-de-compra',
-        title: language === 'es' ? 'Guías de Compra' :
-               language === 'en' ? 'Buying Guides' :
-               'Guides d\'Achat',
-        description: language === 'es' ? 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana' :
-                     language === 'en' ? 'Everything you need to know to buy your ideal property in Dominican Republic' :
-                     'Tout ce que vous devez savoir pour acheter votre propriété idéale en République dominicaine',
-        thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop',
-        articleCount: 15,
-        featured: true,
-        recentArticles: [
-          language === 'es' ? 'Guía completa para comprar una villa en Punta Cana' :
-          language === 'en' ? 'Complete guide to buying a villa in Punta Cana' :
-          'Guide complet pour acheter une villa à Punta Cana',
-          language === 'es' ? 'Documentos necesarios para extranjeros que compran en RD' :
-          language === 'en' ? 'Required documents for foreigners buying in DR' :
-          'Documents nécessaires pour les étrangers achetant en RD',
-          language === 'es' ? 'Cómo negociar el precio de una propiedad' :
-          language === 'en' ? 'How to negotiate property prices' :
-          'Comment négocier le prix d\'une propriété'
-        ],
-        icon: '📚'
-      },
-      {
-        id: 'inversion-inmobiliaria',
-        slug: 'inversion-inmobiliaria',
-        title: language === 'es' ? 'Inversión Inmobiliaria' :
-               language === 'en' ? 'Real Estate Investment' :
-               'Investissement Immobilier',
-        description: language === 'es' ? 'Estrategias, análisis y casos de éxito para maximizar tu retorno de inversión' :
-                     language === 'en' ? 'Strategies, analysis and success cases to maximize your return on investment' :
-                     'Stratégies, analyses et cas de succès pour maximiser votre retour sur investissement',
-        thumbnail: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop',
-        articleCount: 12,
-        featured: true,
-        recentArticles: [
-          language === 'es' ? 'ROI de Airbnb en Punta Cana: Análisis completo 2024' :
-          language === 'en' ? 'Airbnb ROI in Punta Cana: Complete 2024 analysis' :
-          'ROI Airbnb à Punta Cana : Analyse complète 2024',
-          language === 'es' ? 'Las 5 mejores zonas para inversión inmobiliaria en RD' :
-          language === 'en' ? 'Top 5 areas for real estate investment in DR' :
-          'Les 5 meilleures zones d\'investissement immobilier en RD',
-          language === 'es' ? 'Cómo calcular el ROI de una propiedad de alquiler' :
-          language === 'en' ? 'How to calculate ROI on rental property' :
-          'Comment calculer le ROI d\'une propriété locative'
-        ],
-        icon: '📈'
-      },
-      {
-        id: 'mercado-inmobiliario',
-        slug: 'mercado-inmobiliario',
-        title: language === 'es' ? 'Mercado Inmobiliario' :
-               language === 'en' ? 'Real Estate Market' :
-               'Marché Immobilier',
-        description: language === 'es' ? 'Análisis de tendencias, precios y oportunidades en el mercado dominicano' :
-                     language === 'en' ? 'Analysis of trends, prices and opportunities in the Dominican market' :
-                     'Analyse des tendances, prix et opportunités sur le marché dominicain',
-        thumbnail: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&h=600&fit=crop',
-        articleCount: 8,
-        featured: false,
-        recentArticles: [
-          language === 'es' ? 'Tendencias del mercado inmobiliario dominicano 2024' :
-          language === 'en' ? 'Dominican real estate market trends 2024' :
-          'Tendances du marché immobilier dominicain 2024',
-          language === 'es' ? 'Precios promedio por zona en Santo Domingo' :
-          language === 'en' ? 'Average prices by area in Santo Domingo' :
-          'Prix moyens par zone à Santo Domingo'
-        ],
-        icon: '🏘️'
-      },
-      {
-        id: 'estilo-de-vida',
-        slug: 'estilo-de-vida',
-        title: language === 'es' ? 'Estilo de Vida' :
-               language === 'en' ? 'Lifestyle' :
-               'Style de Vie',
-        description: language === 'es' ? 'Descubre la vida en República Dominicana: cultura, servicios y calidad de vida' :
-                     language === 'en' ? 'Discover life in Dominican Republic: culture, services and quality of life' :
-                     'Découvrez la vie en République dominicaine : culture, services et qualité de vie',
-        thumbnail: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&h=600&fit=crop',
-        articleCount: 10,
-        featured: false,
-        recentArticles: [
-          language === 'es' ? 'Vivir en Punta Cana: Guía completa para expatriados' :
-          language === 'en' ? 'Living in Punta Cana: Complete guide for expats' :
-          'Vivre à Punta Cana : Guide complet pour les expatriés',
-          language === 'es' ? 'Mejores colegios internacionales en República Dominicana' :
-          language === 'en' ? 'Best international schools in Dominican Republic' :
-          'Meilleures écoles internationales en République dominicaine'
-        ],
-        icon: '🌴'
-      },
-      {
-        id: 'legal-y-financiero',
-        slug: 'legal-y-financiero',
-        title: language === 'es' ? 'Legal y Financiero' :
-               language === 'en' ? 'Legal & Financial' :
-               'Juridique et Financier',
-        description: language === 'es' ? 'Aspectos legales, fiscales y financieros de la compra de propiedades' :
-                     language === 'en' ? 'Legal, tax and financial aspects of property purchases' :
-                     'Aspects juridiques, fiscaux et financiers des achats immobiliers',
-        thumbnail: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=600&fit=crop',
-        articleCount: 9,
-        featured: false,
-        recentArticles: [
-          language === 'es' ? 'Impuestos sobre propiedades para extranjeros en RD' :
-          language === 'en' ? 'Property taxes for foreigners in DR' :
-          'Impôts fonciers pour les étrangers en RD',
-          language === 'es' ? 'Cómo obtener un préstamo hipotecario en República Dominicana' :
-          language === 'en' ? 'How to get a mortgage in Dominican Republic' :
-          'Comment obtenir un prêt hypothécaire en République dominicaine'
-        ],
-        icon: '⚖️'
-      },
-      {
-        id: 'tecnologia-proptech',
-        slug: 'tecnologia-proptech',
-        title: language === 'es' ? 'Tecnología y PropTech' :
-               language === 'en' ? 'Technology & PropTech' :
-               'Technologie et PropTech',
-        description: language === 'es' ? 'Innovaciones tecnológicas que están transformando el sector inmobiliario' :
-                     language === 'en' ? 'Technological innovations transforming the real estate sector' :
-                     'Innovations technologiques transformant le secteur immobilier',
-        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
-        articleCount: 6,
-        featured: false,
-        recentArticles: [
-          language === 'es' ? 'Tours virtuales: El futuro de las visitas inmobiliarias' :
-          language === 'en' ? 'Virtual tours: The future of property viewings' :
-          'Visites virtuelles : L\'avenir des visites immobilières',
-          language === 'es' ? 'Inteligencia artificial en la valoración de propiedades' :
-          language === 'en' ? 'Artificial intelligence in property valuation' :
-          'Intelligence artificielle dans l\'évaluation immobilière'
-        ],
-        icon: '🔧'
-      }
-    ],
-    featuredArticles: [
-      {
-        slug: 'guia-completa-comprar-villa-punta-cana',
-        title: language === 'es' ? 'Guía Completa para Comprar una Villa en Punta Cana' :
-                language === 'en' ? 'Complete Guide to Buying a Villa in Punta Cana' :
-                'Guide Complet pour Acheter une Villa à Punta Cana',
-        excerpt: language === 'es' ? 'Descubre paso a paso cómo adquirir tu villa soñada en el paraíso caribeño' :
-                 language === 'en' ? 'Discover step by step how to acquire your dream villa in the Caribbean paradise' :
-                 'Découvrez étape par étape comment acquérir votre villa de rêve dans le paradis caribéen',
-        featuredImage: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=450&fit=crop',
-        category: language === 'es' ? 'Guías de Compra' :
-                  language === 'en' ? 'Buying Guides' :
-                  'Guides d\'Achat',
-        categorySlug: 'guias-de-compra',
-        author: {
-          name: 'María Rodríguez',
-          avatar: 'https://i.pravatar.cc/150?img=5',
-          title: language === 'es' ? 'Especialista en Punta Cana' :
-                 language === 'en' ? 'Punta Cana Specialist' :
-                 'Spécialiste de Punta Cana'
-        },
-        publishedAt: '2024-03-20',
-        readTime: 15,
-        views: '12.5K',
-        tags: ['Punta Cana', 'Villas', language === 'es' ? 'Proceso de Compra' : language === 'en' ? 'Buying Process' : 'Processus d\'Achat']
-      },
-      {
-        slug: 'roi-airbnb-punta-cana-2024',
-        title: language === 'es' ? 'ROI de Airbnb en Punta Cana: Análisis Completo 2024' :
-                language === 'en' ? 'Airbnb ROI in Punta Cana: Complete 2024 Analysis' :
-                'ROI Airbnb à Punta Cana : Analyse Complète 2024',
-        excerpt: language === 'es' ? 'Estudio detallado de rentabilidad por zonas, tipos de propiedad y temporadas' :
-                 language === 'en' ? 'Detailed profitability study by areas, property types and seasons' :
-                 'Étude détaillée de rentabilité par zones, types de propriétés et saisons',
-        featuredImage: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=450&fit=crop',
-        category: language === 'es' ? 'Inversión Inmobiliaria' :
-                  language === 'en' ? 'Real Estate Investment' :
-                  'Investissement Immobilier',
-        categorySlug: 'inversion-inmobiliaria',
-        author: {
-          name: 'Pedro Santos',
-          avatar: 'https://i.pravatar.cc/150?img=6',
-          title: language === 'es' ? 'Experto en Inversiones' :
-                 language === 'en' ? 'Investment Expert' :
-                 'Expert en Investissements'
-        },
-        publishedAt: '2024-03-22',
-        readTime: 18,
-        views: '45.2K',
-        tags: ['Airbnb', 'ROI', 'Punta Cana']
-      }
-    ],
-    relatedProperties: [
-      {
-        slug: 'villa-punta-cana-inversion',
-        titulo: language === 'es' ? 'Villa para Inversión en Punta Cana' :
-                language === 'en' ? 'Investment Villa in Punta Cana' :
-                'Villa d\'Investissement à Punta Cana',
-        precio: '$485,000',
-        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-        sector: 'Punta Cana',
-        habitaciones: 3,
-        banos: 3,
-        metros: 250,
-        tipo: language === 'es' ? 'Villa' :
-              language === 'en' ? 'Villa' :
-              'Villa',
-        destacado: true,
-        descuento: 'ROI 16%'
-      },
-      {
-        slug: 'apartamento-airbnb-bavaro',
-        titulo: language === 'es' ? 'Apartamento Perfecto para Airbnb' :
-                language === 'en' ? 'Perfect Apartment for Airbnb' :
-                'Appartement Parfait pour Airbnb',
-        precio: '$185,000',
-        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-        sector: 'Bávaro',
-        habitaciones: 2,
-        banos: 2,
-        metros: 95,
-        tipo: language === 'es' ? 'Apartamento' :
-              language === 'en' ? 'Apartment' :
-              'Appartement',
-        nuevo: true
-      }
-    ],
-    stats: {
-      totalArticles: 60,
-      totalReads: '2.3M',
-      avgRating: 4.8,
-      publishedThisMonth: 8
-    },
-    seo: {
-      title: language === 'es' ? 'Blog Inmobiliario - Artículos CLIC' :
-             language === 'en' ? 'Real Estate Blog - CLIC Articles' :
-             'Blog Immobilier - Articles CLIC',
-      description: language === 'es' ? 'Descubre guías, consejos y análisis expertos sobre el mercado inmobiliario dominicano' :
-                   language === 'en' ? 'Discover guides, tips and expert analysis on the Dominican real estate market' :
-                   'Découvrez des guides, conseils et analyses d\'experts sur le marché immobilier dominicain'
-    }
-  };
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const categories = articlesData.categories || [];
-const featuredCategories = categories.filter(cat => cat.featured);
-const regularCategories = categories.filter(cat => !cat.featured);
-const featuredArticles = articlesData.featuredArticles || [];
-const relatedProperties = articlesData.relatedProperties || [];
-const stats = articlesData.stats || {};
-const seo = articlesData.seo || {};
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let articlesData = safeObject(data);
+
+// Procesar categorías de forma defensiva
+const rawCategories = safeArray(articlesData.categories);
+const safeCategories = rawCategories.map((cat, index) => ({
+  id: safeString(cat.id, `category-${index}`),
+  name: safeString(cat.name || cat.title || cat.display_name, 'Categoría sin nombre'),
+  slug: safeString(cat.slug, `categoria-${index}`),
+  url: safeString(cat.url, `#categoria-${index}`),
+  articleCount: safeNumber(cat.articleCount || cat.count, 0),
+  description: safeString(cat.description, 'Descripción no disponible'),
+  featured: Boolean(cat.featured),
+  thumbnail: safeString(cat.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  icon: safeString(cat.icon, '📰'),
+  recentArticles: safeArray(cat.recentArticles, [])
+}));
+
+// Separar categorías destacadas y regulares
+let featuredCategories = safeCategories.filter(cat => cat.featured);
+let regularCategories = safeCategories.filter(cat => !cat.featured);
+
+// Si no hay categorías destacadas, tomar las primeras 2 como destacadas
+if (featuredCategories.length === 0 && regularCategories.length > 0) {
+  featuredCategories = regularCategories.slice(0, 2).map(cat => ({ ...cat, featured: true }));
+  regularCategories = regularCategories.slice(2);
+}
+
+// Procesar artículos destacados
+const rawFeaturedArticles = safeArray(articlesData.featuredArticles);
+const safeFeaturedArticles = rawFeaturedArticles.map((article, index) => ({
+  id: safeString(article.id, `featured-${index}`),
+  title: safeString(article.title, 'Artículo sin título'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  subtitle: safeString(article.subtitle),
+  featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
+  publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
+  views: safeString(article.views, '0'),
+  readTime: safeString(article.readTime || article.read_time, '5 min'),
+  featured: Boolean(article.featured),
+  url: safeString(article.url, '#'),
+  slug: safeString(article.slug),
+  category: safeString(article.category, 'General'),
+  categorySlug: safeString(article.categorySlug || article.category_slug, 'general'),
+  tags: safeArray(article.tags, []),
+  author: safeObject(article.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    title: 'Especialista Inmobiliario'
+  })
+}));
+
+// Procesar artículos recientes
+const rawRecentArticles = safeArray(articlesData.recentArticles);
+const safeRecentArticles = rawRecentArticles.map((article, index) => ({
+  id: safeString(article.id, `recent-${index}`),
+  title: safeString(article.title, 'Artículo sin título'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  subtitle: safeString(article.subtitle),
+  featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
+  publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
+  views: safeString(article.views, '0'),
+  readTime: safeString(article.readTime || article.read_time, '5 min'),
+  featured: Boolean(article.featured),
+  url: safeString(article.url, '#'),
+  slug: safeString(article.slug),
+  author: safeObject(article.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    title: 'Especialista Inmobiliario'
+  })
+}));
+
+// Procesar propiedades relacionadas
+const rawRelatedProperties = safeArray(articlesData.relatedProperties);
+const safeRelatedProperties = rawRelatedProperties.map((property, index) => ({
+  id: safeString(property.id, `property-${index}`),
+  titulo: safeString(property.titulo || property.title, 'Propiedad sin título'),
+  precio: safeString(property.precio || property.price, '$0'),
+  imagen: safeString(property.imagen || property.image || property.featuredImage, 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'),
+  sector: safeString(property.sector || property.location, 'Ubicación no especificada'),
+  habitaciones: safeNumber(property.habitaciones || property.bedrooms, 0),
+  banos: safeNumber(property.banos || property.bathrooms, 0),
+  metros: safeNumber(property.metros || property.area, 0),
+  tipo: safeString(property.tipo || property.type, 'Propiedad'),
+  destacado: Boolean(property.destacado || property.featured),
+  nuevo: Boolean(property.nuevo || property.isNew),
+  descuento: safeString(property.descuento || property.discount),
+  slug: safeString(property.slug, `propiedad-${index}`)
+}));
+
+// Procesar estadísticas
+const rawStats = safeObject(articlesData.stats);
+const safeStats = {
+  totalArticles: safeNumber(rawStats.totalArticles, safeFeaturedArticles.length + safeRecentArticles.length),
+  totalReads: safeString(rawStats.totalReads || rawStats.totalViews, '1.5M'),
+  avgRating: safeNumber(rawStats.avgRating || rawStats.rating, 4.8),
+  publishedThisMonth: safeNumber(rawStats.publishedThisMonth || rawStats.thisMonth, 5),
+  totalCategories: safeNumber(rawStats.totalCategories, safeCategories.length),
+  totalViews: safeString(rawStats.totalViews, '1500000')
+};
+
+// Procesar SEO
+const rawSeo = safeObject(articlesData.seo);
+const safeSeo = {
+  title: safeString(rawSeo.title, 
+    language === 'en' ? 'Real Estate Articles & Insights | CLIC Inmobiliaria' :
+    language === 'fr' ? 'Articles & Insights Immobiliers | CLIC Inmobiliaria' :
+    'Artículos e Insights Inmobiliarios | CLIC Inmobiliaria'),
+  description: safeString(rawSeo.description,
+    language === 'en' ? 'Discover the latest real estate trends, market insights, and expert advice from CLIC Inmobiliaria.' :
+    language === 'fr' ? 'Découvrez les dernières tendances immobilières et conseils d\'experts de CLIC Inmobiliaria.' :
+    'Descubre las últimas tendencias inmobiliarias, insights del mercado y consejos expertos de CLIC Inmobiliaria.'),
+  h1: safeString(rawSeo.h1,
+    language === 'en' ? 'Real Estate Articles & Market Insights' :
+    language === 'fr' ? 'Articles Immobiliers & Insights du Marché' :
+    'Artículos Inmobiliarios e Insights del Mercado'),
+  h2: safeString(rawSeo.h2,
+    language === 'en' ? 'Expert insights to make informed property decisions' :
+    language === 'fr' ? 'Insights d\'experts pour prendre des décisions immobilières éclairées' :
+    'Insights expertos para tomar decisiones inmobiliarias informadas'),
+  canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/articulos' : `/${language}/articles`),
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, [
+    {
+      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+      url: language === 'es' ? '/' : `/${language}/`
+    },
+    {
+      name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
+      url: language === 'es' ? '/articulos' : `/${language}/articles`
+    }
+  ])
+};
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -445,29 +343,38 @@ const currentRoutes = routes[language] || routes.es;
 
 // Función para formatear fecha
 function formatDate(dateString) {
-  const date = new Date(dateString);
-  const months = {
-    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-  };
-  
-  const monthNames = months[language] || months.es;
-  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+    
+    const months = {
+      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
 }
 
-console.log('✅ ArticlesMainLayout preparado:', {
+console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
   language,
-  categoriesCount: categories.length,
+  categoriesCount: safeCategories.length,
   featuredCount: featuredCategories.length,
-  featuredArticlesCount: featuredArticles.length,
-  totalArticles: stats.totalArticles
+  featuredArticlesCount: safeFeaturedArticles.length,
+  recentArticlesCount: safeRecentArticles.length,
+  totalArticles: safeStats.totalArticles
 });
 ---
 
 <Layout 
-  title={seo.title || text.title}
-  description={seo.description || text.subtitle}
+  title={safeSeo.title || text.title}
+  description={safeSeo.description || text.subtitle}
   language={language}
 >
   <!-- Hero Section -->
@@ -484,19 +391,19 @@ console.log('✅ ArticlesMainLayout preparado:', {
         <!-- Stats -->
         <div class="flex flex-wrap justify-center gap-8 mt-10">
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{stats.totalArticles || 60}+</div>
+            <div class="text-3xl font-bold text-white mb-2">{safeStats.totalArticles}+</div>
             <div class="text-sm text-white/80">{text.statsLabels.articles}</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{stats.totalReads || '2.3M'}+</div>
+            <div class="text-3xl font-bold text-white mb-2">{safeStats.totalReads}+</div>
             <div class="text-sm text-white/80">{text.statsLabels.reads}</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{stats.avgRating || 4.8}/5</div>
+            <div class="text-3xl font-bold text-white mb-2">{safeStats.avgRating}/5</div>
             <div class="text-sm text-white/80">{text.statsLabels.rating}</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{stats.publishedThisMonth || 8}</div>
+            <div class="text-3xl font-bold text-white mb-2">{safeStats.publishedThisMonth}</div>
             <div class="text-sm text-white/80">{text.statsLabels.thisMonth}</div>
           </div>
         </div>
@@ -505,7 +412,7 @@ console.log('✅ ArticlesMainLayout preparado:', {
   </section>
 
   <!-- Featured Articles -->
-  {featuredArticles.length > 0 && (
+  {safeArray(safeFeaturedArticles).length > 0 && (
     <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
         <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
@@ -513,10 +420,11 @@ console.log('✅ ArticlesMainLayout preparado:', {
         </h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {featuredArticles.map((article) => (
+          {safeArray(safeFeaturedArticles).map((article, index) => (
             <a 
-              href={`${currentRoutes.articlesBase}/${article.categorySlug}/${article.slug}`}
+              href={article.url}
               class="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+              key={article.id || index}
             >
               <div class="aspect-[16/9] relative overflow-hidden">
                 <img 
@@ -550,9 +458,9 @@ console.log('✅ ArticlesMainLayout preparado:', {
               
               <div class="p-6">
                 <div class="flex flex-wrap items-center gap-2 mb-3">
-                  {article.tags.map(tag => (
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                      {tag}
+                  {safeArray(article.tags).map((tag, tagIndex) => (
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded" key={tagIndex}>
+                      {safeString(tag, 'Tag')}
                     </span>
                   ))}
                 </div>
@@ -591,21 +499,22 @@ console.log('✅ ArticlesMainLayout preparado:', {
   )}
 
   <!-- Featured Categories -->
-  {featuredCategories.length > 0 && (
+  {safeArray(featuredCategories).length > 0 && (
     <section class="py-12">
       <div class="container mx-auto px-4">
         <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.categoriesTitle}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {featuredCategories.map((category) => (
+          {safeArray(featuredCategories).map((category, index) => (
             <a 
-              href={`${currentRoutes.articlesBase}/${category.slug}`}
+              href={category.url}
               class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+              key={category.id || index}
             >
               <div class="aspect-[16/9] relative">
                 <img 
                   src={category.thumbnail} 
-                  alt={category.title}
+                  alt={category.name}
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
@@ -614,7 +523,7 @@ console.log('✅ ArticlesMainLayout preparado:', {
                 <div class="absolute bottom-0 left-0 right-0 p-8">
                   <div class="flex items-center gap-3 mb-3">
                     <span class="text-4xl">{category.icon}</span>
-                    <h3 class="text-3xl font-bold text-white">{category.title}</h3>
+                    <h3 class="text-3xl font-bold text-white">{category.name}</h3>
                   </div>
                   <p class="text-lg text-white/90 mb-4">{category.description}</p>
                   
@@ -631,16 +540,16 @@ console.log('✅ ArticlesMainLayout preparado:', {
                   </div>
                   
                   <!-- Recent articles preview -->
-                  {category.recentArticles && (
+                  {safeArray(category.recentArticles).length > 0 && (
                     <div class="mt-4 pt-4 border-t border-white/20">
                       <p class="text-sm text-white/70 mb-2">{text.recentArticles}</p>
                       <ul class="text-sm text-white/90 space-y-1">
-                        {category.recentArticles.slice(0, 3).map(article => (
-                          <li class="flex items-center gap-2">
+                        {safeArray(category.recentArticles).slice(0, 3).map((article, articleIndex) => (
+                          <li class="flex items-center gap-2" key={articleIndex}>
                             <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                             </svg>
-                            {article}
+                            {safeString(article, 'Artículo')}
                           </li>
                         ))}
                       </ul>
@@ -656,51 +565,56 @@ console.log('✅ ArticlesMainLayout preparado:', {
   )}
 
   <!-- All Categories -->
-  <section class="py-12 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {regularCategories.map((category) => (
-          <a 
-            href={`${currentRoutes.articlesBase}/${category.slug}`}
-            class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
-          >
-            <div class="flex items-start gap-4">
-              <span class="text-4xl flex-shrink-0">{category.icon}</span>
-              <div class="flex-1">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
-                  {category.title}
-                </h3>
-                <p class="text-gray-600 mb-4">{category.description}</p>
-                
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-500">
-                    {category.articleCount} {text.articles}
-                  </span>
-                  <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                    {text.readMore}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </span>
+  {safeArray(regularCategories).length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {safeArray(regularCategories).map((category, index) => (
+            <a 
+              href={category.url}
+              class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
+              key={category.id || index}
+            >
+              <div class="flex items-start gap-4">
+                <span class="text-4xl flex-shrink-0">{category.icon}</span>
+                <div class="flex-1">
+                  <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                    {category.name}
+                  </h3>
+                  <p class="text-gray-600 mb-4">{category.description}</p>
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">
+                      {category.articleCount} {text.articles}
+                    </span>
+                    <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                      {text.readMore}
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </a>
-        ))}
+            </a>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
   <!-- Related Properties -->
-  <PropertyCarousel 
-    title={text.propertiesTitle}
-    subtitle={text.propertiesSubtitle}
-    properties={relatedProperties}
-    viewAllLink={`${currentRoutes.properties}?fuente=blog`}
-    language={language}
-  />
+  {safeArray(safeRelatedProperties).length > 0 && (
+    <PropertyCarousel 
+      title={text.propertiesTitle}
+      subtitle={text.propertiesSubtitle}
+      properties={safeRelatedProperties}
+      viewAllLink={`${currentRoutes.properties}?fuente=blog`}
+      language={language}
+    />
+  )}
 
   <!-- Expertise Section -->
   <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">

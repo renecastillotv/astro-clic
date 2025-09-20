@@ -12,6 +12,25 @@ const language = data?.language || 'es';
 const category = data?.category || 'compradores';
 
 // ===================================================================
+// FUNCIONES HELPER DE VALIDACIÓN
+// ===================================================================
+
+// Función helper para validar arrays
+const safeArray = (arr) => Array.isArray(arr) ? arr : [];
+
+// Función helper para validar objetos
+const safeObject = (obj) => obj && typeof obj === 'object' ? obj : {};
+
+// Función helper para validar strings
+const safeString = (str) => typeof str === 'string' ? str : '';
+
+// Función helper para validar números
+const safeNumber = (num) => typeof num === 'number' && !isNaN(num) ? num : 0;
+
+// Función helper para validar booleans
+const safeBool = (bool) => Boolean(bool);
+
+// ===================================================================
 // DATOS ESTÁTICOS DE FALLBACK POR CATEGORÍA
 // ===================================================================
 
@@ -228,29 +247,91 @@ if (!categoryData || !categoryData.testimonials) {
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// PROCESAR DATOS FINALES CON VALIDACIONES DEFENSIVAS
 // ===================================================================
 
-const currentCategory = categoryData;
-const testimonials = currentCategory.testimonials || [];
+// Procesar datos de categoría con validaciones
+const rawCategoryData = safeObject(categoryData);
+const currentCategory = {
+  title: safeString(rawCategoryData.title) || 'Testimonios',
+  description: safeString(rawCategoryData.description) || 'Historias de éxito con CLIC Inmobiliaria.'
+};
+
+// Procesar testimonios con validaciones
+const rawTestimonials = safeArray(rawCategoryData.testimonials);
+const testimonials = rawTestimonials.map(testimonial => {
+  const raw = safeObject(testimonial);
+  return {
+    id: safeString(raw.id) || '1',
+    slug: safeString(raw.slug) || 'testimonio',
+    author: {
+      name: safeString(raw.author?.name) || 'Cliente',
+      avatar: safeString(raw.author?.avatar) || 'https://i.pravatar.cc/150?img=1',
+      location: safeString(raw.author?.location) || 'República Dominicana',
+      verified: safeBool(raw.author?.verified),
+      isCelebrity: safeBool(raw.author?.isCelebrity)
+    },
+    rating: safeNumber(raw.rating) || 5,
+    title: safeString(raw.title) || 'Historia de éxito',
+    excerpt: safeString(raw.excerpt) || 'Cliente satisfecho con el servicio de CLIC.',
+    featuredImage: safeString(raw.featuredImage) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop',
+    propertyType: safeString(raw.propertyType) || 'Propiedad',
+    location: safeString(raw.location) || 'Santo Domingo',
+    date: safeString(raw.date) || '2024-01-01',
+    featured: safeBool(raw.featured),
+    purchaseValue: safeString(raw.purchaseValue),
+    saleValue: safeString(raw.saleValue),
+    processTime: safeString(raw.processTime) || '30 días',
+    views: safeString(raw.views) || '1K',
+    readTime: safeString(raw.readTime) || '3 min'
+  };
+});
+
 const featuredTestimonials = testimonials.filter(t => t.featured);
 const regularTestimonials = testimonials.filter(t => !t.featured);
-const relatedProperties = currentCategory.relatedProperties || [];
 
-// Función para formatear fecha
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  const months = {
-    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+// Procesar propiedades relacionadas con validaciones
+const rawRelatedProperties = safeArray(rawCategoryData.relatedProperties);
+const relatedProperties = rawRelatedProperties.map(prop => {
+  const raw = safeObject(prop);
+  return {
+    slug: safeString(raw.slug) || 'propiedad',
+    titulo: safeString(raw.titulo) || 'Propiedad disponible',
+    precio: safeString(raw.precio) || '$0',
+    imagen: safeString(raw.imagen) || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    sector: safeString(raw.sector) || 'Santo Domingo',
+    habitaciones: safeNumber(raw.habitaciones) || 3,
+    banos: safeNumber(raw.banos) || 2,
+    metros: safeNumber(raw.metros) || 100,
+    tipo: safeString(raw.tipo) || 'Casa',
+    destacado: safeBool(raw.destacado),
+    nuevo: safeBool(raw.nuevo),
+    descuento: safeString(raw.descuento)
   };
-  
-  const monthNames = months[language] || months.es;
-  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+});
+
+// Función para formatear fecha de forma segura
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return '1 de Enero 2024';
+    }
+    
+    const months = {
+      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  } catch (error) {
+    return '1 de Enero 2024';
+  }
 }
 
-// Estadísticas de la categoría
+// Estadísticas de la categoría con validaciones
 const categoryStats = {
   compradores: {
     avgSatisfaction: '4.9/5',
@@ -587,7 +668,7 @@ console.log('✅ TestimonialsCategoryLayout preparado:', {
                 </h3>
                 <p class="text-gray-600 mt-2">{testimonial.excerpt}</p>
                 <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                  <span>{testimonial.purchaseValue || testimonial.saleValue}</span>
+                  <span>{testimonial.purchaseValue || testimonial.saleValue || 'N/A'}</span>
                   <span>•</span>
                   <span>Proceso: {testimonial.processTime}</span>
                 </div>
@@ -600,86 +681,88 @@ console.log('✅ TestimonialsCategoryLayout preparado:', {
   )}
 
   <!-- Regular Testimonials Grid -->
-  <section class="py-12 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.allTestimonials}</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {regularTestimonials.map((testimonial) => (
-          <a 
-            href={`${currentRoutes.testimonials}/${category}/${testimonial.slug}`}
-            class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-          >
-            <div class="relative aspect-video overflow-hidden rounded-t-lg">
-              <img 
-                src={testimonial.featuredImage} 
-                alt={testimonial.title}
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-              
-              <!-- Author avatar -->
-              <div class="absolute top-3 left-3 flex items-center gap-2">
+  {regularTestimonials.length > 0 && (
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.allTestimonials}</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {regularTestimonials.map((testimonial) => (
+            <a 
+              href={`${currentRoutes.testimonials}/${category}/${testimonial.slug}`}
+              class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <div class="relative aspect-video overflow-hidden rounded-t-lg">
                 <img 
-                  src={testimonial.author.avatar} 
-                  alt={testimonial.author.name}
-                  class="w-8 h-8 rounded-full border-2 border-white"
+                  src={testimonial.featuredImage} 
+                  alt={testimonial.title}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                {testimonial.author.verified && (
-                  <span class="bg-green-500 text-white p-1 rounded-full">
-                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </span>
-                )}
-              </div>
-              
-              <!-- Rating -->
-              <div class="absolute top-3 right-3 bg-black/60 rounded px-2 py-1 flex items-center gap-1">
-                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                <span class="text-white text-xs">{testimonial.rating}</span>
-              </div>
-              
-              <!-- Read indicator -->
-              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                  <svg class="w-6 h-6 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
+                
+                <!-- Author avatar -->
+                <div class="absolute top-3 left-3 flex items-center gap-2">
+                  <img 
+                    src={testimonial.author.avatar} 
+                    alt={testimonial.author.name}
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                  />
+                  {testimonial.author.verified && (
+                    <span class="bg-green-500 text-white p-1 rounded-full">
+                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </span>
+                  )}
+                </div>
+                
+                <!-- Rating -->
+                <div class="absolute top-3 right-3 bg-black/60 rounded px-2 py-1 flex items-center gap-1">
+                  <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
+                  <span class="text-white text-xs">{testimonial.rating}</span>
+                </div>
+                
+                <!-- Read indicator -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- Read time -->
+                <span class="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                  {testimonial.readTime}
+                </span>
+              </div>
+              
+              <div class="p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
+                    {testimonial.propertyType}
+                  </span>
+                  <span class="text-xs text-gray-500">{testimonial.views} {text.readings}</span>
+                </div>
+                
+                <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                  {testimonial.title}
+                </h3>
+                <p class="text-sm text-gray-600 mt-2 line-clamp-2">{testimonial.excerpt}</p>
+                
+                <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
+                  <span>{text.by} {testimonial.author.name}</span>
+                  <span>{formatDate(testimonial.date)}</span>
                 </div>
               </div>
-              
-              <!-- Read time -->
-              <span class="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                {testimonial.readTime}
-              </span>
-            </div>
-            
-            <div class="p-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
-                  {testimonial.propertyType}
-                </span>
-                <span class="text-xs text-gray-500">{testimonial.views} {text.readings}</span>
-              </div>
-              
-              <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
-                {testimonial.title}
-              </h3>
-              <p class="text-sm text-gray-600 mt-2 line-clamp-2">{testimonial.excerpt}</p>
-              
-              <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
-                <span>{text.by} {testimonial.author.name}</span>
-                <span>{formatDate(testimonial.date)}</span>
-              </div>
-            </div>
-          </a>
-        ))}
+            </a>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
   <!-- Related Properties -->
   {relatedProperties.length > 0 && (

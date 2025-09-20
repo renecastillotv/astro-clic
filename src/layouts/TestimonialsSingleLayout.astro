@@ -13,6 +13,25 @@ const category = data?.category || 'compradores';
 const testimonioSlug = data?.testimonioSlug || Astro.url.pathname.split('/').pop();
 
 // ===================================================================
+// FUNCIONES HELPER DE VALIDACIÓN
+// ===================================================================
+
+// Función helper para validar arrays
+const safeArray = (arr) => Array.isArray(arr) ? arr : [];
+
+// Función helper para validar objetos
+const safeObject = (obj) => obj && typeof obj === 'object' ? obj : {};
+
+// Función helper para validar strings
+const safeString = (str) => typeof str === 'string' ? str : '';
+
+// Función helper para validar números
+const safeNumber = (num) => typeof num === 'number' && !isNaN(num) ? num : 0;
+
+// Función helper para validar booleans
+const safeBool = (bool) => Boolean(bool);
+
+// ===================================================================
 // DATOS ESTÁTICOS DE FALLBACK PARA TESTIMONIO ESPECÍFICO
 // ===================================================================
 
@@ -20,7 +39,7 @@ let testimonioData = data;
 
 // Si no hay datos, usar fallback estático
 if (!testimonioData || !testimonioData.testimonial) {
-  console.log('👤 TestimonialsSingleLayout: Usando datos estáticos de fallback para', testimonioSlug);
+  console.log('💤 TestimonialsSingleLayout: Usando datos estáticos de fallback para', testimonioSlug);
   
   const testimoniosDataMap = {
     'juan-luis-guerra-casa-de-campo': {
@@ -445,29 +464,132 @@ L'investissement de 2,5 millions de dollars ne m'a pas seulement donné une vill
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// PROCESAR DATOS FINALES CON VALIDACIONES DEFENSIVAS
 // ===================================================================
 
-const currentTestimonio = testimonioData.testimonial;
-const seo = testimonioData.seo || {};
+// Procesar testimonio con validaciones
+const rawTestimonio = safeObject(testimonioData?.testimonial);
+const currentTestimonio = {
+  title: safeString(rawTestimonio.title) || 'Testimonio',
+  subtitle: safeString(rawTestimonio.subtitle) || 'Historia de éxito',
+  author: {
+    name: safeString(rawTestimonio.author?.name) || 'Cliente',
+    avatar: safeString(rawTestimonio.author?.avatar) || 'https://i.pravatar.cc/150?img=1',
+    location: safeString(rawTestimonio.author?.location) || 'República Dominicana',
+    verified: safeBool(rawTestimonio.author?.verified),
+    isCelebrity: safeBool(rawTestimonio.author?.isCelebrity),
+    profession: safeString(rawTestimonio.author?.profession) || 'Cliente',
+    socialMedia: safeObject(rawTestimonio.author?.socialMedia)
+  },
+  rating: safeNumber(rawTestimonio.rating) || 5,
+  featuredImage: safeString(rawTestimonio.featuredImage) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop',
+  propertyType: safeString(rawTestimonio.propertyType) || 'Propiedad',
+  location: safeString(rawTestimonio.location) || 'República Dominicana',
+  publishedAt: safeString(rawTestimonio.publishedAt) || '2024-01-01',
+  category: safeString(rawTestimonio.category) || 'Testimonios',
+  categorySlug: safeString(rawTestimonio.categorySlug) || 'testimonios',
+  readTime: safeString(rawTestimonio.readTime) || '3 min',
+  views: safeString(rawTestimonio.views) || '1,000',
+  fullTestimonial: safeString(rawTestimonio.fullTestimonial) || 'Historia de éxito con CLIC Inmobiliaria.',
+  
+  purchaseDetails: {
+    purchaseValue: safeString(rawTestimonio.purchaseDetails?.purchaseValue) || '$0',
+    processTime: safeString(rawTestimonio.purchaseDetails?.processTime) || '30 días',
+    propertySize: safeString(rawTestimonio.purchaseDetails?.propertySize) || '100 m²',
+    bedrooms: safeNumber(rawTestimonio.purchaseDetails?.bedrooms) || 3,
+    bathrooms: safeNumber(rawTestimonio.purchaseDetails?.bathrooms) || 2,
+    lotSize: safeString(rawTestimonio.purchaseDetails?.lotSize) || '200 m²',
+    yearBuilt: safeString(rawTestimonio.purchaseDetails?.yearBuilt) || '2020',
+    features: safeArray(rawTestimonio.purchaseDetails?.features)
+  },
+  
+  timeline: safeArray(rawTestimonio.timeline).map(event => ({
+    date: safeString(event?.date) || '2024-01-01',
+    title: safeString(event?.title) || 'Evento',
+    description: safeString(event?.description) || 'Descripción del evento'
+  })),
+  
+  photoGallery: safeArray(rawTestimonio.photoGallery).map(photo => ({
+    url: safeString(photo?.url) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=800&fit=crop',
+    caption: safeString(photo?.caption) || 'Imagen de la propiedad'
+  })),
+  
+  similarProperties: safeArray(rawTestimonio.similarProperties).map(prop => ({
+    slug: safeString(prop?.slug) || 'propiedad',
+    titulo: safeString(prop?.titulo) || 'Propiedad disponible',
+    precio: safeString(prop?.precio) || '$0',
+    imagen: safeString(prop?.imagen) || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+    sector: safeString(prop?.sector) || 'Santo Domingo',
+    habitaciones: safeNumber(prop?.habitaciones) || 3,
+    banos: safeNumber(prop?.banos) || 2,
+    metros: safeNumber(prop?.metros) || 100,
+    tipo: safeString(prop?.tipo) || 'Casa',
+    destacado: safeBool(prop?.destacado),
+    nuevo: safeBool(prop?.nuevo),
+    descuento: safeString(prop?.descuento)
+  })),
+  
+  relatedTestimonials: safeArray(rawTestimonio.relatedTestimonials).map(test => ({
+    id: safeString(test?.id) || '1',
+    title: safeString(test?.title) || 'Testimonio relacionado',
+    author: safeString(test?.author) || 'Cliente',
+    thumbnail: safeString(test?.thumbnail) || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop',
+    category: safeString(test?.category) || 'testimonios',
+    slug: safeString(test?.slug) || 'testimonio',
+    excerpt: safeString(test?.excerpt) || 'Historia de éxito con CLIC',
+    rating: safeNumber(test?.rating) || 5
+  })),
+  
+  teamMembers: safeArray(rawTestimonio.teamMembers).map(member => ({
+    slug: safeString(member?.slug) || 'asesor',
+    name: safeString(member?.name) || 'Asesor CLIC',
+    title: safeString(member?.title) || 'Asesor Inmobiliario',
+    avatar: safeString(member?.avatar) || 'https://i.pravatar.cc/150?img=1',
+    specialties: safeArray(member?.specialties),
+    experience: safeString(member?.experience) || '5 años',
+    languages: safeArray(member?.languages),
+    phone: safeString(member?.phone) || '+1 809 555 0000',
+    whatsapp: safeString(member?.whatsapp) || '18095550000',
+    rating: safeNumber(member?.rating) || 5,
+    reviewCount: safeNumber(member?.reviewCount) || 50,
+    testimonialQuote: safeString(member?.testimonialQuote) || 'Trabajar con este cliente fue una experiencia excelente.'
+  }))
+};
+
+const seo = safeObject(testimonioData?.seo);
 
 // Función para formatear fecha
 function formatDate(dateString) {
-  const date = new Date(dateString);
-  const months = {
-    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-  };
-  
-  const monthNames = months[language] || months.es;
-  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return '1 de Enero 2024';
+    }
+    
+    const months = {
+      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  } catch (error) {
+    return '1 de Enero 2024';
+  }
 }
 
 // Función para formatear fecha corta
 function formatDateShort(dateString) {
-  const date = new Date(dateString);
-  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return '1/1/2024';
+    }
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  } catch (error) {
+    return '1/1/2024';
+  }
 }
 
 // ===================================================================
@@ -586,15 +708,15 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   category,
   testimonioSlug,
   testimonialTitle: currentTestimonio.title,
-  hasTimeline: currentTestimonio.timeline?.length > 0,
-  hasGallery: currentTestimonio.photoGallery?.length > 0,
-  hasTeam: currentTestimonio.teamMembers?.length > 0
+  hasTimeline: currentTestimonio.timeline.length > 0,
+  hasGallery: currentTestimonio.photoGallery.length > 0,
+  hasTeam: currentTestimonio.teamMembers.length > 0
 });
 ---
 
 <Layout 
-  title={seo.title}
-  description={seo.description}
+  title={seo.title || currentTestimonio.title}
+  description={seo.description || currentTestimonio.subtitle}
   language={language}
 >
   <!-- Breadcrumbs -->
@@ -726,19 +848,21 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
           </div>
         </div>
         
-        <div class="bg-white rounded-lg p-6 shadow-md">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.mainFeatures}</h3>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {currentTestimonio.purchaseDetails.features.map(feature => (
-              <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span class="text-sm text-gray-700">{feature}</span>
-              </div>
-            ))}
+        {currentTestimonio.purchaseDetails.features.length > 0 && (
+          <div class="bg-white rounded-lg p-6 shadow-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.mainFeatures}</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {currentTestimonio.purchaseDetails.features.map(feature => (
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-sm text-gray-700">{feature}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   </section>
@@ -757,7 +881,7 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   </section>
 
   <!-- Timeline -->
-  {currentTestimonio.timeline && currentTestimonio.timeline.length > 0 && (
+  {currentTestimonio.timeline.length > 0 && (
     <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
@@ -786,7 +910,7 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   )}
 
   <!-- Photo Gallery -->
-  {currentTestimonio.photoGallery && currentTestimonio.photoGallery.length > 0 && (
+  {currentTestimonio.photoGallery.length > 0 && (
     <section class="py-12">
       <div class="container mx-auto px-4">
         <div class="max-w-6xl mx-auto">
@@ -812,7 +936,7 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   )}
 
   <!-- Team Members -->
-  {currentTestimonio.teamMembers && currentTestimonio.teamMembers.length > 0 && (
+  {currentTestimonio.teamMembers.length > 0 && (
     <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
@@ -844,25 +968,29 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
                       "{member.testimonialQuote}"
                     </blockquote>
                     <div class="flex gap-2">
-                      <a 
-                        href={`tel:${member.phone}`}
-                        class="inline-flex items-center gap-1 px-3 py-1 bg-[#f04e00] text-white rounded text-xs hover:bg-[#d94400] transition-colors"
-                      >
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                        </svg>
-                        {text.callNow}
-                      </a>
-                      <a 
-                        href={`https://wa.me/${member.whatsapp}`}
-                        target="_blank"
-                        class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
-                      >
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                        </svg>
-                        {text.whatsapp}
-                      </a>
+                      {member.phone && (
+                        <a 
+                          href={`tel:${member.phone}`}
+                          class="inline-flex items-center gap-1 px-3 py-1 bg-[#f04e00] text-white rounded text-xs hover:bg-[#d94400] transition-colors"
+                        >
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                          </svg>
+                          {text.callNow}
+                        </a>
+                      )}
+                      {member.whatsapp && (
+                        <a 
+                          href={`https://wa.me/${member.whatsapp}`}
+                          target="_blank"
+                          class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
+                        >
+                          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                          </svg>
+                          {text.whatsapp}
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -875,7 +1003,7 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   )}
 
   <!-- Similar Properties -->
-  {currentTestimonio.similarProperties && currentTestimonio.similarProperties.length > 0 && (
+  {currentTestimonio.similarProperties.length > 0 && (
     <PropertyCarousel 
       title={text.similarPropertiesTitle}
       subtitle={text.similarPropertiesSubtitle}
@@ -886,7 +1014,7 @@ console.log('✅ TestimonialsSingleLayout preparado:', {
   )}
 
   <!-- Related Testimonials -->
-  {currentTestimonio.relatedTestimonials && currentTestimonio.relatedTestimonials.length > 0 && (
+  {currentTestimonio.relatedTestimonials.length > 0 && (
     <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
         <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.relatedTestimonialsTitle}</h2>

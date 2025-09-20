@@ -135,21 +135,66 @@ if (!advisorsData || !advisorsData.advisors) {
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// PROCESAR DATOS FINALES CON VALIDACIONES DEFENSIVAS
 // ===================================================================
 
-const advisors = advisorsData.advisors || [];
-const featured = advisorsData.featured || advisors.filter(a => a.featured);
+// Función helper para validar arrays
+const safeArray = (arr) => Array.isArray(arr) ? arr : [];
+
+// Función helper para validar objetos
+const safeObject = (obj) => obj && typeof obj === 'object' ? obj : {};
+
+// Función helper para validar strings
+const safeString = (str) => typeof str === 'string' ? str : '';
+
+// Función helper para validar números
+const safeNumber = (num) => typeof num === 'number' && !isNaN(num) ? num : 0;
+
+// Procesar datos principales
+const advisors = safeArray(advisorsData?.advisors).map(advisor => ({
+  ...advisor,
+  slug: safeString(advisor?.slug) || 'advisor',
+  name: safeString(advisor?.name) || 'Asesor',
+  title: safeString(advisor?.title) || 'Asesor Inmobiliario',
+  avatar: safeString(advisor?.avatar) || 'https://i.pravatar.cc/300?img=1',
+  specialties: safeArray(advisor?.specialties),
+  areas: safeArray(advisor?.areas),
+  languages: safeArray(advisor?.languages),
+  experience: safeString(advisor?.experience) || '1 año',
+  totalSales: safeString(advisor?.totalSales) || '$0',
+  propertiesSold: safeNumber(advisor?.propertiesSold),
+  avgDays: safeNumber(advisor?.avgDays) || 30,
+  rating: safeNumber(advisor?.rating) || 5,
+  reviewCount: safeNumber(advisor?.reviewCount),
+  phone: safeString(advisor?.phone),
+  whatsapp: safeString(advisor?.whatsapp),
+  email: safeString(advisor?.email),
+  featured: Boolean(advisor?.featured),
+  bio: safeString(advisor?.bio) || 'Asesor inmobiliario especializado.',
+  recentTestimonial: safeObject(advisor?.recentTestimonial),
+  achievements: safeArray(advisor?.achievements)
+}));
+
+const featured = safeArray(advisorsData?.featured).length > 0 
+  ? safeArray(advisorsData?.featured) 
+  : advisors.filter(a => a.featured);
+
 const regular = advisors.filter(a => !a.featured);
-const stats = advisorsData.stats || {};
-const teamProperties = advisorsData.teamProperties || [];
-const seo = advisorsData.seo || {};
+const stats = safeObject(advisorsData?.stats);
+const teamProperties = safeArray(advisorsData?.teamProperties);
+const seo = safeObject(advisorsData?.seo);
 
 // Calcular stats si no vienen de la edge function
 const calculatedStats = {
-  totalSales: stats.totalSales || advisors.reduce((sum, a) => sum + parseInt(a.totalSales?.replace(/[$M]/g, '') || '0'), 0),
-  totalProperties: stats.totalProperties || advisors.reduce((sum, a) => sum + (a.propertiesSold || 0), 0),
-  avgRating: stats.avgRating || (advisors.reduce((sum, a) => sum + (a.rating || 0), 0) / advisors.length),
+  totalSales: stats.totalSales || advisors.reduce((sum, a) => {
+    const salesStr = safeString(a.totalSales).replace(/[$M]/g, '');
+    const salesNum = parseInt(salesStr) || 0;
+    return sum + salesNum;
+  }, 0),
+  totalProperties: stats.totalProperties || advisors.reduce((sum, a) => sum + safeNumber(a.propertiesSold), 0),
+  avgRating: stats.avgRating || (advisors.length > 0 
+    ? advisors.reduce((sum, a) => sum + safeNumber(a.rating), 0) / advisors.length 
+    : 5),
   totalAdvisors: stats.totalAdvisors || advisors.length
 };
 
@@ -270,11 +315,11 @@ const layoutProps = {
   canonical: seo.canonical_url,
   keywords: seo.keywords,
   hreflangData: seo.hreflang || {},
- globalConfig: data.globalConfig || advisorsData.globalConfig || {},
+  globalConfig: data?.globalConfig || advisorsData?.globalConfig || {},
   language: language,
-  trackingString: advisorsData.trackingString || '',
-  hotItems: advisorsData.hotItems || {},
-  country: advisorsData.country || {}
+  trackingString: advisorsData?.trackingString || '',
+  hotItems: advisorsData?.hotItems || {},
+  country: advisorsData?.country || {}
 };
 ---
 
@@ -393,12 +438,12 @@ const layoutProps = {
                     </div>
                     
                     <!-- Recent testimonial -->
-                    {advisor.recentTestimonial && (
+                    {advisor.recentTestimonial?.text && (
                       <div class="bg-gray-50 rounded-lg p-4 mb-4">
                         <blockquote class="text-sm text-gray-700 italic mb-2">
                           "{advisor.recentTestimonial.text}"
                         </blockquote>
-                        <cite class="text-xs text-gray-600">- {advisor.recentTestimonial.author}</cite>
+                        <cite class="text-xs text-gray-600">- {advisor.recentTestimonial.author || 'Cliente'}</cite>
                       </div>
                     )}
                     
@@ -503,16 +548,18 @@ const layoutProps = {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                   </span>
-                  <a 
-                    href={`https://wa.me/${advisor.whatsapp}`}
-                    target="_blank"
-                    onclick="event.stopPropagation()"
-                    class="inline-flex items-center justify-center w-10 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                  >
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                    </svg>
-                  </a>
+                  {advisor.whatsapp && (
+                    <a 
+                      href={`https://wa.me/${advisor.whatsapp}`}
+                      target="_blank"
+                      onclick="event.stopPropagation()"
+                      class="inline-flex items-center justify-center w-10 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                    >
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                      </svg>
+                    </a>
+                  )}
                 </div>
               </div>
             </a>

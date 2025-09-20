@@ -1,239 +1,205 @@
 ---
-// src/layouts/VideosSingleLayout.astro - Layout para video individual
+// src/layouts/VideosSingleLayout.astro - Layout para video individual con validación defensiva
 import Layout from './Layout.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
 import VideoGallery from '../components/VideoGallery.astro';
 import AreaAdvisors from '../components/AreaAdvisors.astro';
 
 // ===================================================================
-// EXTRACCIÓN DE DATOS DEL PROP
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const { data } = Astro.props;
-const language = data?.language || 'es';
-const categorySlug = data?.categorySlug || data?.category;
-const videoSlug = data?.videoSlug || data?.slug;
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
 
-// ===================================================================
-// DATOS ESTÁTICOS DE FALLBACK 
-// ===================================================================
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
 
-let videoData = data;
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
 
-// Si no hay datos, usar fallback estático
-if (!videoData || !videoData.title) {
-  console.log('📹 VideosSingleLayout: Usando datos estáticos de fallback');
-  
-  videoData = {
-    language: language,
-    slug: videoSlug || 'la-casa-de-luz-garcia',
-    categorySlug: categorySlug || 'la-casa-de-los-famosos',
-    title: language === 'es' ? 'La Casa de Luz García en Cacicazgos' :
-           language === 'en' ? 'Luz García\'s House in Cacicazgos' :
-           'La Maison de Luz García à Cacicazgos',
-    subtitle: language === 'es' ? 'Tour exclusivo por la espectacular villa de la presentadora dominicana' :
-              language === 'en' ? 'Exclusive tour of the Dominican TV host\'s spectacular villa' :
-              'Visite exclusive de la villa spectaculaire de la présentatrice dominicaine',
-    description: language === 'es' ? `Acompáñanos en este recorrido exclusivo por la impresionante villa de Luz García ubicada en el exclusivo sector de Cacicazgos. 
-    
-    Esta propiedad de más de 450 metros cuadrados combina elegancia moderna con toques tropicales, creando el hogar perfecto para una de las figuras más queridas de la televisión dominicana.
-    
-    Características destacadas:
-    • 5 habitaciones con baño privado
-    • Cocina gourmet con isla central
-    • Sala de entretenimiento y bar
-    • Piscina infinita con vista al jardín
-    • Gazebo y área de BBQ
-    • Gimnasio privado
-    • Oficina en casa
-    
-    La decoración, supervisada personalmente por Luz, refleja su estilo sofisticado pero acogedor, con obras de arte dominicano y mobiliario importado.` :
-    language === 'en' ? `Join us on this exclusive tour of Luz García's impressive villa located in the exclusive Cacicazgos sector.
-    
-    This property of more than 450 square meters combines modern elegance with tropical touches, creating the perfect home for one of the most beloved figures on Dominican television.
-    
-    Featured characteristics:
-    • 5 bedrooms with private bathroom
-    • Gourmet kitchen with central island
-    • Entertainment room and bar
-    • Infinity pool with garden view
-    • Gazebo and BBQ area
-    • Private gym
-    • Home office
-    
-    The decoration, personally supervised by Luz, reflects her sophisticated but cozy style, with Dominican artwork and imported furniture.` :
-    `Rejoignez-nous dans cette visite exclusive de l'impressionnante villa de Luz García située dans le secteur exclusif de Cacicazgos.
-    
-    Cette propriété de plus de 450 mètres carrés combine élégance moderne et touches tropicales, créant la maison parfaite pour l'une des figures les plus aimées de la télévision dominicaine.
-    
-    Caractéristiques en vedette:
-    • 5 chambres avec salle de bain privée
-    • Cuisine gastronomique avec îlot central
-    • Salle de divertissement et bar
-    • Piscine à débordement avec vue sur le jardin
-    • Gazebo et espace BBQ
-    • Gymnase privé
-    • Bureau à domicile
-    
-    La décoration, personnellement supervisée par Luz, reflète son style sophistiqué mais chaleureux, avec des œuvres d'art dominicaines et du mobilier importé.`,
-    videoId: 'dQw4w9WgXcQ',
-    duration: '18:45',
-    views: '342,567',
-    publishedAt: '2024-03-15',
-    category: language === 'es' ? 'La Casa de los Famosos' :
-              language === 'en' ? 'Celebrity Homes' :
-              'Maisons des Célébrités',
-    location: 'Cacicazgos, Santo Domingo',
-    propertyType: language === 'es' ? 'Villa de Lujo' :
-                  language === 'en' ? 'Luxury Villa' :
-                  'Villa de Luxe',
-    
-    // Galería de fotos adicionales
-    photoGallery: [
-      {
-        url: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Fachada principal de la villa' :
-                 language === 'en' ? 'Main facade of the villa' :
-                 'Façade principale de la villa'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Sala principal con doble altura' :
-                 language === 'en' ? 'Main living room with double height' :
-                 'Salon principal avec double hauteur'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Cocina gourmet' :
-                 language === 'en' ? 'Gourmet kitchen' :
-                 'Cuisine gastronomique'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Master bedroom con vista al jardín' :
-                 language === 'en' ? 'Master bedroom with garden view' :
-                 'Chambre principale avec vue sur le jardin'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Área de piscina y entretenimiento' :
-                 language === 'en' ? 'Pool and entertainment area' :
-                 'Zone piscine et divertissement'
-      },
-      {
-        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
-        caption: language === 'es' ? 'Gazebo y área de BBQ' :
-                 language === 'en' ? 'Gazebo and BBQ area' :
-                 'Gazebo et zone BBQ'
-      }
-    ],
-    
-    // Propiedades similares disponibles
-    similarProperties: [
-      {
-        slug: 'villa-cacicazgos-moderna',
-        titulo: language === 'es' ? 'Villa Moderna en Cacicazgos' :
-                language === 'en' ? 'Modern Villa in Cacicazgos' :
-                'Villa Moderne à Cacicazgos',
-        precio: '$950,000',
-        imagen: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
-        sector: 'Cacicazgos',
-        habitaciones: 5,
-        banos: 5,
-        metros: 480,
-        tipo: language === 'es' ? 'Villa de Lujo' : language === 'en' ? 'Luxury Villa' : 'Villa de Luxe',
-        destacado: true
-      },
-      {
-        slug: 'villa-arroyo-hondo-premium',
-        titulo: language === 'es' ? 'Villa Premium en Arroyo Hondo' :
-                language === 'en' ? 'Premium Villa in Arroyo Hondo' :
-                'Villa Premium à Arroyo Hondo',
-        precio: '$750,000',
-        imagen: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-        sector: 'Arroyo Hondo',
-        habitaciones: 4,
-        banos: 4,
-        metros: 420,
-        tipo: language === 'es' ? 'Villa' : 'Villa'
-      }
-    ],
-    
-    // Videos relacionados
-    relatedVideos: [
-      {
-        id: '1',
-        title: language === 'es' ? 'El Penthouse de Romeo Santos en Naco' :
-               language === 'en' ? 'Romeo Santos\' Penthouse in Naco' :
-               'Le Penthouse de Romeo Santos à Naco',
-        thumbnail: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=450&fit=crop',
-        duration: '22:30',
-        views: '289K',
-        category: 'casa-famosos',
-        videoId: 'xxx'
-      },
-      {
-        id: '2',
-        title: language === 'es' ? 'La Villa de Juan Luis Guerra' :
-               language === 'en' ? 'Juan Luis Guerra\'s Villa' :
-               'La Villa de Juan Luis Guerra',
-        thumbnail: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=450&fit=crop',
-        duration: '25:12',
-        views: '567K',
-        category: 'casa-famosos',
-        videoId: 'xxx'
-      },
-      {
-        id: '3',
-        title: language === 'es' ? '5 Tips de decoración estilo Luz García' :
-               language === 'en' ? '5 Luz García style decoration tips' :
-               '5 Conseils de décoration style Luz García',
-        thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=450&fit=crop',
-        duration: '12:45',
-        views: '89K',
-        category: 'decoracion',
-        videoId: 'xxx'
-      }
-    ],
-    
-    // Asesores especializados en la zona
-    areaAdvisors: [
-      {
-        slug: 'maria-rodriguez',
-        name: 'María Rodríguez',
-        title: language === 'es' ? 'Especialista en Propiedades de Lujo' :
-               language === 'en' ? 'Luxury Properties Specialist' :
-               'Spécialiste en Propriétés de Luxe',
-        avatar: 'https://i.pravatar.cc/150?img=5',
-        specialties: ['Cacicazgos', 'Arroyo Hondo', 'Los Ríos'],
-        areas: [language === 'es' ? 'Propiedades de Lujo' : language === 'en' ? 'Luxury Properties' : 'Propriétés de Luxe', language === 'es' ? 'Villas' : 'Villas'],
-        languages: [language === 'es' ? 'Español' : language === 'en' ? 'Spanish' : 'Espagnol', language === 'es' ? 'Inglés' : language === 'en' ? 'English' : 'Anglais', language === 'es' ? 'Francés' : language === 'en' ? 'French' : 'Français'],
-        phone: '+1 809 555 0101',
-        whatsapp: '18095550101',
-        rating: 4.9,
-        reviewCount: 127
-      }
-    ],
-    
-    seo: {
-      title: language === 'es' ? 'La Casa de Luz García en Cacicazgos - Video CLIC' :
-             language === 'en' ? 'Luz García\'s House in Cacicazgos - CLIC Video' :
-             'La Maison de Luz García à Cacicazgos - Vidéo CLIC',
-      description: language === 'es' ? 'Tour exclusivo por la espectacular villa de la presentadora dominicana' :
-                   language === 'en' ? 'Exclusive tour of the Dominican TV host\'s spectacular villa' :
-                   'Visite exclusive de la villa spectaculaire de la présentatrice dominicaine'
-    }
-  };
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
 }
 
 // ===================================================================
-// PROCESAR DATOS FINALES
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
 // ===================================================================
 
-const similarProperties = videoData.similarProperties || [];
-const relatedVideos = videoData.relatedVideos || [];
-const areaAdvisors = videoData.areaAdvisors || [];
-const photoGallery = videoData.photoGallery || [];
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+const categorySlug = safeString(data?.categorySlug || data?.category, 'casa-famosos');
+const videoSlug = safeString(data?.videoSlug || data?.slug, 'video-sin-titulo');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let videoData = safeObject(data);
+
+// Crear datos seguros del video
+const safeVideoData = {
+  language: language,
+  slug: safeString(videoData.slug || videoSlug, 'video-sin-titulo'),
+  categorySlug: safeString(videoData.categorySlug || categorySlug, 'casa-famosos'),
+  title: safeString(videoData.title, 
+    language === 'es' ? 'Casa de Celebrity en Santo Domingo' :
+    language === 'en' ? 'Celebrity House in Santo Domingo' :
+    'Maison de Célébrité à Santo Domingo'),
+  subtitle: safeString(videoData.subtitle,
+    language === 'es' ? 'Tour exclusivo por una espectacular propiedad' :
+    language === 'en' ? 'Exclusive tour of a spectacular property' :
+    'Visite exclusive d\'une propriété spectaculaire'),
+  description: safeString(videoData.description,
+    language === 'es' ? `Acompáñanos en este recorrido exclusivo por una impresionante propiedad ubicada en una de las mejores zonas de Santo Domingo.
+    
+Esta propiedad combina elegancia moderna con toques tropicales, creando el hogar perfecto.
+
+Características destacadas:
+• Múltiples habitaciones con baño privado
+• Cocina gourmet con isla central
+• Sala de entretenimiento
+• Área de piscina
+• Jardín tropical
+• Espacios de entretenimiento
+
+La decoración refleja un estilo sofisticado pero acogedor, con arte local y mobiliario de calidad.` :
+    language === 'en' ? `Join us on this exclusive tour of an impressive property located in one of the best areas of Santo Domingo.
+
+This property combines modern elegance with tropical touches, creating the perfect home.
+
+Featured characteristics:
+• Multiple bedrooms with private bathroom
+• Gourmet kitchen with central island
+• Entertainment room
+• Pool area
+• Tropical garden
+• Entertainment spaces
+
+The decoration reflects a sophisticated but cozy style, with local art and quality furniture.` :
+    `Rejoignez-nous dans cette visite exclusive d'une propriété impressionnante située dans l'un des meilleurs quartiers de Santo Domingo.
+
+Cette propriété combine élégance moderne et touches tropicales, créant la maison parfaite.
+
+Caractéristiques en vedette:
+• Plusieurs chambres avec salle de bain privée
+• Cuisine gastronomique avec îlot central
+• Salle de divertissement
+• Zone piscine
+• Jardin tropical
+• Espaces de divertissement
+
+La décoration reflète un style sophistiqué mais chaleureux, avec de l'art local et du mobilier de qualité.`),
+  videoId: safeString(videoData.videoId, 'dQw4w9WgXcQ'),
+  duration: safeString(videoData.duration, '15:00'),
+  views: safeString(videoData.views, '100,000'),
+  publishedAt: safeString(videoData.publishedAt, new Date().toISOString()),
+  category: safeString(videoData.category,
+    language === 'es' ? 'Casa de Famosos' :
+    language === 'en' ? 'Celebrity Homes' :
+    'Maisons des Célébrités'),
+  location: safeString(videoData.location, 'Santo Domingo'),
+  propertyType: safeString(videoData.propertyType,
+    language === 'es' ? 'Villa de Lujo' :
+    language === 'en' ? 'Luxury Villa' :
+    'Villa de Luxe'),
+  thumbnail: safeString(videoData.thumbnail || videoData.featuredImage, 
+    'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop')
+};
+
+// Procesar galería de fotos de forma defensiva
+const rawPhotoGallery = safeArray(videoData.photoGallery);
+const safePhotoGallery = rawPhotoGallery.length > 0 ? rawPhotoGallery.map((photo, index) => ({
+  url: safeString(photo.url || photo.image, 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop'),
+  caption: safeString(photo.caption || photo.title,
+    language === 'es' ? `Imagen ${index + 1} de la propiedad` :
+    language === 'en' ? `Property image ${index + 1}` :
+    `Image ${index + 1} de la propriété`)
+})) : [
+  {
+    url: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
+    caption: language === 'es' ? 'Fachada principal' : language === 'en' ? 'Main facade' : 'Façade principale'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop',
+    caption: language === 'es' ? 'Sala principal' : language === 'en' ? 'Main living room' : 'Salon principal'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
+    caption: language === 'es' ? 'Cocina gourmet' : language === 'en' ? 'Gourmet kitchen' : 'Cuisine gastronomique'
+  }
+];
+
+// Procesar propiedades similares de forma defensiva
+const rawSimilarProperties = safeArray(videoData.similarProperties);
+const safeSimilarProperties = rawSimilarProperties.map((property, index) => ({
+  id: safeString(property.id, `property-${index}`),
+  slug: safeString(property.slug, `propiedad-${index}`),
+  titulo: safeString(property.titulo || property.title, 'Propiedad sin título'),
+  precio: safeString(property.precio || property.price, '$0'),
+  imagen: safeString(property.imagen || property.image || property.featuredImage, 
+    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'),
+  sector: safeString(property.sector || property.location, 'Santo Domingo'),
+  habitaciones: safeNumber(property.habitaciones || property.bedrooms, 3),
+  banos: safeNumber(property.banos || property.bathrooms, 3),
+  metros: safeNumber(property.metros || property.area, 200),
+  tipo: safeString(property.tipo || property.type, 'Villa'),
+  destacado: Boolean(property.destacado || property.featured),
+  nuevo: Boolean(property.nuevo || property.isNew)
+}));
+
+// Procesar videos relacionados de forma defensiva
+const rawRelatedVideos = safeArray(videoData.relatedVideos);
+const safeRelatedVideos = rawRelatedVideos.map((video, index) => ({
+  id: safeString(video.id, `video-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  thumbnail: safeString(video.thumbnail || video.image, 
+    'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=450&fit=crop'),
+  duration: safeString(video.duration, '10:00'),
+  views: safeString(video.views, '1K'),
+  category: safeString(video.category, 'videos'),
+  videoId: safeString(video.videoId, 'dQw4w9WgXcQ'),
+  slug: safeString(video.slug, `video-${index}`),
+  url: safeString(video.url, '#')
+}));
+
+// Procesar asesores del área de forma defensiva
+const rawAreaAdvisors = safeArray(videoData.areaAdvisors);
+const safeAreaAdvisors = rawAreaAdvisors.map((advisor, index) => ({
+  id: safeString(advisor.id, `advisor-${index}`),
+  slug: safeString(advisor.slug, `asesor-${index}`),
+  name: safeString(advisor.name, 'Asesor Inmobiliario'),
+  title: safeString(advisor.title,
+    language === 'es' ? 'Especialista Inmobiliario' :
+    language === 'en' ? 'Real Estate Specialist' :
+    'Spécialiste Immobilier'),
+  avatar: safeString(advisor.avatar, 'https://i.pravatar.cc/150?img=1'),
+  specialties: safeArray(advisor.specialties, ['Santo Domingo']),
+  areas: safeArray(advisor.areas, [language === 'es' ? 'Propiedades' : 'Properties']),
+  languages: safeArray(advisor.languages, [language === 'es' ? 'Español' : 'Spanish']),
+  phone: safeString(advisor.phone, '+1 809 555 0100'),
+  whatsapp: safeString(advisor.whatsapp, '18095550100'),
+  rating: safeNumber(advisor.rating, 4.5),
+  reviewCount: safeNumber(advisor.reviewCount, 10)
+}));
+
+// SEO seguro
+const safeSeo = {
+  title: safeString(safeGet(videoData, 'seo.title'), `${safeVideoData.title} - Video CLIC`),
+  description: safeString(safeGet(videoData, 'seo.description'), safeVideoData.subtitle)
+};
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -324,30 +290,40 @@ const currentRoutes = routes[language] || routes.es;
 
 // Función para formatear fecha
 function formatDate(dateString) {
-  const date = new Date(dateString);
-  const months = {
-    es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-  };
-  
-  const monthNames = months[language] || months.es;
-  return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+    
+    const months = {
+      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
 }
 
-console.log('✅ VideosSingleLayout preparado:', {
+console.log('✅ VideosSingleLayout preparado con validación defensiva:', {
   language,
   categorySlug,
   videoSlug,
-  title: videoData.title,
-  similarPropertiesCount: similarProperties.length,
-  relatedVideosCount: relatedVideos.length
+  title: safeVideoData.title,
+  similarPropertiesCount: safeSimilarProperties.length,
+  relatedVideosCount: safeRelatedVideos.length,
+  photoGalleryCount: safePhotoGallery.length,
+  advisorsCount: safeAreaAdvisors.length
 });
 ---
 
 <Layout 
-  title={videoData.seo?.title || `${videoData.title} - Video CLIC`}
-  description={videoData.seo?.description || videoData.subtitle}
+  title={safeSeo.title}
+  description={safeSeo.description}
   language={language}
 >
   <!-- Breadcrumbs -->
@@ -356,11 +332,11 @@ console.log('✅ VideosSingleLayout preparado:', {
       <nav class="text-sm text-gray-600">
         <a href={currentRoutes.videosBase} class="hover:text-[#f04e00]">{text.breadcrumbVideos}</a>
         <span class="mx-2">/</span>
-        <a href={`${currentRoutes.videosBase}/${videoData.categorySlug}`} class="hover:text-[#f04e00]">
-          {videoData.category}
+        <a href={`${currentRoutes.videosBase}/${safeVideoData.categorySlug}`} class="hover:text-[#f04e00]">
+          {safeVideoData.category}
         </a>
         <span class="mx-2">/</span>
-        <span class="text-gray-900">{videoData.title}</span>
+        <span class="text-gray-900">{safeVideoData.title}</span>
       </nav>
     </div>
   </section>
@@ -371,43 +347,43 @@ console.log('✅ VideosSingleLayout preparado:', {
       <div class="max-w-6xl mx-auto">
         <!-- Title and metadata -->
         <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          {videoData.title}
+          {safeVideoData.title}
         </h1>
-        <p class="text-xl text-gray-600 mb-6">{videoData.subtitle}</p>
+        <p class="text-xl text-gray-600 mb-6">{safeVideoData.subtitle}</p>
         
         <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-8">
           <span class="flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
             </svg>
-            {videoData.views} {text.views}
+            {safeVideoData.views} {text.views}
           </span>
           <span class="flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            {formatDate(videoData.publishedAt)}
+            {formatDate(safeVideoData.publishedAt)}
           </span>
           <span class="flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
             </svg>
-            {videoData.location}
+            {safeVideoData.location}
           </span>
           <span class="flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
-            {videoData.propertyType}
+            {safeVideoData.propertyType}
           </span>
         </div>
 
         <!-- Video Embed -->
         <div class="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-8">
           <iframe 
-            src={`https://www.youtube.com/embed/${videoData.videoId}`}
-            title={videoData.title}
+            src={`https://www.youtube.com/embed/${safeVideoData.videoId}`}
+            title={safeVideoData.title}
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
@@ -418,14 +394,14 @@ console.log('✅ VideosSingleLayout preparado:', {
         <!-- Description -->
         <div class="prose prose-lg max-w-none mb-12">
           <h2 class="text-2xl font-bold mb-4">{text.description}</h2>
-          <div class="whitespace-pre-line text-gray-700">{videoData.description}</div>
+          <div class="whitespace-pre-line text-gray-700">{safeVideoData.description}</div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Photo Gallery -->
-  {photoGallery.length > 0 && (
+  {safeArray(safePhotoGallery).length > 0 && (
     <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
         <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
@@ -433,8 +409,8 @@ console.log('✅ VideosSingleLayout preparado:', {
         </h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {photoGallery.map((photo, index) => (
-            <div class="group cursor-pointer">
+          {safeArray(safePhotoGallery).map((photo, index) => (
+            <div class="group cursor-pointer" key={index}>
               <div class="aspect-[4/3] overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-shadow">
                 <img 
                   src={photo.url} 
@@ -451,20 +427,20 @@ console.log('✅ VideosSingleLayout preparado:', {
   )}
 
   <!-- Similar Properties -->
-  {similarProperties.length > 0 && (
+  {safeArray(safeSimilarProperties).length > 0 && (
     <PropertyCarousel 
       title={text.similarPropertiesTitle}
       subtitle={text.similarPropertiesSubtitle}
-      properties={similarProperties}
+      properties={safeSimilarProperties}
       viewAllLink={`${currentRoutes.properties}/villa/santo-domingo?zona=norte`}
       language={language}
     />
   )}
 
   <!-- Related Videos -->
-  {relatedVideos.length > 0 && (
+  {safeArray(safeRelatedVideos).length > 0 && (
     <VideoGallery 
-      videos={relatedVideos}
+      videos={safeRelatedVideos}
       title={text.relatedVideosTitle}
       subtitle={text.relatedVideosSubtitle}
       language={language}
@@ -472,9 +448,9 @@ console.log('✅ VideosSingleLayout preparado:', {
   )}
 
   <!-- Area Advisors -->
-  {areaAdvisors.length > 0 && (
+  {safeArray(safeAreaAdvisors).length > 0 && (
     <AreaAdvisors 
-      advisors={areaAdvisors}
+      advisors={safeAreaAdvisors}
       title={text.advisorsTitle}
       location="Santo Domingo Norte"
       language={language}
@@ -498,10 +474,10 @@ console.log('✅ VideosSingleLayout preparado:', {
           {text.ctaButton1}
         </a>
         <a 
-          href={`${currentRoutes.properties}/villa/${videoData.location.toLowerCase().replace(/,.*/, '').replace(/\s+/g, '-')}`}
+          href={`${currentRoutes.properties}/villa/${safeVideoData.location.toLowerCase().replace(/,.*/, '').replace(/\s+/g, '-')}`}
           class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
         >
-          {text.ctaButton2} {videoData.location.split(',')[0]}
+          {text.ctaButton2} {safeVideoData.location.split(',')[0]}
         </a>
       </div>
     </div>
