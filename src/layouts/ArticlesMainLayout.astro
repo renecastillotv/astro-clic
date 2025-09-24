@@ -164,6 +164,9 @@ const safeSeo = {
     language === 'fr' ? 'Insights d\'experts pour prendre des décisions immobilières éclairées' :
     'Insights expertos para tomar decisiones inmobiliarias informadas'),
   canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/articulos' : `/${language}/articles`),
+  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-articles.jpg'),
+  keywords: safeString(rawSeo.keywords),
+  hreflang: safeObject(rawSeo.hreflang),
   breadcrumbs: safeArray(rawSeo.breadcrumbs, [
     {
       name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
@@ -362,332 +365,391 @@ function formatDate(dateString) {
   }
 }
 
+// ===================================================================
+// PREPARAR PROPS PARA LAYOUT (IGUAL QUE ADVISORSLAYOUT)
+// ===================================================================
+
+const layoutProps = {
+  title: safeSeo.title || text.title,
+  description: safeSeo.description || text.subtitle,
+  ogImage: safeSeo.ogImage || '/og-articles.jpg',
+  canonical: safeSeo.canonical_url,
+  keywords: safeSeo.keywords,
+  hreflangData: safeSeo.hreflang || {},
+  globalConfig: data?.globalConfig || articlesData?.globalConfig || {},
+  language: language,
+  trackingString: articlesData?.trackingString || '',
+  hotItems: articlesData?.hotItems || {},
+  country: articlesData?.country || {}
+};
+
 console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
   language,
   categoriesCount: safeCategories.length,
   featuredCount: featuredCategories.length,
   featuredArticlesCount: safeFeaturedArticles.length,
   recentArticlesCount: safeRecentArticles.length,
-  totalArticles: safeStats.totalArticles
+  totalArticles: safeStats.totalArticles,
+  layoutProps
 });
 ---
 
-<Layout 
-  title={safeSeo.title || text.title}
-  description={safeSeo.description || text.subtitle}
-  language={language}
->
-  <!-- Hero Section -->
-  <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
-    <div class="container mx-auto px-4">
-      <div class="text-center text-white">
-        <h1 class="text-4xl md:text-5xl font-bold mb-6">
-          {text.title}
-        </h1>
-        <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
-          {text.subtitle}
+<Layout {...layoutProps}>
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16">
+      <div class="container mx-auto px-4">
+        <div class="text-center text-white">
+          <h1 class="text-4xl md:text-5xl font-bold mb-6">
+            {text.title}
+          </h1>
+          <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+            {text.subtitle}
+          </p>
+          
+          <!-- Stats -->
+          <div class="flex flex-wrap justify-center gap-8 mt-10">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.totalArticles}+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.articles}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.totalReads}+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.reads}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.avgRating}/5</div>
+              <div class="text-sm text-white/80">{text.statsLabels.rating}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.publishedThisMonth}</div>
+              <div class="text-sm text-white/80">{text.statsLabels.thisMonth}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Articles -->
+    {safeArray(safeFeaturedArticles).length > 0 && (
+      <section class="py-12">
+        <div class="container mx-auto px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+            {text.featuredTitle}
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {safeArray(safeFeaturedArticles).map((article, index) => (
+              <a 
+                href={article.url}
+                class="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                key={article.id || index}
+              >
+                <div class="aspect-[16/9] relative overflow-hidden">
+                  <img 
+                    src={article.featuredImage} 
+                    alt={article.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  
+                  <!-- Category badge -->
+                  <div class="absolute top-4 left-4">
+                    <span class="bg-[#f04e00] text-white px-3 py-1 rounded-full text-sm font-medium">
+                      {article.category}
+                    </span>
+                  </div>
+                  
+                  <!-- Read stats -->
+                  <div class="absolute top-4 right-4 bg-black/80 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    {article.views}
+                  </div>
+                  
+                  <!-- Read time indicator -->
+                  <div class="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm">
+                    {article.readTime} {text.minRead}
+                  </div>
+                </div>
+                
+                <div class="p-6">
+                  <div class="flex flex-wrap items-center gap-2 mb-3">
+                    {safeArray(article.tags).map((tag, tagIndex) => (
+                      <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded" key={tagIndex}>
+                        {safeString(tag, 'Tag')}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <h3 class="text-xl font-semibold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors">
+                    {article.title}
+                  </h3>
+                  
+                  <p class="text-gray-600 mb-4">
+                    {article.excerpt}
+                  </p>
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <img 
+                        src={article.author.avatar} 
+                        alt={article.author.name}
+                        class="w-10 h-10 rounded-full"
+                      />
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
+                        <p class="text-xs text-gray-500">{article.author.title}</p>
+                      </div>
+                    </div>
+                    
+                    <span class="text-sm text-gray-500">
+                      {formatDate(article.publishedAt)}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Featured Categories -->
+    {safeArray(featuredCategories).length > 0 && (
+      <section class="py-12 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.categoriesTitle}</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {safeArray(featuredCategories).map((category, index) => (
+              <a 
+                href={category.url}
+                class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
+                key={category.id || index}
+              >
+                <div class="aspect-[16/9] relative">
+                  <img 
+                    src={category.thumbnail} 
+                    alt={category.name}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                  
+                  <!-- Content overlay -->
+                  <div class="absolute bottom-0 left-0 right-0 p-8">
+                    <div class="flex items-center gap-3 mb-3">
+                      <span class="text-4xl">{category.icon}</span>
+                      <h3 class="text-3xl font-bold text-white">{category.name}</h3>
+                    </div>
+                    <p class="text-lg text-white/90 mb-4">{category.description}</p>
+                    
+                    <div class="flex items-center justify-between">
+                      <span class="text-white/80">
+                        {category.articleCount} {text.articles}
+                      </span>
+                      <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
+                        {text.readMore}
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </span>
+                    </div>
+                    
+                    <!-- Recent articles preview -->
+                    {safeArray(category.recentArticles).length > 0 && (
+                      <div class="mt-4 pt-4 border-t border-white/20">
+                        <p class="text-sm text-white/70 mb-2">{text.recentArticles}</p>
+                        <ul class="text-sm text-white/90 space-y-1">
+                          {safeArray(category.recentArticles).slice(0, 3).map((article, articleIndex) => (
+                            <li class="flex items-center gap-2" key={articleIndex}>
+                              <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                              </svg>
+                              {safeString(article, 'Artículo')}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- All Categories -->
+    {safeArray(regularCategories).length > 0 && (
+      <section class="py-12">
+        <div class="container mx-auto px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {safeArray(regularCategories).map((category, index) => (
+              <a 
+                href={category.url}
+                class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
+                key={category.id || index}
+              >
+                <div class="flex items-start gap-4">
+                  <span class="text-4xl flex-shrink-0">{category.icon}</span>
+                  <div class="flex-1">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                      {category.name}
+                    </h3>
+                    <p class="text-gray-600 mb-4">{category.description}</p>
+                    
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm text-gray-500">
+                        {category.articleCount} {text.articles}
+                      </span>
+                      <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                        {text.readMore}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Related Properties -->
+    {safeArray(safeRelatedProperties).length > 0 && (
+      <PropertyCarousel 
+        title={text.propertiesTitle}
+        subtitle={text.propertiesSubtitle}
+        properties={safeRelatedProperties}
+        viewAllLink={`${currentRoutes.properties}?fuente=blog`}
+        language={language}
+      />
+    )}
+
+    <!-- Expertise Section -->
+    <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.expertiseTitle}
+        </h2>
+        <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
+          {text.expertiseSubtitle}
         </p>
         
-        <!-- Stats -->
-        <div class="flex flex-wrap justify-center gap-8 mt-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{safeStats.totalArticles}+</div>
-            <div class="text-sm text-white/80">{text.statsLabels.articles}</div>
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.local.title}</h3>
+            <p class="text-sm text-white/70">{text.expertiseItems.local.description}</p>
           </div>
+          
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{safeStats.totalReads}+</div>
-            <div class="text-sm text-white/80">{text.statsLabels.reads}</div>
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.experience.title}</h3>
+            <p class="text-sm text-white/70">{text.expertiseItems.experience.description}</p>
           </div>
+          
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{safeStats.avgRating}/5</div>
-            <div class="text-sm text-white/80">{text.statsLabels.rating}</div>
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.updated.title}</h3>
+            <p class="text-sm text-white/70">{text.expertiseItems.updated.description}</p>
           </div>
+          
           <div class="text-center">
-            <div class="text-3xl font-bold text-white mb-2">{safeStats.publishedThisMonth}</div>
-            <div class="text-sm text-white/80">{text.statsLabels.thisMonth}</div>
+            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.verified.title}</h3>
+            <p class="text-sm text-white/70">{text.expertiseItems.verified.description}</p>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Featured Articles -->
-  {safeArray(safeFeaturedArticles).length > 0 && (
-    <section class="py-12 bg-gray-50">
-      <div class="container mx-auto px-4">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-          {text.featuredTitle}
+    <!-- CTA Section -->
+    <section class="py-16 bg-[#f04e00]">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.ctaTitle}
         </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {safeArray(safeFeaturedArticles).map((article, index) => (
-            <a 
-              href={article.url}
-              class="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
-              key={article.id || index}
-            >
-              <div class="aspect-[16/9] relative overflow-hidden">
-                <img 
-                  src={article.featuredImage} 
-                  alt={article.title}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                
-                <!-- Category badge -->
-                <div class="absolute top-4 left-4">
-                  <span class="bg-[#f04e00] text-white px-3 py-1 rounded-full text-sm font-medium">
-                    {article.category}
-                  </span>
-                </div>
-                
-                <!-- Read stats -->
-                <div class="absolute top-4 right-4 bg-black/80 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                  </svg>
-                  {article.views}
-                </div>
-                
-                <!-- Read time indicator -->
-                <div class="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm">
-                  {article.readTime} {text.minRead}
-                </div>
-              </div>
-              
-              <div class="p-6">
-                <div class="flex flex-wrap items-center gap-2 mb-3">
-                  {safeArray(article.tags).map((tag, tagIndex) => (
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded" key={tagIndex}>
-                      {safeString(tag, 'Tag')}
-                    </span>
-                  ))}
-                </div>
-                
-                <h3 class="text-xl font-semibold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors">
-                  {article.title}
-                </h3>
-                
-                <p class="text-gray-600 mb-4">
-                  {article.excerpt}
-                </p>
-                
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <img 
-                      src={article.author.avatar} 
-                      alt={article.author.name}
-                      class="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
-                      <p class="text-xs text-gray-500">{article.author.title}</p>
-                    </div>
-                  </div>
-                  
-                  <span class="text-sm text-gray-500">
-                    {formatDate(article.publishedAt)}
-                  </span>
-                </div>
-              </div>
-            </a>
-          ))}
+        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          {text.ctaSubtitle}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact}
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            {text.ctaButton1}
+          </a>
+          <a 
+            href={currentRoutes.properties}
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            {text.ctaButton2}
+          </a>
         </div>
       </div>
     </section>
-  )}
 
-  <!-- Featured Categories -->
-  {safeArray(featuredCategories).length > 0 && (
-    <section class="py-12">
-      <div class="container mx-auto px-4">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.categoriesTitle}</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {safeArray(featuredCategories).map((category, index) => (
-            <a 
-              href={category.url}
-              class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-              key={category.id || index}
-            >
-              <div class="aspect-[16/9] relative">
-                <img 
-                  src={category.thumbnail} 
-                  alt={category.name}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                
-                <!-- Content overlay -->
-                <div class="absolute bottom-0 left-0 right-0 p-8">
-                  <div class="flex items-center gap-3 mb-3">
-                    <span class="text-4xl">{category.icon}</span>
-                    <h3 class="text-3xl font-bold text-white">{category.name}</h3>
-                  </div>
-                  <p class="text-lg text-white/90 mb-4">{category.description}</p>
-                  
-                  <div class="flex items-center justify-between">
-                    <span class="text-white/80">
-                      {category.articleCount} {text.articles}
-                    </span>
-                    <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
-                      {text.readMore}
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </span>
-                  </div>
-                  
-                  <!-- Recent articles preview -->
-                  {safeArray(category.recentArticles).length > 0 && (
-                    <div class="mt-4 pt-4 border-t border-white/20">
-                      <p class="text-sm text-white/70 mb-2">{text.recentArticles}</p>
-                      <ul class="text-sm text-white/90 space-y-1">
-                        {safeArray(category.recentArticles).slice(0, 3).map((article, articleIndex) => (
-                          <li class="flex items-center gap-2" key={articleIndex}>
-                            <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            {safeString(article, 'Artículo')}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- All Categories -->
-  {safeArray(regularCategories).length > 0 && (
-    <section class="py-12 bg-gray-50">
-      <div class="container mx-auto px-4">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {safeArray(regularCategories).map((category, index) => (
-            <a 
-              href={category.url}
-              class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
-              key={category.id || index}
-            >
-              <div class="flex items-start gap-4">
-                <span class="text-4xl flex-shrink-0">{category.icon}</span>
-                <div class="flex-1">
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
-                    {category.name}
-                  </h3>
-                  <p class="text-gray-600 mb-4">{category.description}</p>
-                  
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-500">
-                      {category.articleCount} {text.articles}
-                    </span>
-                    <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                      {text.readMore}
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
-
-  <!-- Related Properties -->
-  {safeArray(safeRelatedProperties).length > 0 && (
-    <PropertyCarousel 
-      title={text.propertiesTitle}
-      subtitle={text.propertiesSubtitle}
-      properties={safeRelatedProperties}
-      viewAllLink={`${currentRoutes.properties}?fuente=blog`}
-      language={language}
-    />
-  )}
-
-  <!-- Expertise Section -->
-  <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
-    <div class="container mx-auto px-4 text-center">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-        {text.expertiseTitle}
-      </h2>
-      <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
-        {text.expertiseSubtitle}
-      </p>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.local.title}</h3>
-          <p class="text-sm text-white/70">{text.expertiseItems.local.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.experience.title}</h3>
-          <p class="text-sm text-white/70">{text.expertiseItems.experience.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.updated.title}</h3>
-          <p class="text-sm text-white/70">{text.expertiseItems.updated.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.verified.title}</h3>
-          <p class="text-sm text-white/70">{text.expertiseItems.verified.description}</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Section -->
-  <section class="py-16 bg-[#f04e00]">
-    <div class="container mx-auto px-4 text-center">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-        {text.ctaTitle}
-      </h2>
-      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-        {text.ctaSubtitle}
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href={currentRoutes.contact} class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium">
-          {text.ctaButton1}
-        </a>
-        <a href={currentRoutes.properties} class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium">
-          {text.ctaButton2}
-        </a>
-      </div>
-    </div>
-  </section>
+  </div>
 </Layout>
+
+<style>
+  .transform {
+    transition: transform 0.3s ease;
+  }
+  
+  .bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+  }
+  
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+  
+  .group:hover .group-hover\:bg-[#d94400] {
+    background-color: #d94400;
+  }
+  
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(0.25rem);
+  }
+  
+  .group:hover .group-hover\:gap-3 {
+    gap: 0.75rem;
+  }
+</style>
