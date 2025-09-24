@@ -1,5 +1,5 @@
 ---
-// src/components/PropertyList.astro - VERSIÓN CORREGIDA
+// src/components/PropertyList.astro - VERSIÓN MEJORADA
 export interface Props {
   listings: Array<{
     id?: string | number;
@@ -63,8 +63,9 @@ const translations = {
     priceLowToHigh: "Precio: menor a mayor",
     priceHighToLow: "Precio: mayor a menor",
     moreRooms: "Más habitaciones",
-    noProperties: "No hay propiedades para mostrar",
-    noPropertiesText: "No se encontraron propiedades que coincidan con los criterios de búsqueda.",
+    noProperties: "No se encontraron propiedades",
+    noPropertiesText: "No hay propiedades que coincidan con tu búsqueda actual.",
+    noPropertiesSubtext: "Encuentra más opciones y contenido interesante más abajo",
     previous: "Anterior",
     next: "Siguiente",
     addToFavorites: "Agregar a favoritos",
@@ -84,8 +85,9 @@ const translations = {
     priceLowToHigh: "Price: low to high",
     priceHighToLow: "Price: high to low",
     moreRooms: "More bedrooms",
-    noProperties: "No properties to display",
-    noPropertiesText: "No properties found matching the search criteria.",
+    noProperties: "No properties found",
+    noPropertiesText: "There are no properties matching your current search.",
+    noPropertiesSubtext: "Find more options and interesting content below",
     previous: "Previous",
     next: "Next",
     addToFavorites: "Add to favorites",
@@ -105,8 +107,9 @@ const translations = {
     priceLowToHigh: "Prix: croissant",
     priceHighToLow: "Prix: décroissant",
     moreRooms: "Plus de chambres",
-    noProperties: "Aucune propriété à afficher",
-    noPropertiesText: "Aucune propriété trouvée correspondant aux critères de recherche.",
+    noProperties: "Aucune propriété trouvée",
+    noPropertiesText: "Aucune propriété ne correspond à votre recherche actuelle.",
+    noPropertiesSubtext: "Trouvez plus d'options et de contenu intéressant ci-dessous",
     previous: "Précédent",
     next: "Suivant",
     addToFavorites: "Ajouter aux favoris",
@@ -153,7 +156,7 @@ function cleanRangeValue(value: string): string {
   // Limpiar el valor
   let cleaned = value
     .replace(regex, '')
-    .replace(/[^\d\-–—\s]/g, '') // Solo mantener números, guiones y espacios
+    .replace(/[^\d\-—–\s]/g, '') // Solo mantener números, guiones y espacios
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -184,13 +187,6 @@ const processedListings = listings.map(property => {
 const url = Astro.url;
 const orden = url.searchParams.get('orden') || 'fecha-desc';
 
-// USAR DATOS REALES DE LA API
-const realTotalCount = totalCount || listings.length;
-const realCurrentPage = currentPage;
-const realTotalPages = totalPages;
-const startIndex = ((realCurrentPage - 1) * itemsPerPage) + 1;
-const endIndex = Math.min(realCurrentPage * itemsPerPage, realTotalCount);
-
 // Para sorting local (solo si es necesario)
 function precioToNumber(precioStr: string): number {
   return parseFloat(precioStr.replace(/[USD$RD$,\s]/g, '')) || 0;
@@ -214,6 +210,16 @@ function sortListings(listings: typeof processedListings, orden: string) {
 
 // Solo hacer sorting local si la API no lo hizo
 const displayListings = orden === 'fecha-desc' ? processedListings : sortListings(processedListings, orden);
+
+// USAR DATOS REALES DE LA API
+const realTotalCount = totalCount || listings.length;
+const realCurrentPage = currentPage;
+const realTotalPages = totalPages;
+const startIndex = ((realCurrentPage - 1) * itemsPerPage) + 1;
+const endIndex = Math.min(realCurrentPage * itemsPerPage, realTotalCount);
+
+// Variable para determinar si hay propiedades
+const hasProperties = displayListings.length > 0;
 
 function buildUrl(page: number, currentOrden: string): string {
   const params = new URLSearchParams();
@@ -262,52 +268,60 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
 ---
 
 <div class="container mx-auto px-4 py-8">
-  <!-- NO MOSTRAR HEADER CON TÍTULO - Comentado para ocultarlo -->
-  <!-- Solo mantenemos el resumen de resultados y ordenamiento -->
-
-  <!-- Resumen de resultados y ordenamiento -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-    <div class="text-sm text-gray-600">
-      {t.showing} {startIndex}–{endIndex} {t.of} {realTotalCount.toLocaleString()} {t.propertiesFound}
+  <!-- Resumen de resultados y ordenamiento - SOLO SI HAY PROPIEDADES -->
+  {hasProperties && (
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+      <div class="text-sm text-gray-600">
+        {t.showing} {startIndex}–{endIndex} {t.of} {realTotalCount.toLocaleString()} {t.propertiesFound}
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <label for="sort-select" class="text-sm text-gray-700 whitespace-nowrap">
+          {t.sortBy}
+        </label>
+        <select 
+          id="sort-select" 
+          class="text-sm border border-gray-300 rounded-md px-3 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00]"
+        >
+          <option value="fecha-desc" {orden === 'fecha-desc' ? 'selected' : ''}>
+            {t.mostRecent}
+          </option>
+          <option value="precio-asc" {orden === 'precio-asc' ? 'selected' : ''}>
+            {t.priceLowToHigh}
+          </option>
+          <option value="precio-desc" {orden === 'precio-desc' ? 'selected' : ''}>
+            {t.priceHighToLow}
+          </option>
+          <option value="habitaciones-desc" {orden === 'habitaciones-desc' ? 'selected' : ''}>
+            {t.moreRooms}
+          </option>
+        </select>
+      </div>
     </div>
-    
-    <div class="flex items-center gap-2">
-      <label for="sort-select" class="text-sm text-gray-700 whitespace-nowrap">
-        {t.sortBy}
-      </label>
-      <select 
-        id="sort-select" 
-        class="text-sm border border-gray-300 rounded-md px-3 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00]"
-      >
-        <option value="fecha-desc" {orden === 'fecha-desc' ? 'selected' : ''}>
-          {t.mostRecent}
-        </option>
-        <option value="precio-asc" {orden === 'precio-asc' ? 'selected' : ''}>
-          {t.priceLowToHigh}
-        </option>
-        <option value="precio-desc" {orden === 'precio-desc' ? 'selected' : ''}>
-          {t.priceHighToLow}
-        </option>
-        <option value="habitaciones-desc" {orden === 'habitaciones-desc' ? 'selected' : ''}>
-          {t.moreRooms}
-        </option>
-      </select>
-    </div>
-  </div>
+  )}
 
-  <!-- Mensaje si no hay propiedades -->
-  {displayListings.length === 0 && (
-    <div class="text-center py-12">
-      <div class="text-6xl mb-4">🏠</div>
-      <h3 class="text-xl font-semibold text-gray-900 mb-2">{t.noProperties}</h3>
-      <p class="text-gray-600 mb-4">
-        {t.noPropertiesText}
-      </p>
+  <!-- Mensaje mejorado cuando no hay propiedades -->
+  {!hasProperties && (
+    <div class="flex items-center justify-center py-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+      <div class="flex items-center gap-4 text-center max-w-4xl">
+        <div class="flex-shrink-0">
+          <i class="fas fa-search-minus text-3xl text-gray-400"></i>
+        </div>
+        <div class="text-left">
+          <h3 class="text-lg font-semibold text-gray-800 mb-1">{t.noProperties}</h3>
+          <p class="text-gray-600 text-sm mb-0.5">
+            {t.noPropertiesText}
+          </p>
+          <p class="text-gray-500 text-xs">
+            {t.noPropertiesSubtext}
+          </p>
+        </div>
+      </div>
     </div>
   )}
 
   <!-- Grid de propiedades -->
-  {displayListings.length > 0 && (
+  {hasProperties && (
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {displayListings.map((property, index) => {
         const propertyImages = property.imagenes || [property.imagen];
@@ -510,8 +524,8 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
     </div>
   )}
 
-  <!-- Paginación -->
-  {realTotalPages > 1 && (
+  <!-- Paginación - SOLO SI HAY PROPIEDADES -->
+  {hasProperties && realTotalPages > 1 && (
     <div class="mt-12 flex justify-center">
       <nav class="flex gap-2">
         {hasPreviousPage ? (
@@ -561,7 +575,6 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
   )}
 </div>
 
-<!-- El resto del componente continúa con los estilos y scripts sin cambios... -->
 <style>
   .line-clamp-2 {
     display: -webkit-box;
@@ -805,7 +818,7 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
       }
     });
     
-    // Event listener para sorting
+    // Event listener para sorting - SOLO SI EL ELEMENTO EXISTE
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
       sortSelect.addEventListener('change', function(event) {

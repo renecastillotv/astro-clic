@@ -4,6 +4,8 @@ import MiniSearchBar from '../MiniSearchBar.astro';
 export interface Props {
   seoH1: string;
   seoH2?: string;
+  seoTitle: string;
+  seoDescription: string;
   totalProperties: number;
   seoContent?: any;
   language?: string;
@@ -16,21 +18,162 @@ export interface Props {
     is_active?: boolean;
     current?: boolean;
   }>;
+  // NUEVOS PROPS PARA INVENTARIO Y HERO IMAGE
+  aggregatedStats?: any;
+  heroImage?: string;
 }
 
 const { 
   seoH1, 
   seoH2, 
+  seoTitle,
+  seoDescription,
   totalProperties, 
   seoContent,
   language = 'es',
   country,
   tags = [],
   searchInfo,
-  breadcrumbs = []
+  breadcrumbs = [],
+  aggregatedStats,
+  heroImage
 } = Astro.props;
 
-// Función para extraer stats del mercado desde seoContent
+// Traducciones para stats de inventario
+const translations = {
+  es: {
+    inventoryData: "Nuestro inventario",
+    averagePrice: "Precio promedio",
+    priceRange: "Rango disponible", 
+    pricePerSqm: "Precio por m²",
+    available: "disponibles",
+    forSale: "En venta",
+    forRent: "En alquiler",
+    properties: "propiedades",
+    apartments: "Apartamentos",
+    houses: "Casas",
+    marketComposition: "Composición"
+  },
+  en: {
+    inventoryData: "Our inventory",
+    averagePrice: "Average price",
+    priceRange: "Available range",
+    pricePerSqm: "Price per sqm",
+    available: "available",
+    forSale: "For sale", 
+    forRent: "For rent",
+    properties: "properties",
+    apartments: "Apartments",
+    houses: "Houses",
+    marketComposition: "Composition"
+  },
+  fr: {
+    inventoryData: "Notre inventaire",
+    averagePrice: "Prix moyen",
+    priceRange: "Gamme disponible",
+    pricePerSqm: "Prix par m²",
+    available: "disponibles",
+    forSale: "À vendre",
+    forRent: "À louer", 
+    properties: "propriétés",
+    apartments: "Appartements",
+    houses: "Maisons",
+    marketComposition: "Composition"
+  }
+};
+
+const t = translations[language] || translations.es;
+
+// FUNCIÓN: Formatear precios según moneda
+function formatPrice(price, currency) {
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'DOP' ? 'RD$' : currency;
+  
+  if (price >= 1000000) {
+    return `${currencySymbol}${(price/1000000).toFixed(1)}M`;
+  } else if (price >= 1000) {
+    return `${currencySymbol}${(price/1000).toFixed(0)}K`;
+  } else {
+    return `${currencySymbol}${price.toLocaleString()}`;
+  }
+}
+
+// FUNCIÓN: Extraer stats de NUESTRO INVENTARIO desde aggregatedStats
+function extractInventoryStats(aggregatedStats: any) {
+  if (!aggregatedStats) return [];
+  
+  const stats = [];
+  const { summary } = aggregatedStats;
+  
+  if (!summary) return [];
+  
+  const { predominantOperation, predominantCurrency, marketMix } = summary;
+  const operationKey = predominantOperation === 'venta' ? 'sale' : 'rental';
+  const operationData = aggregatedStats[operationKey]?.[predominantCurrency];
+  
+  if (operationData) {
+    // 1. Precio promedio de la operación predominante
+    if (operationData.avgPrice > 0) {
+      const avgPriceFormatted = formatPrice(operationData.avgPrice, predominantCurrency);
+      const operationText = operationKey === 'sale' ? t.forSale : t.forRent;
+      
+      stats.push({
+        value: avgPriceFormatted,
+        label: `${t.averagePrice} ${operationText.toLowerCase()}`
+      });
+    }
+
+    // 2. Precio por m² (MUY IMPORTANTE)
+    if (operationData.pricePerSqm > 0) {
+      const pricePerSqmFormatted = formatPrice(operationData.pricePerSqm, predominantCurrency);
+      
+      stats.push({
+        value: `${pricePerSqmFormatted}/m²`,
+        label: t.pricePerSqm
+      });
+    }
+
+    // 3. Rango de precios disponible
+    if (operationData.minPrice && operationData.maxPrice && operationData.minPrice !== operationData.maxPrice) {
+      const minFormatted = formatPrice(operationData.minPrice, predominantCurrency);
+      const maxFormatted = formatPrice(operationData.maxPrice, predominantCurrency);
+      
+      stats.push({
+        value: `${minFormatted} - ${maxFormatted}`,
+        label: t.priceRange
+      });
+    }
+
+    // 4. Composición del mercado o cantidad total (solo si hay espacio)
+    if (stats.length < 3) {
+      if (marketMix?.salePercentage && marketMix?.rentalPercentage) {
+        const predominantPercentage = operationKey === 'sale' ? marketMix.salePercentage : marketMix.rentalPercentage;
+        const operationText = operationKey === 'sale' ? t.forSale : t.forRent;
+        
+        stats.push({
+          value: `${predominantPercentage}%`,
+          label: `${t.marketComposition} ${operationText.toLowerCase()}`
+        });
+      } else if (aggregatedStats.totalCount > 0) {
+        stats.push({
+          value: `${aggregatedStats.totalCount}+`,
+          label: `${t.properties} ${t.available}`
+        });
+      }
+    }
+  }
+
+  // FALLBACK: Si no hay datos predominantes, mostrar total general
+  if (stats.length === 0 && aggregatedStats.totalCount > 0) {
+    stats.push({
+      value: `${aggregatedStats.totalCount}+`,
+      label: `${t.properties} ${t.available}`
+    });
+  }
+  
+  return stats.slice(0, 3);
+}
+
+// FUNCIÓN FALLBACK: Extraer stats del mercado general desde seoContent (solo si no hay aggregatedStats)
 function extractMarketStats(seoContent: any) {
   if (!seoContent) return [];
   
@@ -79,11 +222,75 @@ function extractMarketStats(seoContent: any) {
   return stats.slice(0, 3);
 }
 
-const marketStats = extractMarketStats(seoContent);
+// Priorizar datos de inventario sobre datos generales del mercado
+const displayStats = aggregatedStats ? extractInventoryStats(aggregatedStats) : extractMarketStats(seoContent);
+
+// Determinar imagen hero con validación completa
+const defaultHeroImage = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80';
+
+// Función para validar imagen hero
+async function validateHeroImage(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return false;
+  
+  // Validación básica de URL
+  if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) return false;
+  
+  // Validación de extensiones de imagen
+  const validExtensions = /\.(jpg|jpeg|png|webp|avif)(\?.*)?$/i;
+  if (!validExtensions.test(imageUrl)) return false;
+  
+  try {
+    // Intentar precargar la imagen con timeout
+    return await new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        resolve(false);
+      }, 3000); // 3 segundos timeout
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        // Validar dimensiones mínimas
+        if (img.naturalWidth >= 800 && img.naturalHeight >= 400) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      
+      img.src = imageUrl;
+    });
+  } catch (error) {
+    return false;
+  }
+}
+
+// Determinar imagen hero válida (se ejecuta en el cliente)
+let validHeroImage = defaultHeroImage;
+if (heroImage) {
+  // En el servidor, hacer validación básica
+  if (typeof heroImage === 'string' && 
+      (heroImage.startsWith('http://') || heroImage.startsWith('https://')) &&
+      /\.(jpg|jpeg|png|webp|avif)(\?.*)?$/i.test(heroImage)) {
+    validHeroImage = heroImage;
+  }
+}
+
+console.log('🏠 PropertyListHeader Processing:', {
+  hasAggregatedStats: !!aggregatedStats,
+  statsExtracted: displayStats.length,
+  heroImageProvided: !!heroImage,
+  heroImageValid: validHeroImage !== defaultHeroImage,
+  heroImageUrl: validHeroImage
+});
 ---
 
-<!-- Header Hero compacto con Breadcrumb SEO -->
-<section class="relative bg-cover bg-center h-[50vh] min-h-[400px]" style="background-image: url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');">
+<!-- Header Hero compacto con datos de inventario -->
+<section class="relative bg-cover bg-center h-[50vh] min-h-[400px]" style={`background-image: url('${validHeroImage}');`}>
   <!-- Overlay oscuro para mejorar legibilidad -->
   <div class="absolute inset-0 bg-black bg-opacity-50"></div>
   
@@ -91,17 +298,15 @@ const marketStats = extractMarketStats(seoContent);
   <div class="relative z-10 h-full flex flex-col justify-center">
     <div class="container mx-auto px-4">
       
-      <!-- Título SEO -->
+      <!-- Título y descripción SEO enriquecidos -->
       <div class="text-center mb-8">
         <h1 class="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-4">
-          {seoH1}
+          {seoTitle}
         </h1>
         
-        {seoH2 && (
-          <h2 class="text-sm md:text-base text-gray-200 max-w-3xl mx-auto leading-relaxed">
-            {seoH2}
-          </h2>
-        )}
+        <h2 class="text-sm md:text-base text-gray-200 max-w-3xl mx-auto leading-relaxed">
+          {seoDescription}
+        </h2>
       </div>
 
       <!-- Barra de búsqueda -->
@@ -111,10 +316,10 @@ const marketStats = extractMarketStats(seoContent);
         </div>
       </div>
 
-      <!-- Stats del mercado SIN ICONOS -->
-      {marketStats.length > 0 && (
+      <!-- Stats de NUESTRO INVENTARIO (prioridad) o mercado general (fallback) -->
+      {displayStats.length > 0 && (
         <div class="flex flex-wrap justify-center gap-8 text-center mb-4">
-          {marketStats.map((stat) => (
+          {displayStats.map((stat) => (
             <div class="text-white">
               <div class="text-2xl font-bold">{stat.value}</div>
               <div class="text-sm text-gray-200">{stat.label}</div>
@@ -123,7 +328,7 @@ const marketStats = extractMarketStats(seoContent);
         </div>
       )}
       
-      <!-- Breadcrumb SEO completo (con Inicio) -->
+      <!-- Breadcrumb SEO completo -->
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Breadcrumb" class="mt-2">
           <ol class="flex items-center justify-center flex-wrap gap-1 text-xs">

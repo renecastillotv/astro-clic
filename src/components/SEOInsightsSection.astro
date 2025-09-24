@@ -1,14 +1,26 @@
 ---
-// SEOInsightsSection.astro - Versión horizontal compacta con multiidioma
-export interface Props {
+// SEOInsightsSection.astro - SOLO VISIÓN DE MERCADO usando organizedSeoData
+interface Props {
   seoContent: any;
   searchInfo: any;
   language?: 'es' | 'en' | 'fr';
+  country?: any;
+  organizedSeoData?: any;
+  aggregatedStats?: any; // No se usa - reservado para header
+  enhancedContext?: any;
 }
 
-const { seoContent, searchInfo, language = 'es' } = Astro.props;
+const { 
+  seoContent, 
+  searchInfo, 
+  language = 'es', 
+  country,
+  organizedSeoData,
+  aggregatedStats, // Ignorado intencionalmente
+  enhancedContext
+} = Astro.props;
 
-// Traducciones para textos estáticos
+// Traducciones
 const translations = {
   es: {
     marketData: "Datos del mercado",
@@ -23,10 +35,9 @@ const translations = {
     gdp: "PIB",
     security: "Seguridad",
     safeZones: "Zonas seguras",
-    legalRequirements: "Requisitos legales",
-    // Valores específicos
-    millionPlus: "M+ anuales",
-    percentageRange: "8-15%"
+    localInfo: "Información local",
+    appreciation: "Apreciación anual",
+    infrastructure: "Infraestructura"
   },
   en: {
     marketData: "Market Data",
@@ -41,9 +52,9 @@ const translations = {
     gdp: "GDP",
     security: "Security",
     safeZones: "Safe areas",
-    legalRequirements: "Legal requirements",
-    millionPlus: "M+ annual",
-    percentageRange: "8-15%"
+    localInfo: "Local information",
+    appreciation: "Annual appreciation",
+    infrastructure: "Infrastructure"
   },
   fr: {
     marketData: "Données du marché",
@@ -58,182 +69,284 @@ const translations = {
     gdp: "PIB",
     security: "Sécurité",
     safeZones: "Zones sûres",
-    legalRequirements: "Exigences légales",
-    millionPlus: "M+ annuels",
-    percentageRange: "8-15%"
+    localInfo: "Information locale",
+    appreciation: "Appréciation annuelle",
+    infrastructure: "Infrastructure"
   }
 };
 
-// Obtener las traducciones para el idioma actual
 const t = translations[language] || translations.es;
 
-// Si no hay seoContent, no renderizar nada
-if (!seoContent) {
+// Early return si no hay datos DE MERCADO
+if (!organizedSeoData && !seoContent) {
   return null;
 }
 
-const marketInsights = seoContent.market_insights || [];
-const tips = seoContent.tips || [];
-const investmentData = seoContent.investment_data;
-const neighborhoodInfo = seoContent.neighborhood_info;
+// FUNCIÓN: Extraer insights SOLO de organizedSeoData (visión del mercado)
+function extractMarketInsights() {
+  const insights = [];
 
-// Filtrar insights por relevancia
-const operationInsights = marketInsights.filter(insight => insight.content_type === 'operacion');
-const countryInsights = marketInsights.filter(insight => insight.content_type === 'pais');
-const operationTips = tips.filter(tip => tip.content_type === 'operacion');
+  if (organizedSeoData) {
+    // PRIORIDAD 1: Indicadores económicos del país
+    if (organizedSeoData.country?.market_insights) {
+      const countryInsights = organizedSeoData.country.market_insights;
+      
+      // Turismo
+      if (countryInsights.tourism_boost?.includes('millones') || countryInsights.tourism_boost?.includes('million')) {
+        const match = countryInsights.tourism_boost.match(/(\d+\.?\d*)/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-plane',
+            label: t.tourism,
+            value: `${match[1]}M+ ${t.annualVisitors}`,
+            color: 'text-sky-600',
+            priority: 1
+          });
+        }
+      }
 
-// Extraer datos clave en formato compacto
-const keyInsights = [];
+      // PIB/Crecimiento
+      if (countryInsights.economic_growth?.includes('%')) {
+        const match = countryInsights.economic_growth.match(/(\d+\.?\d*)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-chart-line',
+            label: t.gdp,
+            value: `+${match[1]}%`,
+            color: 'text-emerald-600',
+            priority: 2
+          });
+        }
+      }
+    }
 
-// Rendimiento de alquiler
-if (investmentData?.rental_yields) {
-  keyInsights.push({
-    icon: 'fas fa-percentage',
-    label: t.yield,
-    value: t.percentageRange,
-    color: 'text-green-600'
-  });
-}
+    // PRIORIDAD 2: Datos de inversión
+    const investmentData = organizedSeoData.sector?.investment_data || 
+                          organizedSeoData.city?.investment_data || 
+                          organizedSeoData.operation?.investment_data ||
+                          organizedSeoData.country?.investment_data;
+    
+    if (investmentData) {
+      // Rendimientos
+      if (investmentData.rental_yields) {
+        const match = investmentData.rental_yields.match(/(\d+-?\d+)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-percentage',
+            label: t.yield,
+            value: `${match[1]}%`,
+            color: 'text-green-600',
+            priority: 3
+          });
+        }
+      }
 
-// Financiamiento
-operationTips.forEach(tip => {
-  if (tip.financing && tip.financing.includes('80%')) {
-    keyInsights.push({
-      icon: 'fas fa-university',
-      label: t.financing,
-      value: `${t.upTo} 80%`,
-      color: 'text-blue-600'
+      // Apreciación
+      if (investmentData.appreciation_rates) {
+        const match = investmentData.appreciation_rates.match(/(\d+-?\d+)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-trending-up',
+            label: t.appreciation,
+            value: `${match[1]}%`,
+            color: 'text-red-600',
+            priority: 4
+          });
+        }
+      }
+    }
+
+    // PRIORIDAD 3: Tips operacionales
+    const operationTips = organizedSeoData.operation?.tips || {};
+    
+    if (operationTips.financing?.includes('80%')) {
+      insights.push({
+        icon: 'fas fa-university',
+        label: t.financing,
+        value: `${t.upTo} 80%`,
+        color: 'text-blue-600',
+        priority: 5
+      });
+    }
+
+    if (operationTips.buying_process) {
+      const match = operationTips.buying_process.match(/(\d+-?\d+)\s*(días|days|jours)/i);
+      if (match) {
+        insights.push({
+          icon: 'fas fa-clock',
+          label: t.process,
+          value: `${match[1]} ${t.days}`,
+          color: 'text-orange-600',
+          priority: 6
+        });
+      }
+    }
+
+    // PRIORIDAD 4: Características del mercado
+    if (organizedSeoData.sector?.characteristics?.safety) {
+      insights.push({
+        icon: 'fas fa-shield-alt',
+        label: t.security,
+        value: t.safeZones,
+        color: 'text-teal-600',
+        priority: 7
+      });
+    }
+
+    if (organizedSeoData.city?.characteristics?.infrastructure) {
+      insights.push({
+        icon: 'fas fa-wifi',
+        label: t.infrastructure,
+        value: 'Servicios modernos',
+        color: 'text-purple-600',
+        priority: 8
+      });
+    }
+  }
+
+  // FALLBACK: Datos legacy
+  if (insights.length === 0 && seoContent?.neighborhood_info?.safety) {
+    insights.push({
+      icon: 'fas fa-shield-alt',
+      label: t.security,
+      value: t.safeZones,
+      color: 'text-teal-600',
+      priority: 10
     });
   }
-});
 
-// Proceso de compra
-operationTips.forEach(tip => {
-  if (tip.buying_process) {
-    // Buscar números en diferentes formatos
-    const match = tip.buying_process.match(/(\d+-?\d+)\s*(días|days|jours)/i);
-    if (match) {
-      keyInsights.push({
-        icon: 'fas fa-clock',
-        label: t.process,
-        value: `${match[1]} ${t.days}`,
-        color: 'text-orange-600'
-      });
-    }
-  }
-});
-
-// Turismo
-countryInsights.forEach(insight => {
-  if (insight.tourism_boost && (insight.tourism_boost.includes('millones') || insight.tourism_boost.includes('million'))) {
-    // Extraer el número si está disponible
-    const match = insight.tourism_boost.match(/(\d+\.?\d*)\s*(millones|million)/i);
-    if (match) {
-      keyInsights.push({
-        icon: 'fas fa-plane',
-        label: t.tourism,
-        value: `${match[1]}${t.millionPlus}`,
-        color: 'text-purple-600'
-      });
-    } else {
-      keyInsights.push({
-        icon: 'fas fa-plane',
-        label: t.tourism,
-        value: `12${t.millionPlus}`,
-        color: 'text-purple-600'
-      });
-    }
-  }
-});
-
-// Economía
-countryInsights.forEach(insight => {
-  if (insight.economic_growth && insight.economic_growth.includes('%')) {
-    const match = insight.economic_growth.match(/(\d+\.?\d*)%/);
-    if (match) {
-      keyInsights.push({
-        icon: 'fas fa-chart-line',
-        label: t.gdp,
-        value: `+${match[1]}%`,
-        color: 'text-indigo-600'
-      });
-    }
-  }
-});
-
-// Seguridad/Calidad de vida
-if (neighborhoodInfo?.safety) {
-  keyInsights.push({
-    icon: 'fas fa-shield-alt',
-    label: t.security,
-    value: t.safeZones,
-    color: 'text-teal-600'
-  });
+  return insights.sort((a, b) => a.priority - b.priority).slice(0, 8);
 }
 
-// Limitar a máximo 6 insights para mantener diseño compacto
-const displayInsights = keyInsights.slice(0, 6);
+// FUNCIÓN: Texto informativo de mercado
+function getMarketInfoText() {
+  let infoTexts = [];
 
-// Función para obtener requisitos legales según el idioma
-function getLegalRequirementsText() {
-  const legalTip = operationTips.find(tip => tip.legal_requirements);
-  if (!legalTip) return null;
+  // Tips por pilar
+  if (organizedSeoData?.sector?.tips) {
+    Object.values(organizedSeoData.sector.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 1 });
+      }
+    });
+  }
+
+  if (organizedSeoData?.city?.tips) {
+    Object.values(organizedSeoData.city.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 2 });
+      }
+    });
+  }
+
+  if (organizedSeoData?.operation?.tips) {
+    Object.values(organizedSeoData.operation.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 3 });
+      }
+    });
+  }
+
+  // Fallback por ubicación
+  if (infoTexts.length === 0 && searchInfo?.location?.includes('Santo Domingo')) {
+    const defaultText = language === 'es' 
+      ? 'Servicios públicos estables. Internet fibra óptica, electricidad mejorada.'
+      : language === 'en'
+      ? 'Stable public services. Fiber optic internet, improved electricity.'
+      : 'Services publics stables. Internet fibre optique, électricité améliorée.';
+    
+    infoTexts.push({ text: defaultText, priority: 10 });
+  }
+
+  if (infoTexts.length === 0) return null;
   
-  // Si el contenido ya viene traducido desde la edge function, usarlo
-  // Si no, usar el contenido por defecto
-  let text = legalTip.legal_requirements;
+  const selectedInfo = infoTexts.sort((a, b) => a.priority - b.priority)[0];
+  let text = selectedInfo.text;
   
-  // Limitar la longitud del texto
-  if (text.length > 150) {
-    text = text.substring(0, 150) + '...';
+  if (text.length > 200) {
+    text = text.substring(0, 200) + '...';
   }
   
   return text;
 }
 
-const legalRequirementsText = getLegalRequirementsText();
+// Procesar datos
+const displayInsights = extractMarketInsights();
+const marketInfoText = getMarketInfoText();
+
+// Título contextual - siempre "Datos del mercado"
+function getContextualTitle() {
+  const baseTitle = t.marketData;
+  
+  if (searchInfo?.sector && searchInfo?.location) {
+    return `${baseTitle} - ${searchInfo.sector}, ${searchInfo.location}`;
+  }
+  if (searchInfo?.location) {
+    return `${baseTitle} - ${searchInfo.location}`;
+  }
+  if (searchInfo?.propertyType) {
+    return `${baseTitle} - ${searchInfo.propertyType}`;
+  }
+  return baseTitle;
+}
+
+const contextualTitle = getContextualTitle();
+
+console.log('🔍 SEOInsightsSection - Market Focus:', {
+  hasOrganizedSeoData: !!organizedSeoData,
+  marketInsights: displayInsights.length,
+  hasInfoText: !!marketInfoText
+});
 ---
 
 {displayInsights.length > 0 && (
   <section class="bg-white py-6 border-t border-gray-100">
     <div class="container mx-auto px-4">
       
-      <!-- Header minimalista -->
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">{t.marketData}</h2>
-        <span class="text-sm text-gray-500">{t.updatedInfo}</span>
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">{contextualTitle}</h2>
+        <span class="text-sm text-gray-500 flex items-center gap-1">
+          <i class="fas fa-clock text-xs"></i>
+          {t.updatedInfo}
+        </span>
       </div>
 
-      <!-- Grid horizontal adaptativo -->
-      <div class={`grid gap-4 ${
-        displayInsights.length === 1 ? 'grid-cols-1 justify-center' :
-        displayInsights.length === 2 ? 'grid-cols-2' :
-        displayInsights.length === 3 ? 'grid-cols-3' :
+      <!-- Grid de insights -->
+      <div class={`grid gap-4 mb-6 ${
+        displayInsights.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' :
         displayInsights.length === 4 ? 'grid-cols-2 md:grid-cols-4' :
-        displayInsights.length === 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' :
-        displayInsights.length === 6 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' :
-        displayInsights.length === 7 ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-7' :
-        'grid-cols-2 md:grid-cols-4 lg:grid-cols-8'
+        displayInsights.length <= 6 ? 'grid-cols-2 md:grid-cols-3' :
+        'grid-cols-2 md:grid-cols-4'
       }`}>
-        {displayInsights.map((insight) => (
-          <div class="text-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <i class={`${insight.icon} ${insight.color} text-lg mb-2`}></i>
-            <div class="text-sm font-semibold text-gray-900">{insight.value}</div>
-            <div class="text-xs text-gray-600">{insight.label}</div>
+        {displayInsights.map((insight, index) => (
+          <div class="text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors hover:shadow-sm group">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm mb-3 group-hover:shadow-md transition-shadow">
+              <i class={`${insight.icon} ${insight.color} text-lg`}></i>
+            </div>
+            <div class="text-lg font-bold text-gray-900 mb-1">{insight.value}</div>
+            <div class="text-sm text-gray-600">{insight.label}</div>
           </div>
         ))}
       </div>
 
-      <!-- Línea de información adicional si hay consejos importantes -->
-      {legalRequirementsText && (
-        <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      <!-- Información local con color naranja rojizo -->
+      {marketInfoText && (
+        <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200 p-4">
           <div class="flex items-start gap-3">
-            <i class="fas fa-info-circle text-blue-600 text-sm mt-0.5"></i>
-            <div class="text-sm">
-              <span class="font-medium text-blue-900">{t.legalRequirements}: </span>
-              <span class="text-blue-800">
-                {legalRequirementsText}
+            <div class="flex-shrink-0">
+              <i class="fas fa-info-circle text-orange-600 text-lg mt-0.5"></i>
+            </div>
+            <div class="flex-1">
+              <span class="font-medium text-orange-900 text-sm block mb-1">
+                {searchInfo?.location ? 
+                  `${t.localInfo} ${searchInfo.location}:` : 
+                  `${t.localInfo}:`
+                }
               </span>
+              <p class="text-orange-800 text-sm leading-relaxed">
+                {marketInfoText}
+              </p>
             </div>
           </div>
         </div>
