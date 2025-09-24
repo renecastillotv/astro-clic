@@ -1,5 +1,5 @@
 ---
-// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos con validación defensiva
+// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos optimizado
 import Layout from './Layout.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
 
@@ -45,31 +45,6 @@ const language = safeString(data?.language, 'es');
 
 let articlesData = safeObject(data);
 
-// Procesar categorías de forma defensiva
-const rawCategories = safeArray(articlesData.categories);
-const safeCategories = rawCategories.map((cat, index) => ({
-  id: safeString(cat.id, `category-${index}`),
-  name: safeString(cat.name || cat.title || cat.display_name, 'Categoría sin nombre'),
-  slug: safeString(cat.slug, `categoria-${index}`),
-  url: safeString(cat.url, `#categoria-${index}`),
-  articleCount: safeNumber(cat.articleCount || cat.count, 0),
-  description: safeString(cat.description, 'Descripción no disponible'),
-  featured: Boolean(cat.featured),
-  thumbnail: safeString(cat.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
-  icon: safeString(cat.icon, '📰'),
-  recentArticles: safeArray(cat.recentArticles, [])
-}));
-
-// Separar categorías destacadas y regulares
-let featuredCategories = safeCategories.filter(cat => cat.featured);
-let regularCategories = safeCategories.filter(cat => !cat.featured);
-
-// Si no hay categorías destacadas, tomar las primeras 2 como destacadas
-if (featuredCategories.length === 0 && regularCategories.length > 0) {
-  featuredCategories = regularCategories.slice(0, 2).map(cat => ({ ...cat, featured: true }));
-  regularCategories = regularCategories.slice(2);
-}
-
 // Procesar artículos destacados
 const rawFeaturedArticles = safeArray(articlesData.featuredArticles);
 const safeFeaturedArticles = rawFeaturedArticles.map((article, index) => ({
@@ -79,7 +54,7 @@ const safeFeaturedArticles = rawFeaturedArticles.map((article, index) => ({
   subtitle: safeString(article.subtitle),
   featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
   publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
-  views: safeString(article.views, '0'),
+  views: safeNumber(article.views, 0),
   readTime: safeString(article.readTime || article.read_time, '5 min'),
   featured: Boolean(article.featured),
   url: safeString(article.url, '#'),
@@ -103,7 +78,7 @@ const safeRecentArticles = rawRecentArticles.map((article, index) => ({
   subtitle: safeString(article.subtitle),
   featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
   publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
-  views: safeString(article.views, '0'),
+  views: safeNumber(article.views, 0),
   readTime: safeString(article.readTime || article.read_time, '5 min'),
   featured: Boolean(article.featured),
   url: safeString(article.url, '#'),
@@ -115,68 +90,55 @@ const safeRecentArticles = rawRecentArticles.map((article, index) => ({
   })
 }));
 
-// Procesar propiedades relacionadas
-const rawRelatedProperties = safeArray(articlesData.relatedProperties);
-const safeRelatedProperties = rawRelatedProperties.map((property, index) => ({
-  id: safeString(property.id, `property-${index}`),
-  titulo: safeString(property.titulo || property.title, 'Propiedad sin título'),
-  precio: safeString(property.precio || property.price, '$0'),
-  imagen: safeString(property.imagen || property.image || property.featuredImage, 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'),
-  sector: safeString(property.sector || property.location, 'Ubicación no especificada'),
-  habitaciones: safeNumber(property.habitaciones || property.bedrooms, 0),
-  banos: safeNumber(property.banos || property.bathrooms, 0),
-  metros: safeNumber(property.metros || property.area, 0),
-  tipo: safeString(property.tipo || property.type, 'Propiedad'),
-  destacado: Boolean(property.destacado || property.featured),
-  nuevo: Boolean(property.nuevo || property.isNew),
-  descuento: safeString(property.descuento || property.discount),
-  slug: safeString(property.slug, `propiedad-${index}`)
+// Encontrar el artículo más popular (mayor views)
+const allArticles = [...safeFeaturedArticles, ...safeRecentArticles];
+const mostPopularArticle = allArticles.reduce((prev, current) => 
+  (current.views > prev.views) ? current : prev, 
+  allArticles[0] || null
+);
+
+// Artículos para el carrusel (excluir el más popular)
+const carouselArticles = allArticles.filter(article => 
+  article.id !== mostPopularArticle?.id
+).slice(0, 8); // Máximo 8 para el carrusel
+
+// Procesar categorías
+const rawCategories = safeArray(articlesData.categories);
+const safeCategories = rawCategories.map((cat, index) => ({
+  id: safeString(cat.id, `category-${index}`),
+  name: safeString(cat.name || cat.title || cat.display_name, 'Categoría sin nombre'),
+  slug: safeString(cat.slug, `categoria-${index}`),
+  url: safeString(cat.url, `#categoria-${index}`),
+  articleCount: safeNumber(cat.articleCount || cat.count, 0),
+  description: safeString(cat.description, 'Explora artículos sobre este tema'),
+  featured: Boolean(cat.featured),
+  thumbnail: safeString(cat.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'),
+  icon: safeString(cat.icon, '📰'),
+  recentArticles: safeArray(cat.recentArticles, [])
 }));
 
-// Procesar estadísticas
+// Procesar estadísticas - Priorizar datos del backend
 const rawStats = safeObject(articlesData.stats);
 const safeStats = {
-  totalArticles: safeNumber(rawStats.totalArticles, safeFeaturedArticles.length + safeRecentArticles.length),
-  totalReads: safeString(rawStats.totalReads || rawStats.totalViews, '1.5M'),
-  avgRating: safeNumber(rawStats.avgRating || rawStats.rating, 4.8),
-  publishedThisMonth: safeNumber(rawStats.publishedThisMonth || rawStats.thisMonth, 5),
-  totalCategories: safeNumber(rawStats.totalCategories, safeCategories.length),
-  totalViews: safeString(rawStats.totalViews, '1500000')
+  totalArticles: rawStats.totalArticles || rawStats.total_articles || allArticles.length,
+  totalReads: rawStats.totalReads || rawStats.total_reads || rawStats.totalViews || rawStats.total_views || '6.9K+',
+  avgRating: rawStats.avgRating || rawStats.avg_rating || rawStats.rating || 4.8,
+  publishedThisMonth: rawStats.publishedThisMonth || rawStats.published_this_month || rawStats.thisMonth || rawStats.this_month || 3,
+  totalCategories: rawStats.totalCategories || rawStats.total_categories || safeCategories.length,
+  totalViews: rawStats.totalViews || rawStats.total_views || '6921'
 };
 
-// Procesar SEO
+// Procesar SEO - Priorizar datos del backend
 const rawSeo = safeObject(articlesData.seo);
 const safeSeo = {
-  title: safeString(rawSeo.title, 
-    language === 'en' ? 'Real Estate Articles & Insights | CLIC Inmobiliaria' :
-    language === 'fr' ? 'Articles & Insights Immobiliers | CLIC Inmobiliaria' :
-    'Artículos e Insights Inmobiliarios | CLIC Inmobiliaria'),
-  description: safeString(rawSeo.description,
-    language === 'en' ? 'Discover the latest real estate trends, market insights, and expert advice from CLIC Inmobiliaria.' :
-    language === 'fr' ? 'Découvrez les dernières tendances immobilières et conseils d\'experts de CLIC Inmobiliaria.' :
-    'Descubre las últimas tendencias inmobiliarias, insights del mercado y consejos expertos de CLIC Inmobiliaria.'),
-  h1: safeString(rawSeo.h1,
-    language === 'en' ? 'Real Estate Articles & Market Insights' :
-    language === 'fr' ? 'Articles Immobiliers & Insights du Marché' :
-    'Artículos Inmobiliarios e Insights del Mercado'),
-  h2: safeString(rawSeo.h2,
-    language === 'en' ? 'Expert insights to make informed property decisions' :
-    language === 'fr' ? 'Insights d\'experts pour prendre des décisions immobilières éclairées' :
-    'Insights expertos para tomar decisiones inmobiliarias informadas'),
+  title: safeString(rawSeo.title) || text.title,
+  description: safeString(rawSeo.description) || text.subtitle,
+  h1: safeString(rawSeo.h1) || text.title,
+  h2: safeString(rawSeo.h2) || text.subtitle,
   canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/articulos' : `/${language}/articles`),
   ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-articles.jpg'),
   keywords: safeString(rawSeo.keywords),
   hreflang: safeObject(rawSeo.hreflang),
-  breadcrumbs: safeArray(rawSeo.breadcrumbs, [
-    {
-      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
-      url: language === 'es' ? '/' : `/${language}/`
-    },
-    {
-      name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
-      url: language === 'es' ? '/articulos' : `/${language}/articles`
-    }
-  ])
 };
 
 // ===================================================================
@@ -187,136 +149,55 @@ const TEXTS = {
   es: {
     title: 'Blog Inmobiliario CLIC',
     subtitle: 'Guías, consejos y análisis expertos para tomar las mejores decisiones inmobiliarias en República Dominicana',
-    featuredTitle: '🌟 Artículos más leídos',
-    categoriesTitle: 'Categorías Destacadas',
-    allCategoriesTitle: 'Todas las Categorías',
-    propertiesTitle: 'Propiedades destacadas en nuestros artículos',
-    propertiesSubtitle: 'Inversiones recomendadas por nuestros expertos',
-    expertiseTitle: '¿Por qué confiar en nuestro contenido?',
-    expertiseSubtitle: 'Nuestros artículos están respaldados por más de 15 años de experiencia en el mercado inmobiliario dominicano',
-    ctaTitle: '¿Necesitas asesoría personalizada?',
-    ctaSubtitle: 'Nuestros expertos están listos para ayudarte a tomar la mejor decisión',
-    ctaButton1: 'Hablar con un experto',
-    ctaButton2: 'Ver todas las propiedades',
-    readMore: 'Leer más',
-    articles: 'artículos',
-    recentArticles: 'Artículos recientes:',
-    minRead: 'min de lectura',
+    mostPopularTitle: 'Artículo Más Popular',
+    recentArticlesTitle: 'Artículos Recientes',
+    categoriesTitle: 'Explora por Categorías',
+    readMore: 'Leer artículo completo',
+    readingTime: 'min de lectura',
     views: 'lecturas',
     author: 'Por',
+    seeCategory: 'Ver categoría',
     statsLabels: {
       articles: 'Artículos publicados',
       reads: 'Lecturas totales',
       rating: 'Calificación promedio',
       thisMonth: 'Nuevos este mes'
-    },
-    expertiseItems: {
-      local: {
-        title: 'Conocimiento Local',
-        description: 'Expertos que viven y trabajan en República Dominicana'
-      },
-      experience: {
-        title: '15+ Años de Experiencia',
-        description: 'Hemos acompañado a miles de clientes en sus decisiones inmobiliarias'
-      },
-      updated: {
-        title: 'Información Actualizada',
-        description: 'Contenido revisado y actualizado regularmente por nuestros especialistas'
-      },
-      verified: {
-        title: 'Datos Verificados',
-        description: 'Todas nuestras cifras y análisis están respaldados por fuentes oficiales'
-      }
     }
   },
   en: {
     title: 'CLIC Real Estate Blog',
     subtitle: 'Expert guides, tips and analysis to make the best real estate decisions in Dominican Republic',
-    featuredTitle: '🌟 Most read articles',
-    categoriesTitle: 'Featured Categories',
-    allCategoriesTitle: 'All Categories',
-    propertiesTitle: 'Properties featured in our articles',
-    propertiesSubtitle: 'Investments recommended by our experts',
-    expertiseTitle: 'Why trust our content?',
-    expertiseSubtitle: 'Our articles are backed by more than 15 years of experience in the Dominican real estate market',
-    ctaTitle: 'Need personalized advice?',
-    ctaSubtitle: 'Our experts are ready to help you make the best decision',
-    ctaButton1: 'Talk to an expert',
-    ctaButton2: 'View all properties',
-    readMore: 'Read more',
-    articles: 'articles',
-    recentArticles: 'Recent articles:',
-    minRead: 'min read',
+    mostPopularTitle: 'Most Popular Article',
+    recentArticlesTitle: 'Recent Articles',
+    categoriesTitle: 'Browse by Categories',
+    readMore: 'Read full article',
+    readingTime: 'min read',
     views: 'views',
     author: 'By',
+    seeCategory: 'View category',
     statsLabels: {
       articles: 'Published articles',
       reads: 'Total reads',
       rating: 'Average rating',
       thisMonth: 'New this month'
-    },
-    expertiseItems: {
-      local: {
-        title: 'Local Knowledge',
-        description: 'Experts who live and work in Dominican Republic'
-      },
-      experience: {
-        title: '15+ Years Experience',
-        description: 'We have guided thousands of clients in their real estate decisions'
-      },
-      updated: {
-        title: 'Updated Information',
-        description: 'Content reviewed and updated regularly by our specialists'
-      },
-      verified: {
-        title: 'Verified Data',
-        description: 'All our figures and analysis are backed by official sources'
-      }
     }
   },
   fr: {
     title: 'Blog Immobilier CLIC',
     subtitle: 'Guides, conseils et analyses d\'experts pour prendre les meilleures décisions immobilières en République dominicaine',
-    featuredTitle: '🌟 Articles les plus lus',
-    categoriesTitle: 'Catégories en Vedette',
-    allCategoriesTitle: 'Toutes les Catégories',
-    propertiesTitle: 'Propriétés mises en avant dans nos articles',
-    propertiesSubtitle: 'Investissements recommandés par nos experts',
-    expertiseTitle: 'Pourquoi faire confiance à notre contenu?',
-    expertiseSubtitle: 'Nos articles sont soutenus par plus de 15 ans d\'expérience sur le marché immobilier dominicain',
-    ctaTitle: 'Besoin de conseils personnalisés?',
-    ctaSubtitle: 'Nos experts sont prêts à vous aider à prendre la meilleure décision',
-    ctaButton1: 'Parler à un expert',
-    ctaButton2: 'Voir toutes les propriétés',
-    readMore: 'Lire plus',
-    articles: 'articles',
-    recentArticles: 'Articles récents:',
-    minRead: 'min de lecture',
+    mostPopularTitle: 'Article Le Plus Populaire',
+    recentArticlesTitle: 'Articles Récents',
+    categoriesTitle: 'Parcourir par Catégories',
+    readMore: 'Lire l\'article complet',
+    readingTime: 'min de lecture',
     views: 'vues',
     author: 'Par',
+    seeCategory: 'Voir la catégorie',
     statsLabels: {
       articles: 'Articles publiés',
       reads: 'Lectures totales',
       rating: 'Note moyenne',
       thisMonth: 'Nouveaux ce mois'
-    },
-    expertiseItems: {
-      local: {
-        title: 'Connaissance Locale',
-        description: 'Experts qui vivent et travaillent en République dominicaine'
-      },
-      experience: {
-        title: '15+ Ans d\'Expérience',
-        description: 'Nous avons guidé des milliers de clients dans leurs décisions immobilières'
-      },
-      updated: {
-        title: 'Information Mise à Jour',
-        description: 'Contenu revu et mis à jour régulièrement par nos spécialistes'
-      },
-      verified: {
-        title: 'Données Vérifiées',
-        description: 'Tous nos chiffres et analyses sont soutenus par des sources officielles'
-      }
     }
   }
 };
@@ -366,7 +247,7 @@ function formatDate(dateString) {
 }
 
 // ===================================================================
-// PREPARAR PROPS PARA LAYOUT (IGUAL QUE ADVISORSLAYOUT)
+// PREPARAR PROPS PARA LAYOUT
 // ===================================================================
 
 const layoutProps = {
@@ -383,14 +264,13 @@ const layoutProps = {
   country: articlesData?.country || {}
 };
 
-console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
+console.log('✅ ArticlesMainLayout preparado:', {
   language,
-  categoriesCount: safeCategories.length,
-  featuredCount: featuredCategories.length,
-  featuredArticlesCount: safeFeaturedArticles.length,
-  recentArticlesCount: safeRecentArticles.length,
   totalArticles: safeStats.totalArticles,
-  layoutProps
+  mostPopularArticle: mostPopularArticle?.title,
+  carouselArticlesCount: carouselArticles.length,
+  categoriesCount: safeCategories.length,
+  totalViews: safeStats.totalViews
 });
 ---
 
@@ -402,10 +282,10 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
       <div class="container mx-auto px-4">
         <div class="text-center text-white">
           <h1 class="text-4xl md:text-5xl font-bold mb-6">
-            {text.title}
+            {safeSeo.h1 || safeSeo.title || text.title}
           </h1>
           <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
-            {text.subtitle}
+            {safeSeo.h2 || safeSeo.description || text.subtitle}
           </p>
           
           <!-- Stats -->
@@ -415,7 +295,7 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
               <div class="text-sm text-white/80">{text.statsLabels.articles}</div>
             </div>
             <div class="text-center">
-              <div class="text-3xl font-bold text-white mb-2">{safeStats.totalReads}+</div>
+              <div class="text-3xl font-bold text-white mb-2">{Math.floor(safeStats.totalViews / 1000).toLocaleString()}K+</div>
               <div class="text-sm text-white/80">{text.statsLabels.reads}</div>
             </div>
             <div class="text-center">
@@ -431,150 +311,191 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
       </div>
     </section>
 
-    <!-- Featured Articles -->
-    {safeArray(safeFeaturedArticles).length > 0 && (
-      <section class="py-12">
+    <!-- Most Popular Article -->
+    {mostPopularArticle && (
+      <section class="py-16 bg-white">
         <div class="container mx-auto px-4">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-            {text.featuredTitle}
-          </h2>
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {text.mostPopularTitle}
+            </h2>
+            <div class="w-24 h-1 bg-[#f04e00] mx-auto rounded-full"></div>
+          </div>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {safeArray(safeFeaturedArticles).map((article, index) => (
-              <a 
-                href={article.url}
-                class="group bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
-                key={article.id || index}
-              >
-                <div class="aspect-[16/9] relative overflow-hidden">
-                  <img 
-                    src={article.featuredImage} 
-                    alt={article.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  
-                  <!-- Category badge -->
-                  <div class="absolute top-4 left-4">
-                    <span class="bg-[#f04e00] text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {article.category}
-                    </span>
-                  </div>
-                  
-                  <!-- Read stats -->
-                  <div class="absolute top-4 right-4 bg-black/80 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+          <div class="max-w-4xl mx-auto">
+            <article class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+              <!-- Featured Image -->
+              <div class="aspect-[16/9] relative overflow-hidden">
+                <img 
+                  src={mostPopularArticle.featuredImage} 
+                  alt={mostPopularArticle.title}
+                  class="w-full h-full object-cover"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                
+                <!-- Stats overlay -->
+                <div class="absolute top-6 right-6 flex gap-4">
+                  <div class="bg-white/90 backdrop-blur-sm text-gray-900 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                     </svg>
-                    {article.views}
+                    {mostPopularArticle.views.toLocaleString()} {text.views}
                   </div>
-                  
-                  <!-- Read time indicator -->
-                  <div class="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm">
-                    {article.readTime} {text.minRead}
+                  <div class="bg-[#f04e00] text-white px-4 py-2 rounded-full text-sm font-medium">
+                    {mostPopularArticle.readTime} {text.readingTime}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Content -->
+              <div class="p-8 md:p-12">
+                <div class="flex items-center gap-4 mb-6">
+                  <img 
+                    src={mostPopularArticle.author.avatar} 
+                    alt={mostPopularArticle.author.name}
+                    class="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{mostPopularArticle.author.name}</p>
+                    <p class="text-xs text-gray-500">{formatDate(mostPopularArticle.publishedAt)}</p>
                   </div>
                 </div>
                 
-                <div class="p-6">
-                  <div class="flex flex-wrap items-center gap-2 mb-3">
-                    {safeArray(article.tags).map((tag, tagIndex) => (
-                      <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded" key={tagIndex}>
-                        {safeString(tag, 'Tag')}
-                      </span>
-                    ))}
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                  {mostPopularArticle.title}
+                </h1>
+                
+                {mostPopularArticle.subtitle && (
+                  <h2 class="text-xl text-gray-600 mb-6 font-medium">
+                    {mostPopularArticle.subtitle}
+                  </h2>
+                )}
+                
+                <p class="text-lg text-gray-700 leading-relaxed mb-8">
+                  {mostPopularArticle.excerpt}
+                </p>
+                
+                <a 
+                  href={mostPopularArticle.url}
+                  class="inline-flex items-center gap-3 bg-[#f04e00] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#d94400] transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  {text.readMore}
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Recent Articles Carousel -->
+    {carouselArticles.length > 0 && (
+      <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {text.recentArticlesTitle}
+            </h2>
+            <div class="w-24 h-1 bg-[#f04e00] mx-auto rounded-full"></div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <div class="flex gap-6 pb-4" style="width: max-content;">
+              {carouselArticles.map((article, index) => (
+                <article class="w-80 bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex-shrink-0" key={article.id}>
+                  <a href={article.url} class="group block">
+                    <!-- Image -->
+                    <div class="aspect-[16/9] relative overflow-hidden">
+                      <img 
+                        src={article.featuredImage} 
+                        alt={article.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      
+                      <!-- Read time -->
+                      <div class="absolute bottom-4 right-4 bg-white/90 text-gray-900 px-3 py-1 rounded-full text-sm font-medium">
+                        {article.readTime} {text.readingTime}
+                      </div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="p-6">
+                      <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors">
+                        {article.title}
+                      </h3>
+                      
+                      <p class="text-gray-600 mb-4 line-clamp-3 text-sm">
+                        {article.excerpt}
+                      </p>
+                      
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <div class="flex items-center gap-2">
+                          <img 
+                            src={article.author.avatar} 
+                            alt={article.author.name}
+                            class="w-6 h-6 rounded-full"
+                          />
+                          <span>{article.author.name}</span>
+                        </div>
+                        <span>{article.views.toLocaleString()} {text.views}</span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Categories Grid -->
+    {safeCategories.length > 0 && (
+      <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {text.categoriesTitle}
+            </h2>
+            <div class="w-24 h-1 bg-[#f04e00] mx-auto rounded-full"></div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {safeCategories.map((category, index) => (
+              <a 
+                href={`${currentRoutes.articlesBase}/${category.slug}`}
+                class="group bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-200 hover:border-[#f04e00]/20"
+                key={category.id}
+              >
+                <div class="text-center">
+                  <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <span class="text-2xl text-white">{category.icon}</span>
                   </div>
                   
                   <h3 class="text-xl font-semibold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors">
-                    {article.title}
+                    {category.name}
                   </h3>
                   
-                  <p class="text-gray-600 mb-4">
-                    {article.excerpt}
+                  <p class="text-gray-600 mb-4 text-sm">
+                    {category.description}
                   </p>
                   
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                      <img 
-                        src={article.author.avatar} 
-                        alt={article.author.name}
-                        class="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <p class="text-sm font-medium text-gray-900">{article.author.name}</p>
-                        <p class="text-xs text-gray-500">{article.author.title}</p>
-                      </div>
-                    </div>
-                    
-                    <span class="text-sm text-gray-500">
-                      {formatDate(article.publishedAt)}
+                  <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
+                    <span class="bg-[#f04e00]/10 text-[#f04e00] px-3 py-1 rounded-full font-medium">
+                      {category.articleCount} artículos
                     </span>
                   </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-    )}
-
-    <!-- Featured Categories -->
-    {safeArray(featuredCategories).length > 0 && (
-      <section class="py-12 bg-gray-50">
-        <div class="container mx-auto px-4">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.categoriesTitle}</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {safeArray(featuredCategories).map((category, index) => (
-              <a 
-                href={category.url}
-                class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                key={category.id || index}
-              >
-                <div class="aspect-[16/9] relative">
-                  <img 
-                    src={category.thumbnail} 
-                    alt={category.name}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                   
-                  <!-- Content overlay -->
-                  <div class="absolute bottom-0 left-0 right-0 p-8">
-                    <div class="flex items-center gap-3 mb-3">
-                      <span class="text-4xl">{category.icon}</span>
-                      <h3 class="text-3xl font-bold text-white">{category.name}</h3>
-                    </div>
-                    <p class="text-lg text-white/90 mb-4">{category.description}</p>
-                    
-                    <div class="flex items-center justify-between">
-                      <span class="text-white/80">
-                        {category.articleCount} {text.articles}
-                      </span>
-                      <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
-                        {text.readMore}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                      </span>
-                    </div>
-                    
-                    <!-- Recent articles preview -->
-                    {safeArray(category.recentArticles).length > 0 && (
-                      <div class="mt-4 pt-4 border-t border-white/20">
-                        <p class="text-sm text-white/70 mb-2">{text.recentArticles}</p>
-                        <ul class="text-sm text-white/90 space-y-1">
-                          {safeArray(category.recentArticles).slice(0, 3).map((article, articleIndex) => (
-                            <li class="flex items-center gap-2" key={articleIndex}>
-                              <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                              </svg>
-                              {safeString(article, 'Artículo')}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                  <div class="mt-4 inline-flex items-center gap-2 text-[#f04e00] group-hover:gap-3 transition-all font-medium">
+                    {text.seeCategory}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
                   </div>
                 </div>
               </a>
@@ -583,144 +504,25 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
         </div>
       </section>
     )}
-
-    <!-- All Categories -->
-    {safeArray(regularCategories).length > 0 && (
-      <section class="py-12">
-        <div class="container mx-auto px-4">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {safeArray(regularCategories).map((category, index) => (
-              <a 
-                href={category.url}
-                class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6"
-                key={category.id || index}
-              >
-                <div class="flex items-start gap-4">
-                  <span class="text-4xl flex-shrink-0">{category.icon}</span>
-                  <div class="flex-1">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
-                      {category.name}
-                    </h3>
-                    <p class="text-gray-600 mb-4">{category.description}</p>
-                    
-                    <div class="flex items-center justify-between">
-                      <span class="text-sm text-gray-500">
-                        {category.articleCount} {text.articles}
-                      </span>
-                      <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                        {text.readMore}
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-    )}
-
-    <!-- Related Properties -->
-    {safeArray(safeRelatedProperties).length > 0 && (
-      <PropertyCarousel 
-        title={text.propertiesTitle}
-        subtitle={text.propertiesSubtitle}
-        properties={safeRelatedProperties}
-        viewAllLink={`${currentRoutes.properties}?fuente=blog`}
-        language={language}
-      />
-    )}
-
-    <!-- Expertise Section -->
-    <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
-      <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-          {text.expertiseTitle}
-        </h2>
-        <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
-          {text.expertiseSubtitle}
-        </p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.local.title}</h3>
-            <p class="text-sm text-white/70">{text.expertiseItems.local.description}</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.experience.title}</h3>
-            <p class="text-sm text-white/70">{text.expertiseItems.experience.description}</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.updated.title}</h3>
-            <p class="text-sm text-white/70">{text.expertiseItems.updated.description}</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">{text.expertiseItems.verified.title}</h3>
-            <p class="text-sm text-white/70">{text.expertiseItems.verified.description}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-16 bg-[#f04e00]">
-      <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-          {text.ctaTitle}
-        </h2>
-        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-          {text.ctaSubtitle}
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a 
-            href={currentRoutes.contact}
-            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
-          >
-            {text.ctaButton1}
-          </a>
-          <a 
-            href={currentRoutes.properties}
-            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
-          >
-            {text.ctaButton2}
-          </a>
-        </div>
-      </div>
-    </section>
 
   </div>
 </Layout>
 
 <style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
   .transform {
     transition: transform 0.3s ease;
   }
@@ -729,7 +531,19 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
   }
   
+  .bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+  }
+  
+  .bg-gradient-to-t {
+    background-image: linear-gradient(to top, var(--tw-gradient-stops));
+  }
+  
   .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
   }
   
@@ -739,14 +553,6 @@ console.log('✅ ArticlesMainLayout preparado con validación defensiva:', {
   
   .group:hover .group-hover\:text-[#f04e00] {
     color: #f04e00;
-  }
-  
-  .group:hover .group-hover\:bg-[#d94400] {
-    background-color: #d94400;
-  }
-  
-  .group:hover .group-hover\:translate-x-1 {
-    transform: translateX(0.25rem);
   }
   
   .group:hover .group-hover\:gap-3 {
