@@ -80,20 +80,61 @@ const companyName = globalConfig?.legal?.company_name || `CLIC Real Estate ${cou
 const founderName = isDefaultCountry ? 'René Castillo' : globalConfig?.social?.founder?.name || 'Local Expert';
 const founderExperience = isDefaultCountry ? '18 años' : globalConfig?.team?.founder_experience || '8+ años';
 
-// SEO y layout props
+// SEO y layout props - COMPLETO CON TODA LA ESTRUCTURA SEO DE LA EDGE
 const seoData = pageData.seo || {};
 const layoutProps = {
+  // Meta básicos
   title: seoData.title || `${companyName} - Premium Real Estate in ${countryName}`,
   description: seoData.description || `Find luxury properties in ${countryName} with ${companyName}. Expert guidance and personalized service.`,
-  ogImage: seoData.open_graph?.image || heroConfig.backgroundImage || '/og-default.jpg',
   canonical: seoData.canonical_url,
-  keywords: seoData.keywords,
+  
+  // SEO Avanzado - USANDO TODA LA ESTRUCTURA DE LA EDGE
+  keywords: seoData.keywords || `${countryName}, bienes raíces, propiedades, inversión, ${companyName.toLowerCase()}`,
+  author: seoData.additional_meta_tags?.author || seoData.meta_tags?.author || `${founderName} - ${companyName}`,
+  publisher: seoData.additional_meta_tags?.publisher || seoData.meta_tags?.publisher || companyName,
+  robots: seoData.additional_meta_tags?.robots || seoData.meta_tags?.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+  
+  // Open Graph Completo
+  ogTitle: seoData.open_graph?.title || seoData.title,
+  ogDescription: seoData.open_graph?.description || seoData.description,
+  ogImage: seoData.open_graph?.image || heroConfig.backgroundImage || '/og-default.jpg',
+  ogUrl: seoData.open_graph?.url || seoData.canonical_url,
+  ogType: seoData.open_graph?.type || 'website',
+  ogSiteName: seoData.open_graph?.site_name || companyName,
+  ogLocale: seoData.open_graph?.locale || (language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR'),
+  
+  // Twitter Cards Completo
+  twitterCard: seoData.twitter_card?.card || 'summary_large_image',
+  twitterSite: seoData.twitter_card?.site || (isDefaultCountry ? '@clic.do' : `@${companyName.toLowerCase()}`),
+  twitterCreator: seoData.twitter_card?.creator || (isDefaultCountry ? '@renecastillotv' : seoData.twitter_card?.site),
+  twitterTitle: seoData.twitter_card?.title || seoData.title,
+  twitterDescription: seoData.twitter_card?.description || seoData.description,
+  twitterImage: seoData.twitter_card?.image || seoData.open_graph?.image || heroConfig.backgroundImage,
+  
+  // Hreflang Completo
   hreflangData: seoData.hreflang || {},
+  
+  // Structured Data de la Edge (no crear uno nuevo)
+  structuredData: seoData.structured_data,
+  
+  // Config para Layout
   globalConfig: globalConfig,
   language: language,
   trackingString: pageData.trackingString || '',
   hotItems: pageData.hotItems || {},
-  country: pageData.country || {}
+  country: pageData.country || {},
+  
+  // SEO específico para Homepage
+  pageType: 'homepage',
+  contentSections: homepageSections.map(s => s.type),
+  totalContent: {
+    properties: featuredProperties.length,
+    articles: featuredArticles.length,
+    videos: featuredVideos.length,
+    testimonials: testimonials.length,
+    advisors: featuredAdvisors.length,
+    faqs: faqs.length
+  }
 };
 
 // Condición para mostrar PopularLocations
@@ -164,17 +205,82 @@ if (import.meta.env.DEV) {
       </div>
     </div>
     
-    <!-- SEO INVISIBLE - Solo para Google -->
+    <!-- SEO INVISIBLE - Solo para Google - AMPLIADO PARA MÁXIMO PODER -->
     <div class="sr-only">
-      <h1>{seoData.h1 || seoData.title}</h1>
+      <!-- H1 principal optimizado -->
+      <h1>{seoData.h1 || `${companyName} - ${language === 'es' ? 'Bienes Raíces Premium en' : language === 'en' ? 'Premium Real Estate in' : 'Immobilier Premium en'} ${countryName}`}</h1>
+      
+      <!-- Descripción SEO enriquecida -->
       <p>{seoData.description}</p>
+      
+      <!-- Keywords naturales para indexación -->
+      <div>
+        {language === 'es' && (
+          <>
+            <span>Propiedades de lujo en {countryName}, apartamentos premium, casas exclusivas, villas de ensueño</span>
+            <span>Inversión inmobiliaria {countryName}, oportunidades de negocio, bienes raíces rentables</span>
+            <span>Asesores inmobiliarios expertos, {featuredAdvisors.length} especialistas certificados</span>
+            {isDefaultCountry && <span>René Castillo presentador TV, canal inmobiliario YouTube, 600k seguidores, CLIC Inmobiliaria fundador</span>}
+          </>
+        )}
+        {language === 'en' && (
+          <>
+            <span>Luxury properties in {countryName}, premium apartments, exclusive houses, dream villas</span>
+            <span>Real estate investment {countryName}, business opportunities, profitable properties</span>
+            <span>Expert real estate advisors, {featuredAdvisors.length} certified specialists</span>
+            {isDefaultCountry && <span>René Castillo TV host, real estate YouTube channel, 600k followers, CLIC Real Estate founder</span>}
+          </>
+        )}
+      </div>
+      
+      <!-- Información de contacto estructurada -->
       <address>
-        <span>{founderName}, {isDefaultCountry ? 'Fundador y Presentador de TV' : 'Local Expert'}</span>
-        <span>{companyName}</span>
+        <span>{founderName}, {isDefaultCountry ? 'Fundador y Presentador de TV' : 'Experto Inmobiliario Local'}</span>
+        <span>{companyName} - {globalConfig?.legal?.company_full_name}</span>
         <span>{globalConfig?.contact?.address || `${countryName} Office`}</span>
         <span>Teléfono: {globalConfig?.contact?.phone || 'Contact Available'}</span>
         <span>Email: {globalConfig?.contact?.email || 'info@clic.com'}</span>
+        <span>Horarios: {globalConfig?.office?.hours?.weekdays}, {globalConfig?.office?.hours?.saturday}</span>
+        <span>Servicios: Compra, Venta, Alquiler, Inversión, Tasación, Agrimensura</span>
+        <span>Especialidades: {hotItems.cities?.slice(0,3).map(c => c.title).join(', ')}</span>
       </address>
+      
+      <!-- Contenido adicional para indexación -->
+      <section>
+        <h2>{language === 'es' ? 'Servicios Inmobiliarios Integrales' : 'Comprehensive Real Estate Services'}</h2>
+        <p>{language === 'es' ? 
+          `Ofrecemos servicios completos de bienes raíces en ${countryName} incluyendo compra, venta, alquiler, gestión de propiedades, tasación profesional, servicios de agrimensura, y asesoría en inversiones inmobiliarias para maximizar tu retorno.` :
+          `We offer comprehensive real estate services in ${countryName} including purchase, sale, rental, property management, professional appraisal, surveying services, and real estate investment consulting to maximize your return.`
+        }</p>
+        
+        <h3>{language === 'es' ? 'Zonas de Mayor Demanda' : 'High Demand Areas'}</h3>
+        <ul>
+          {hotItems.cities?.slice(0,5).map(city => (
+            <li key={city.id}>
+              {city.title} - {stripHtmlTags(city.content?.description || '').substring(0, 100)}
+            </li>
+          ))}
+        </ul>
+        
+        <h3>{language === 'es' ? 'Tipos de Propiedades Disponibles' : 'Available Property Types'}</h3>
+        <ul>
+          <li>{language === 'es' ? 'Apartamentos de lujo con amenidades premium' : 'Luxury apartments with premium amenities'}</li>
+          <li>{language === 'es' ? 'Casas familiares en sectores exclusivos' : 'Family homes in exclusive sectors'}</li>
+          <li>{language === 'es' ? 'Villas frente al mar con acceso privado' : 'Oceanfront villas with private access'}</li>
+          <li>{language === 'es' ? 'Penthouses con vistas panorámicas' : 'Penthouses with panoramic views'}</li>
+          <li>{language === 'es' ? 'Propiedades comerciales e inversión' : 'Commercial and investment properties'}</li>
+        </ul>
+        
+        {isDefaultCountry && (
+          <>
+            <h3>{language === 'es' ? 'René Castillo - Líder en Medios Inmobiliarios' : 'René Castillo - Real Estate Media Leader'}</h3>
+            <p>{language === 'es' ?
+              'René Castillo, reconocido presentador de televisión con 18 años de experiencia en medios y 6 años liderando el sector inmobiliario dominicano. Su canal de YouTube cuenta con más de 200,000 suscriptores y millones de visualizaciones, presentando tours exclusivos por las mansiones de celebridades, artistas y deportistas del país. Con más de 600,000 seguidores en redes sociales, René ha revolucionado la forma de mostrar bienes raíces en República Dominicana.' :
+              'René Castillo, renowned television host with 18 years of media experience and 6 years leading the Dominican real estate sector. His YouTube channel has over 200,000 subscribers and millions of views, featuring exclusive tours of celebrity, artist and athlete mansions in the country. With over 600,000 social media followers, René has revolutionized the way real estate is presented in the Dominican Republic.'
+            }</p>
+          </>
+        )}
+      </section>
     </div>
     
     <!-- Content VISUAL -->
@@ -699,120 +805,312 @@ if (import.meta.env.DEV) {
     />
   )}
 
-  <!-- 9. CTA Section - NOVENO (Conversión final) -->
-  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+  <!-- 9. CTA Section - NOVENO (Conversión final) - COLOR MÁS CLARO PARA CONTRASTE CON FOOTER -->
+  <section class="py-24 bg-gradient-to-r from-gray-100 to-gray-200">
     <div class="container mx-auto px-4 text-center">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-        {language === 'es' ? `¿Listo para encontrar tu propiedad ideal en ${countryName}?` : 
-         language === 'en' ? `Ready to find your ideal property in ${countryName}?` : 
-         `Prêt à trouver votre propriété idéale en ${countryName}?`}
-      </h2>
-      <p class="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
-        {isDefaultCountry 
-          ? (language === 'es' ? "Únete a las miles de familias que han confiado en René Castillo y CLIC Inmobiliaria para encontrar su hogar perfecto" :
-             language === 'en' ? "Join thousands of families who have trusted René Castillo and CLIC Real Estate to find their perfect home" :
-             "Rejoignez les milliers de familles qui ont fait confiance à René Castillo et CLIC Immobilier pour trouver leur maison parfaite")
-          : (language === 'es' ? `Únete a las familias que han confiado en ${companyName} para encontrar su hogar perfecto en ${countryName}` :
-             language === 'en' ? `Join families who have trusted ${companyName} to find their perfect home in ${countryName}` :
-             `Rejoignez les familles qui ont fait confiance à ${companyName} pour trouver leur maison parfaite en ${countryName}`)}
-      </p>
       
-      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-        <a 
-          href={language === 'es' ? '/contacto' : `/${language}/contact`}
-          class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#f04e00] rounded-xl hover:bg-gray-100 transition-colors font-semibold text-lg shadow-lg"
-        >
-          <i class="fas fa-comments text-lg"></i>
-          {language === 'es' ? "Hablar con Nuestro Equipo" : 
-           language === 'en' ? "Talk to Our Team" : 
-           "Parler à Notre Équipe"}
-        </a>
-        {globalConfig?.contact?.whatsapp && (
+      <div class="max-w-3xl mx-auto">
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-8 leading-tight">
+          {language === 'es' ? 'Listos cuando tú lo estés' : 
+           language === 'en' ? 'Ready when you are' : 
+           'Prêts quand vous l\'êtes'}
+        </h2>
+        
+        <div class="flex flex-col sm:flex-row gap-6 justify-center">
           <a 
-            href={`https://wa.me/${globalConfig.contact.whatsapp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
-              language === 'es' ? `Hola, vi la página de ${companyName} y me interesa conocer más sobre propiedades en ${countryName}` :
-              language === 'en' ? `Hello, I saw the ${companyName} website and I'm interested in learning more about properties in ${countryName}` :
-              `Bonjour, j'ai vu le site web de ${companyName} et je suis intéressé à en savoir plus sur les propriétés en ${countryName}`
-            )}`}
-            target="_blank"
-            class="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold text-lg shadow-lg"
+            href={language === 'es' ? '/contacto' : `/${language}/contact`}
+            class="inline-flex items-center justify-center px-8 py-4 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold text-lg"
           >
-            <i class="fab fa-whatsapp text-lg"></i>
-            WhatsApp
+            {language === 'es' ? 'Contactar' : 
+             language === 'en' ? 'Contact' : 
+             'Contact'}
           </a>
-        )}
-      </div>
-      
-      <!-- Contact Info específico del país -->
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-6 text-white/80">
-        {globalConfig?.contact?.phone && (
-          <span class="flex items-center gap-2">
-            <i class="fas fa-phone text-sm"></i>
-            {globalConfig.contact.phone}
-          </span>
-        )}
-        {globalConfig?.contact?.address && (
-          <span class="flex items-center gap-2">
-            <i class="fas fa-map-marker-alt text-sm"></i>
-            {globalConfig.contact.address}
-          </span>
-        )}
-        {globalConfig?.office?.hours?.weekdays && (
-          <span class="flex items-center gap-2">
-            <i class="fas fa-clock text-sm"></i>
-            {globalConfig.office.hours.weekdays}
-          </span>
-        )}
+          
+          {globalConfig?.contact?.whatsapp && (
+            <a 
+              href={`https://wa.me/${globalConfig.contact.whatsapp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
+                language === 'es' ? 'Hola, me interesa recibir información' :
+                language === 'en' ? 'Hello, I\'m interested in receiving information' :
+                'Bonjour, je souhaite recevoir des informations'
+              )}`}
+              target="_blank"
+              class="inline-flex items-center justify-center px-8 py-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-lg"
+            >
+              {language === 'es' ? 'Escribir' : 
+               language === 'en' ? 'Write' : 
+               'Écrire'}
+            </a>
+          )}
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Schema.org diferenciado por país usando datos del handler -->
-  <script type="application/ld+json" set:html={JSON.stringify({
+  <!-- Schema.org COMPLETO DE LA EDGE FUNCTION + FAQ + BreadcrumbList + Agregados -->
+  <script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {
     "@context": "https://schema.org",
-    "@type": "RealEstateAgent",
+    "@type": "WebSite",
     "name": companyName,
-    "legalName": globalConfig?.legal?.company_full_name || companyName,
-    "alternateName": heroConfig.tagline,
-    "founder": isDefaultCountry ? {
-      "@type": "Person",
-      "name": "René Castillo",
-      "jobTitle": language === 'es' ? "Fundador y Presentador de TV" : 
-                  language === 'en' ? "Founder and TV Host" : 
-                  "Fondateur et Présentateur TV",
-      "description": language === 'es' ? "Presentador dominicano con 18 años de experiencia en televisión y 6 años fundando empresas de bienes raíces" :
-                     language === 'en' ? "Dominican TV host with 18 years of television experience and 6 years founding real estate companies" :
-                     "Présentateur dominicain avec 18 ans d'expérience télévision et 6 ans fondant des entreprises immobilières"
-    } : {
-      "@type": "Person",
-      "name": founderName,
-      "jobTitle": language === 'es' ? "Experto Inmobiliario Local" : 
-                  language === 'en' ? "Local Real Estate Expert" : 
-                  "Expert Immobilier Local"
-    },
     "description": seoData.description,
     "url": seoData.canonical_url || layoutProps.canonical,
-    "telephone": globalConfig?.contact?.phone,
-    "email": globalConfig?.contact?.email,
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": countryName,
-      "addressCountry": countryCode
+    "publisher": {
+      "@type": "Organization", 
+      "name": companyName,
+      "legalName": globalConfig?.legal?.company_full_name || companyName,
+      "url": seoData.canonical_url || layoutProps.canonical,
+      "logo": {
+        "@type": "ImageObject",
+        "url": globalConfig?.legal?.logo_url || layoutProps.ogImage
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": globalConfig?.contact?.phone,
+        "contactType": "customer service",
+        "email": globalConfig?.contact?.email,
+        "availableLanguage": ["Spanish", "English"]
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": globalConfig?.contact?.address,
+        "addressLocality": countryName,
+        "addressCountry": countryCode
+      },
+      "sameAs": [
+        globalConfig?.social?.company?.youtube,
+        globalConfig?.social?.company?.facebook,
+        globalConfig?.social?.company?.instagram_url,
+        globalConfig?.social?.company?.linkedin,
+        globalConfig?.social?.company?.tiktok_url
+      ].filter(Boolean),
+      "aggregateRating": quickStats.averageRating ? {
+        "@type": "AggregateRating",
+        "ratingValue": quickStats.averageRating.toString(),
+        "reviewCount": testimonials.length.toString(),
+        "bestRating": "5",
+        "worstRating": "1"
+      } : undefined,
+      "numberOfEmployees": quickStats.totalAdvisors || featuredAdvisors.length
     },
-    "areaServed": {
-      "@type": "Country",
-      "name": countryName
-    },
-    "aggregateRating": quickStats.averageRating ? {
-      "@type": "AggregateRating",
-      "ratingValue": quickStats.averageRating.toString(),
-      "reviewCount": testimonials.length.toString(),
-      "bestRating": "5",
-      "worstRating": "1"
-    } : undefined,
-    "numberOfEmployees": quickStats.totalAdvisors || 1
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": `${seoData.canonical_url || ''}/buscar?q={search_term_string}`,
+      "query-input": "required name=search_term_string"
+    }
   })} />
-</Layout>
+
+  <!-- Schema.org para FAQs Rich Snippets -->
+  {faqs && faqs.length > 0 && (
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    })} />
+  )}
+
+  <!-- Schema.org para Real Estate Agent -->
+  {featuredAdvisors && featuredAdvisors.length > 0 && (
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "RealEstateAgent",
+      "name": companyName,
+      "alternateName": heroConfig.tagline,
+      "founder": isDefaultCountry ? {
+        "@type": "Person",
+        "name": "René Castillo",
+        "jobTitle": language === 'es' ? "Fundador y Presentador de TV" : 
+                    language === 'en' ? "Founder and TV Host" : 
+                    "Fondateur et Présentateur TV",
+        "description": language === 'es' ? "Presentador dominicano con 18 años de experiencia en televisión y 6 años fundando empresas de bienes raíces. Con 600K+ seguidores en redes sociales y un canal de YouTube con 200K+ suscriptores." :
+                       language === 'en' ? "Dominican TV host with 18 years of television experience and 6 years founding real estate companies. With 600K+ social media followers and a YouTube channel with 200K+ subscribers." :
+                       "Présentateur dominicain avec 18 ans d'expérience télévision et 6 ans fondant des entreprises immobilières. Avec 600K+ abonnés sur les réseaux sociaux et une chaîne YouTube avec 200K+ abonnés.",
+        "sameAs": [
+          globalConfig?.social?.founder?.instagram_url,
+          globalConfig?.social?.founder?.facebook,
+          globalConfig?.social?.founder?.tiktok_url
+        ].filter(Boolean)
+      } : {
+        "@type": "Person", 
+        "name": founderName,
+        "jobTitle": language === 'es' ? "Experto Inmobiliario Local" :
+                    language === 'en' ? "Local Real Estate Expert" :
+                    "Expert Immobilier Local"
+      },
+      "employee": featuredAdvisors.map(advisor => ({
+        "@type": "Person",
+        "name": advisor.name,
+        "jobTitle": advisor.position,
+        "description": stripHtmlTags(advisor.bio || '').substring(0, 160),
+        "telephone": advisor.phone,
+        "knowsLanguage": advisor.languages || ["Spanish"],
+        "url": advisor.url ? `${seoData.canonical_url || ''}${advisor.url}` : undefined
+      })),
+      "description": seoData.description,
+      "url": seoData.canonical_url,
+      "telephone": globalConfig?.contact?.phone,
+      "email": globalConfig?.contact?.email,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": countryName,
+        "addressCountry": countryCode,
+        "streetAddress": globalConfig?.contact?.address
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": countryName
+      },
+      "aggregateRating": quickStats.averageRating ? {
+        "@type": "AggregateRating", 
+        "ratingValue": quickStats.averageRating.toString(),
+        "reviewCount": testimonials.length.toString(),
+        "bestRating": "5",
+        "worstRating": "1"
+      } : undefined,
+      "numberOfEmployees": featuredAdvisors.length,
+      "serviceArea": {
+        "@type": "Country",
+        "name": countryName
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": language === 'es' ? 'Servicios Inmobiliarios' : 
+               language === 'en' ? 'Real Estate Services' : 
+               'Services Immobiliers',
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": language === 'es' ? 'Compra de Propiedades' : 
+                     language === 'en' ? 'Property Purchase' : 
+                     'Achat de Propriétés',
+              "description": language === 'es' ? 'Asesoría completa para la compra de propiedades residenciales y comerciales' :
+                           language === 'en' ? 'Complete advisory for residential and commercial property purchases' :
+                           'Conseil complet pour l\'achat de propriétés résidentielles et commerciales'
+            }
+          },
+          {
+            "@type": "Offer", 
+            "itemOffered": {
+              "@type": "Service",
+              "name": language === 'es' ? 'Venta de Propiedades' :
+                     language === 'en' ? 'Property Sale' :
+                     'Vente de Propriétés',
+              "description": language === 'es' ? 'Comercialización y venta profesional de bienes inmuebles' :
+                           language === 'en' ? 'Professional marketing and sale of real estate' :
+                           'Marketing professionnel et vente de biens immobiliers'
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service", 
+              "name": language === 'es' ? 'Alquiler de Propiedades' :
+                     language === 'en' ? 'Property Rental' :
+                     'Location de Propriétés',
+              "description": language === 'es' ? 'Gestión de alquileres residenciales y comerciales' :
+                           language === 'en' ? 'Residential and commercial rental management' :
+                           'Gestion de locations résidentielles et commerciales'
+            }
+          }
+        ]
+      }
+    })} />
+  )}
+
+  <!-- Schema.org para BreadcrumbList -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": language === 'es' ? 'Inicio' : language === 'en' ? 'Home' : 'Accueil',
+        "item": seoData.canonical_url || layoutProps.canonical
+      }
+    ]
+  })} />
+
+  <!-- Schema.org para VideoObject si hay videos -->
+  {featuredVideos && featuredVideos.length > 0 && (
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": language === 'es' ? `Videos de ${companyName}` :
+             language === 'en' ? `${companyName} Videos` :
+             `Vidéos de ${companyName}`,
+      "description": language === 'es' ? 'Canal de contenido inmobiliario con tours exclusivos y consejos de inversión' :
+                     language === 'en' ? 'Real estate content channel with exclusive tours and investment advice' :
+                     'Chaîne de contenu immobilier avec visites exclusives et conseils d\'investissement',
+      "itemListElement": featuredVideos.slice(0, 3).map((video, index) => ({
+        "@type": "VideoObject",
+        "position": index + 1,
+        "name": video.title,
+        "description": video.description || video.title,
+        "thumbnailUrl": video.thumbnail,
+        "uploadDate": new Date().toISOString(),
+        "duration": video.duration,
+        "contentUrl": `${seoData.canonical_url || ''}${video.url}`,
+        "embedUrl": `${seoData.canonical_url || ''}${video.url}`,
+        "publisher": {
+          "@type": "Organization",
+          "name": companyName,
+          "logo": {
+            "@type": "ImageObject",
+            "url": globalConfig?.legal?.logo_url
+          }
+        }
+      }))
+    })} />
+  )}
+
+  <!-- Schema.org para Articles si hay artículos -->
+  {featuredArticles && featuredArticles.length > 0 && (
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList", 
+      "name": language === 'es' ? `Artículos de ${companyName}` :
+             language === 'en' ? `${companyName} Articles` :
+             `Articles de ${companyName}`,
+      "description": language === 'es' ? 'Guías expertas, análisis de mercado y consejos inmobiliarios' :
+                     language === 'en' ? 'Expert guides, market analysis and real estate advice' :
+                     'Guides d\'experts, analyses de marché et conseils immobiliers',
+      "itemListElement": featuredArticles.slice(0, 3).map((article, index) => ({
+        "@type": "Article",
+        "position": index + 1,
+        "headline": article.title,
+        "description": article.excerpt,
+        "image": article.featuredImage,
+        "url": `${seoData.canonical_url || ''}${article.url}`,
+        "datePublished": article.publishedAt,
+        "dateModified": article.publishedAt,
+        "author": {
+          "@type": "Person",
+          "name": article.author?.name || founderName,
+          "image": article.author?.avatar
+        },
+        "publisher": {
+          "@type": "Organization", 
+          "name": companyName,
+          "logo": {
+            "@type": "ImageObject",
+            "url": globalConfig?.legal?.logo_url
+          }
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `${seoData.canonical_url || ''}${article.url}`
+        }
+      }))
+    })} />
+  )}
 
 <style>
   .line-clamp-4 {
