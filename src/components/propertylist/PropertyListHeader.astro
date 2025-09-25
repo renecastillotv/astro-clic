@@ -18,7 +18,7 @@ export interface Props {
     is_active?: boolean;
     current?: boolean;
   }>;
-  // NUEVOS PROPS PARA INVENTARIO Y HERO IMAGE
+  // PROPS PARA INVENTARIO Y HERO IMAGE
   aggregatedStats?: any;
   heroImage?: string;
 }
@@ -225,74 +225,36 @@ function extractMarketStats(seoContent: any) {
 // Priorizar datos de inventario sobre datos generales del mercado
 const displayStats = aggregatedStats ? extractInventoryStats(aggregatedStats) : extractMarketStats(seoContent);
 
-// Determinar imagen hero con validación completa
+// IMAGEN HERO - CONFIAR COMPLETAMENTE EN LA EDGE FUNCTION
+// La edge function ya hizo toda la validación y jerarquía (sector > ciudad > categoría > país)
 const defaultHeroImage = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80';
 
-// Función para validar imagen hero
-async function validateHeroImage(imageUrl) {
-  if (!imageUrl || typeof imageUrl !== 'string') return false;
-  
-  // Validación básica de URL
-  if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) return false;
-  
-  // Validación de extensiones de imagen
-  const validExtensions = /\.(jpg|jpeg|png|webp|avif)(\?.*)?$/i;
-  if (!validExtensions.test(imageUrl)) return false;
-  
-  try {
-    // Intentar precargar la imagen con timeout
-    return await new Promise((resolve) => {
-      const img = new Image();
-      const timeout = setTimeout(() => {
-        resolve(false);
-      }, 3000); // 3 segundos timeout
-      
-      img.onload = () => {
-        clearTimeout(timeout);
-        // Validar dimensiones mínimas
-        if (img.naturalWidth >= 800 && img.naturalHeight >= 400) {
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      };
-      
-      img.onerror = () => {
-        clearTimeout(timeout);
-        resolve(false);
-      };
-      
-      img.src = imageUrl;
-    });
-  } catch (error) {
-    return false;
-  }
-}
+// Usar directamente la imagen que viene de la edge function SIN validación adicional
+const finalHeroImage = heroImage && typeof heroImage === 'string' && heroImage.trim() !== '' 
+  ? heroImage 
+  : defaultHeroImage;
 
-// Determinar imagen hero válida (se ejecuta en el cliente)
-let validHeroImage = defaultHeroImage;
-if (heroImage) {
-  // En el servidor, hacer validación básica
-  if (typeof heroImage === 'string' && 
-      (heroImage.startsWith('http://') || heroImage.startsWith('https://')) &&
-      /\.(jpg|jpeg|png|webp|avif)(\?.*)?$/i.test(heroImage)) {
-    validHeroImage = heroImage;
-  }
-}
-
-console.log('🏠 PropertyListHeader Processing:', {
-  hasAggregatedStats: !!aggregatedStats,
-  statsExtracted: displayStats.length,
+console.log('🏠 PropertyListHeader - Hero Image Decision:', {
   heroImageProvided: !!heroImage,
-  heroImageValid: validHeroImage !== defaultHeroImage,
-  heroImageUrl: validHeroImage
+  heroImageValue: heroImage,
+  finalHeroUsed: finalHeroImage,
+  isFromEdgeFunction: finalHeroImage === heroImage,
+  statsExtracted: displayStats.length
 });
 ---
 
 <!-- Header Hero compacto con datos de inventario -->
-<section class="relative bg-cover bg-center h-[50vh] min-h-[400px]" style={`background-image: url('${validHeroImage}');`}>
-  <!-- Overlay oscuro para mejorar legibilidad -->
-  <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+<section class="relative min-h-[60vh] py-8 flex items-center justify-center">
+  <!-- Background con control profesional -->
+  <div class="absolute inset-0 z-0">
+    <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
+    <img 
+      src={finalHeroImage}
+      alt={`${language === 'es' ? 'Propiedades en' : language === 'en' ? 'Properties in' : 'Propriétés en'} ${searchInfo?.location || country?.name || ''}`}
+      class="w-full h-full object-cover"
+      style="filter: brightness(0.8) contrast(1.1);"
+    />
+  </div>
   
   <!-- Contenido -->
   <div class="relative z-10 h-full flex flex-col justify-center">
