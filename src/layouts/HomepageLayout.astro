@@ -1,5 +1,5 @@
 ---
-// src/layouts/HomepageLayout.astro - REORDENADO PARA UX/SEO + TEAM SECTION MEJORADA
+// src/layouts/HomepageLayout.astro - OPTIMIZADO PARA RENDIMIENTO
 import Layout from './Layout.astro';
 import SearchComponent from '../components/SearchComponent.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
@@ -16,7 +16,7 @@ export interface Props {
 
 const { data, language = 'es' } = Astro.props;
 
-// Extraer datos del homepage handler - CORREGIDO según logs reales
+// ========== DATA PROCESSING (Build Time) ==========
 const pageData = data;
 const countryConfig = pageData.countryConfig || {};
 const globalConfig = pageData.globalConfig || {};
@@ -25,12 +25,11 @@ const hotItems = pageData.hotItems || { cities: [], sectors: [], properties: [],
 const countryCode = globalConfig?.country || countryConfig?.code || 'DOM'; 
 const countryName = country?.name || countryConfig?.name || 'República Dominicana';
 
-// USAR LOS DATOS REALES que llegan según los logs
 const isDefaultCountry = countryConfig?.isDefault === true || 
                         countryConfig?.showReneBranding === true ||
                         globalConfig?.country === 'DOM';
 
-// Extraer secciones del homepage handler
+// Extraer y pre-procesar secciones
 const homepageSections = pageData.sections || [];
 const heroSection = homepageSections.find(s => s.type === 'hero');
 const featuredPropsSection = homepageSections.find(s => s.type === 'property-carousel');
@@ -40,7 +39,7 @@ const contentMixSection = homepageSections.find(s => s.type === 'content-mix');
 const founderStorySection = homepageSections.find(s => s.type === 'founder-story');
 const faqsSection = homepageSections.find(s => s.type === 'faq');
 
-// Datos procesados del handler
+// Pre-procesar datos para evitar cálculos en template
 const featuredProperties = featuredPropsSection?.properties || [];
 const testimonials = testimonialsSection?.testimonials || [];
 const featuredAdvisors = advisorsSection?.advisors || [];
@@ -50,81 +49,86 @@ const searchFilters = pageData.searchFilters || {};
 const quickStats = pageData.quickStats || {};
 const faqs = faqsSection?.faqs || [];
 
-// Función para limpiar HTML del contenido de bio
-function stripHtmlTags(html: string): string {
+// ========== UTILITY FUNCTIONS (Optimized) ==========
+const HTML_REGEX = /<[^>]*>/g;
+const ENTITY_REGEX = /&[#\w]+;/g;
+const WHITESPACE_REGEX = /\s+/g;
+
+function stripHtmlTags(html: string, maxLength: number = 120): string {
   if (!html) return '';
   return html
-    .replace(/<[^>]*>/g, '') // Remover tags HTML
-    .replace(/&nbsp;/g, ' ') // Reemplazar &nbsp; con espacios
-    .replace(/&amp;/g, '&') // Reemplazar &amp; con &
-    .replace(/&lt;/g, '<') // Reemplazar &lt; con <
-    .replace(/&gt;/g, '>') // Reemplazar &gt; con >
-    .replace(/\s+/g, ' ') // Reemplazar múltiples espacios con uno solo
-    .trim(); // Remover espacios al inicio y final
+    .replace(HTML_REGEX, '')
+    .replace(ENTITY_REGEX, ' ')
+    .replace(WHITESPACE_REGEX, ' ')
+    .trim()
+    .substring(0, maxLength);
 }
 
-// Función para arreglar avatares por defecto
 function getAvatarUrl(avatar: string | undefined): string {
   const defaultAvatar = 'https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/images/default-avatarww.jpg';
-  
-  if (!avatar || avatar.includes('/images/team/default-advisor.jpg') || avatar.includes('default-avatar')) {
-    return defaultAvatar;
-  }
-  
-  return avatar;
+  return !avatar || avatar.includes('default') ? defaultAvatar : avatar;
 }
 
-// Hero configuration del handler
-const heroConfig = heroSection || {};
+// ========== PRE-COMPUTED VALUES ==========
 const companyName = globalConfig?.legal?.company_name || `CLIC Real Estate ${countryCode}`;
 const founderName = isDefaultCountry ? 'René Castillo' : globalConfig?.social?.founder?.name || 'Local Expert';
 const founderExperience = isDefaultCountry ? '18 años' : globalConfig?.team?.founder_experience || '8+ años';
 
-// SEO y layout props - COMPLETO CON TODA LA ESTRUCTURA SEO DE LA EDGE
+// Pre-compute hero config
+const heroConfig = heroSection || {};
+const heroImage = heroConfig.backgroundImage || "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1920&h=1080&fit=crop&auto=format&q=80";
+
+// Pre-compute display conditions
+const shouldShowQuickStats = countryConfig.hasContent && quickStats && Object.keys(quickStats).length > 0;
+const shouldShowPopularLocations = (hotItems.cities && hotItems.cities.length > 0) || (hotItems.sectors && hotItems.sectors.length > 0);
+const shouldShowFounderStory = isDefaultCountry;
+const shouldShowMoreAdvisors = featuredAdvisors.length >= 4;
+
+// Pre-process advisors data
+const processedAdvisors = featuredAdvisors.map(advisor => ({
+  ...advisor,
+  cleanBio: stripHtmlTags(advisor.bio || advisor.description || '', 120),
+  avatarUrl: getAvatarUrl(advisor.avatar),
+  isFounder: advisor.name === 'René Castillo',
+  topLanguages: advisor.languages?.slice(0, 2) || [],
+  hasMoreLanguages: (advisor.languages?.length || 0) > 2,
+  extraLanguagesCount: Math.max(0, (advisor.languages?.length || 0) - 2)
+}));
+
+// Pre-compute top cities for SEO
+const topCitiesText = hotItems.cities?.slice(0, 3).map(c => c.title).join(', ') || '';
+
+// ========== SEO DATA (Consolidated) ==========
 const seoData = pageData.seo || {};
+
 const layoutProps = {
-  // Meta básicos
   title: seoData.title || `${companyName} - Premium Real Estate in ${countryName}`,
   description: seoData.description || `Find luxury properties in ${countryName} with ${companyName}. Expert guidance and personalized service.`,
   canonical: seoData.canonical_url,
-  
-  // SEO Avanzado - USANDO TODA LA ESTRUCTURA DE LA EDGE
   keywords: seoData.keywords || `${countryName}, bienes raíces, propiedades, inversión, ${companyName.toLowerCase()}`,
   author: seoData.additional_meta_tags?.author || seoData.meta_tags?.author || `${founderName} - ${companyName}`,
   publisher: seoData.additional_meta_tags?.publisher || seoData.meta_tags?.publisher || companyName,
   robots: seoData.additional_meta_tags?.robots || seoData.meta_tags?.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
-  
-  // Open Graph Completo
   ogTitle: seoData.open_graph?.title || seoData.title,
   ogDescription: seoData.open_graph?.description || seoData.description,
-  ogImage: seoData.open_graph?.image || heroConfig.backgroundImage || '/og-default.jpg',
+  ogImage: seoData.open_graph?.image || heroImage,
   ogUrl: seoData.open_graph?.url || seoData.canonical_url,
   ogType: seoData.open_graph?.type || 'website',
   ogSiteName: seoData.open_graph?.site_name || companyName,
   ogLocale: seoData.open_graph?.locale || (language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR'),
-  
-  // Twitter Cards Completo
   twitterCard: seoData.twitter_card?.card || 'summary_large_image',
   twitterSite: seoData.twitter_card?.site || (isDefaultCountry ? '@clic.do' : `@${companyName.toLowerCase()}`),
   twitterCreator: seoData.twitter_card?.creator || (isDefaultCountry ? '@renecastillotv' : seoData.twitter_card?.site),
   twitterTitle: seoData.twitter_card?.title || seoData.title,
   twitterDescription: seoData.twitter_card?.description || seoData.description,
-  twitterImage: seoData.twitter_card?.image || seoData.open_graph?.image || heroConfig.backgroundImage,
-  
-  // Hreflang Completo
+  twitterImage: seoData.twitter_card?.image || seoData.open_graph?.image || heroImage,
   hreflangData: seoData.hreflang || {},
-  
-  // Structured Data de la Edge (no crear uno nuevo)
   structuredData: seoData.structured_data,
-  
-  // Config para Layout
   globalConfig: globalConfig,
   language: language,
   trackingString: pageData.trackingString || '',
   hotItems: pageData.hotItems || {},
   country: pageData.country || {},
-  
-  // SEO específico para Homepage
   pageType: 'homepage',
   contentSections: homepageSections.map(s => s.type),
   totalContent: {
@@ -137,153 +141,204 @@ const layoutProps = {
   }
 };
 
-// Condición para mostrar PopularLocations
-const shouldShowPopularLocations = (hotItems.cities && hotItems.cities.length > 0) || (hotItems.sectors && hotItems.sectors.length > 0);
-
-// Build enhanced context for components
-const enhancedContext = {
-  location: countryName,
-  country: countryName,
-  isDefault: isDefaultCountry,
-  
-  seoData: {
-    country: { name: countryName, code: countryCode }
-  },
-  
-  insights: {
-    hasMarketInsights: true,
-    hasTips: true,
-    hasInvestmentData: true,
-    hasNeighborhoodInfo: true
-  }
+// ========== CONSOLIDATED SCHEMA.ORG ==========
+const consolidatedSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    // WebSite
+    {
+      "@type": "WebSite",
+      "@id": `${seoData.canonical_url || ''}#website`,
+      "name": companyName,
+      "description": seoData.description,
+      "url": seoData.canonical_url || layoutProps.canonical,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": `${seoData.canonical_url || ''}/buscar?q={search_term_string}`,
+        "query-input": "required name=search_term_string"
+      }
+    },
+    // Organization + RealEstateAgent
+    {
+      "@type": ["Organization", "RealEstateAgent"],
+      "@id": `${seoData.canonical_url || ''}#organization`,
+      "name": companyName,
+      "legalName": globalConfig?.legal?.company_full_name || companyName,
+      "url": seoData.canonical_url || layoutProps.canonical,
+      "logo": {
+        "@type": "ImageObject",
+        "url": globalConfig?.legal?.logo_url || layoutProps.ogImage
+      },
+      "founder": shouldShowFounderStory ? {
+        "@type": "Person",
+        "@id": `${seoData.canonical_url || ''}#founder`,
+        "name": "René Castillo",
+        "jobTitle": language === 'es' ? "Fundador y Presentador de TV" : 
+                    language === 'en' ? "Founder and TV Host" : 
+                    "Fondateur et Présentateur TV",
+        "description": language === 'es' ? "Presentador dominicano con 18 años de experiencia en televisión y 6 años fundando empresas de bienes raíces. Con 600K+ seguidores en redes sociales y un canal de YouTube con 200K+ suscriptores." :
+                       language === 'en' ? "Dominican TV host with 18 years of television experience and 6 years founding real estate companies. With 600K+ social media followers and a YouTube channel with 200K+ subscribers." :
+                       "Présentateur dominicain avec 18 ans d'expérience télévision et 6 ans fondant des entreprises immobilières. Avec 600K+ abonnés sur les réseaux sociaux et une chaîne YouTube avec 200K+ abonnés.",
+        "sameAs": [
+          globalConfig?.social?.founder?.instagram_url,
+          globalConfig?.social?.founder?.facebook,
+          globalConfig?.social?.founder?.tiktok_url
+        ].filter(Boolean)
+      } : {
+        "@type": "Person", 
+        "@id": `${seoData.canonical_url || ''}#founder`,
+        "name": founderName,
+        "jobTitle": language === 'es' ? "Experto Inmobiliario Local" :
+                    language === 'en' ? "Local Real Estate Expert" :
+                    "Expert Immobilier Local"
+      },
+      "employee": processedAdvisors.map((advisor, index) => ({
+        "@type": "Person",
+        "@id": `${seoData.canonical_url || ''}#advisor-${index}`,
+        "name": advisor.name,
+        "jobTitle": advisor.position,
+        "description": advisor.cleanBio,
+        "telephone": advisor.phone,
+        "knowsLanguage": advisor.languages || ["Spanish"],
+        "url": advisor.url ? `${seoData.canonical_url || ''}${advisor.url}` : undefined
+      })),
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": globalConfig?.contact?.phone,
+        "contactType": "customer service",
+        "email": globalConfig?.contact?.email,
+        "availableLanguage": ["Spanish", "English"]
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": globalConfig?.contact?.address,
+        "addressLocality": countryName,
+        "addressCountry": countryCode
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": countryName
+      },
+      "sameAs": [
+        globalConfig?.social?.company?.youtube,
+        globalConfig?.social?.company?.facebook,
+        globalConfig?.social?.company?.instagram_url,
+        globalConfig?.social?.company?.linkedin,
+        globalConfig?.social?.company?.tiktok_url
+      ].filter(Boolean),
+      "aggregateRating": quickStats.averageRating ? {
+        "@type": "AggregateRating",
+        "ratingValue": quickStats.averageRating.toString(),
+        "reviewCount": testimonials.length.toString(),
+        "bestRating": "5",
+        "worstRating": "1"
+      } : undefined,
+      "numberOfEmployees": processedAdvisors.length
+    },
+    // FAQPage (only if FAQs exist)
+    ...(faqs.length > 0 ? [{
+      "@type": "FAQPage",
+      "@id": `${seoData.canonical_url || ''}#faqpage`,
+      "mainEntity": faqs.map((faq, index) => ({
+        "@type": "Question",
+        "@id": `${seoData.canonical_url || ''}#faq-${index}`,
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    }] : []),
+    // BreadcrumbList
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${seoData.canonical_url || ''}#breadcrumb`,
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": language === 'es' ? 'Inicio' : language === 'en' ? 'Home' : 'Accueil',
+          "item": seoData.canonical_url || layoutProps.canonical
+        }
+      ]
+    }
+  ]
 };
 
-// Debug logging
-if (import.meta.env.DEV) {
-  console.log('🏠 Homepage Layout Debug:', {
-    'isDefaultCountry': isDefaultCountry,
-    'Should show PopularLocations': shouldShowPopularLocations,
-    'Cities available': hotItems?.cities?.length || 0,
-    'Sectors available': hotItems?.sectors?.length || 0,
-    'FAQs available': faqs.length,
-    'Advisors available': featuredAdvisors.length,
-    'Videos available': featuredVideos.length,
-    'Articles available': featuredArticles.length
-  });
-}
+// Text constants for i18n
+const t = {
+  badge: {
+    es: isDefaultCountry ? `Fundada por ${founderName} • Presentador TV ${founderExperience}` : `${companyName} • Expertos Locales ${founderExperience}`,
+    en: isDefaultCountry ? `Founded by ${founderName} • TV Host ${founderExperience}` : `${companyName} • Local Experts ${founderExperience}`,
+    fr: isDefaultCountry ? `Fondée par ${founderName} • Présentateur TV ${founderExperience}` : `${companyName} • Experts Locaux ${founderExperience}`
+  },
+  valueProps: {
+    personalized: { es: "Asesoría personalizada", en: "Personalized advice", fr: "Conseil personnalisé" },
+    local: { es: "Experiencia local", en: "Local expertise", fr: "Expertise locale" },
+    transparent: { es: "Proceso transparente", en: "Transparent process", fr: "Processus transparent" }
+  }
+};
 ---
 
 <Layout {...layoutProps}>
-
-  <!-- Hero Section - Con badge flotante arriba -->
+  
+  <!-- Preload Critical Resources -->
+  <link rel="preload" href={heroImage} as="image" slot="head">
+  <link rel="preconnect" href="https://pacewqgypevfgjmdsorz.supabase.co" slot="head">
+  
+  <!-- Hero Section - CRITICAL PATH -->
   <section class="relative min-h-[75vh] py-16 flex items-center justify-center">
-    <!-- Background específico del país del handler -->
+    <!-- Background - USAR IMAGEN ORIGINAL -->
     <div class="absolute inset-0 z-0">
       <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
       <img 
-        src={heroConfig.backgroundImage || "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1920&h=1080&fit=crop&auto=format&q=80"}
+        src={heroImage}
         alt={`${language === 'es' ? 'Propiedades de lujo en' : language === 'en' ? 'Luxury properties in' : 'Propriétés de luxe en'} ${countryName}`}
         class="w-full h-full object-cover"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
         style={heroConfig.overlayOpacity ? `filter: brightness(${1 - heroConfig.overlayOpacity + 0.3})` : ''}
       />
     </div>
 
-    <!-- Badge Flotante Elegante -->
+    <!-- Badge Flotante -->
     <div class="absolute top-3 left-1/2 transform -translate-x-1/2 z-30">
       <div class="inline-flex items-center gap-2">
         <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
           <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.34 2.19c-1.39-.46-2.9-.2-3.91.81s-1.27 2.52-.81 3.91c-1.31.66-2.19 1.91-2.19 3.34s.88 2.67 2.19 3.34c-.46 1.39-.2 2.9.81 3.91s2.52 1.27 3.91.81c.66 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.34-2.19c1.39.46 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.66 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"/>
         </svg>
         <span class="text-gray-200 text-sm font-medium drop-shadow-lg">
-          {isDefaultCountry && language === 'es' && `Fundada por ${founderName} • Presentador TV ${founderExperience}`}
-          {isDefaultCountry && language === 'en' && `Founded by ${founderName} • TV Host ${founderExperience}`}
-          {isDefaultCountry && language === 'fr' && `Fondée par ${founderName} • Présentateur TV ${founderExperience}`}
-          {!isDefaultCountry && language === 'es' && `${companyName} • Expertos Locales ${founderExperience}`}
-          {!isDefaultCountry && language === 'en' && `${companyName} • Local Experts ${founderExperience}`}
-          {!isDefaultCountry && language === 'fr' && `${companyName} • Experts Locaux ${founderExperience}`}
+          {t.badge[language]}
         </span>
       </div>
     </div>
     
-    <!-- SEO INVISIBLE - Solo para Google - AMPLIADO PARA MÁXIMO PODER -->
+    <!-- SEO Content - Simplified -->
     <div class="sr-only">
-      <!-- H1 principal optimizado -->
       <h1>{seoData.h1 || `${companyName} - ${language === 'es' ? 'Bienes Raíces Premium en' : language === 'en' ? 'Premium Real Estate in' : 'Immobilier Premium en'} ${countryName}`}</h1>
-      
-      <!-- Descripción SEO enriquecida -->
       <p>{seoData.description}</p>
       
-      <!-- Keywords naturales para indexación -->
-      <div>
-        {language === 'es' && (
-          <>
-            <span>Propiedades de lujo en {countryName}, apartamentos premium, casas exclusivas, villas de ensueño</span>
-            <span>Inversión inmobiliaria {countryName}, oportunidades de negocio, bienes raíces rentables</span>
-            <span>Asesores inmobiliarios expertos, {featuredAdvisors.length} especialistas certificados</span>
-            {isDefaultCountry && <span>René Castillo presentador TV, canal inmobiliario YouTube, 600k seguidores, CLIC Inmobiliaria fundador</span>}
-          </>
-        )}
-        {language === 'en' && (
-          <>
-            <span>Luxury properties in {countryName}, premium apartments, exclusive houses, dream villas</span>
-            <span>Real estate investment {countryName}, business opportunities, profitable properties</span>
-            <span>Expert real estate advisors, {featuredAdvisors.length} certified specialists</span>
-            {isDefaultCountry && <span>René Castillo TV host, real estate YouTube channel, 600k followers, CLIC Real Estate founder</span>}
-          </>
-        )}
-      </div>
+      {language === 'es' && (
+        <div>
+          <span>Propiedades de lujo en {countryName}, apartamentos premium, casas exclusivas, villas de ensueño</span>
+          <span>Inversión inmobiliaria {countryName}, oportunidades de negocio, bienes raíces rentables</span>
+          <span>Asesores inmobiliarios expertos, {processedAdvisors.length} especialistas certificados</span>
+          {shouldShowFounderStory && <span>René Castillo presentador TV, canal inmobiliario YouTube, 600k seguidores, CLIC Inmobiliaria fundador</span>}
+          {topCitiesText && <span>Especialidades: {topCitiesText}</span>}
+        </div>
+      )}
       
-      <!-- Información de contacto estructurada -->
       <address>
-        <span>{founderName}, {isDefaultCountry ? 'Fundador y Presentador de TV' : 'Experto Inmobiliario Local'}</span>
+        <span>{founderName}, {shouldShowFounderStory ? 'Fundador y Presentador de TV' : 'Experto Inmobiliario Local'}</span>
         <span>{companyName} - {globalConfig?.legal?.company_full_name}</span>
         <span>{globalConfig?.contact?.address || `${countryName} Office`}</span>
         <span>Teléfono: {globalConfig?.contact?.phone || 'Contact Available'}</span>
         <span>Email: {globalConfig?.contact?.email || 'info@clic.com'}</span>
-        <span>Horarios: {globalConfig?.office?.hours?.weekdays}, {globalConfig?.office?.hours?.saturday}</span>
-        <span>Servicios: Compra, Venta, Alquiler, Inversión, Tasación, Agrimensura</span>
-        <span>Especialidades: {hotItems.cities?.slice(0,3).map(c => c.title).join(', ')}</span>
       </address>
-      
-      <!-- Contenido adicional para indexación -->
-      <section>
-        <h2>{language === 'es' ? 'Servicios Inmobiliarios Integrales' : 'Comprehensive Real Estate Services'}</h2>
-        <p>{language === 'es' ? 
-          `Ofrecemos servicios completos de bienes raíces en ${countryName} incluyendo compra, venta, alquiler, gestión de propiedades, tasación profesional, servicios de agrimensura, y asesoría en inversiones inmobiliarias para maximizar tu retorno.` :
-          `We offer comprehensive real estate services in ${countryName} including purchase, sale, rental, property management, professional appraisal, surveying services, and real estate investment consulting to maximize your return.`
-        }</p>
-        
-        <h3>{language === 'es' ? 'Zonas de Mayor Demanda' : 'High Demand Areas'}</h3>
-        <ul>
-          {hotItems.cities?.slice(0,5).map(city => (
-            <li key={city.id}>
-              {city.title} - {stripHtmlTags(city.content?.description || '').substring(0, 100)}
-            </li>
-          ))}
-        </ul>
-        
-        <h3>{language === 'es' ? 'Tipos de Propiedades Disponibles' : 'Available Property Types'}</h3>
-        <ul>
-          <li>{language === 'es' ? 'Apartamentos de lujo con amenidades premium' : 'Luxury apartments with premium amenities'}</li>
-          <li>{language === 'es' ? 'Casas familiares en sectores exclusivos' : 'Family homes in exclusive sectors'}</li>
-          <li>{language === 'es' ? 'Villas frente al mar con acceso privado' : 'Oceanfront villas with private access'}</li>
-          <li>{language === 'es' ? 'Penthouses con vistas panorámicas' : 'Penthouses with panoramic views'}</li>
-          <li>{language === 'es' ? 'Propiedades comerciales e inversión' : 'Commercial and investment properties'}</li>
-        </ul>
-        
-        {isDefaultCountry && (
-          <>
-            <h3>{language === 'es' ? 'René Castillo - Líder en Medios Inmobiliarios' : 'René Castillo - Real Estate Media Leader'}</h3>
-            <p>{language === 'es' ?
-              'René Castillo, reconocido presentador de televisión con 18 años de experiencia en medios y 6 años liderando el sector inmobiliario dominicano. Su canal de YouTube cuenta con más de 200,000 suscriptores y millones de visualizaciones, presentando tours exclusivos por las mansiones de celebridades, artistas y deportistas del país. Con más de 600,000 seguidores en redes sociales, René ha revolucionado la forma de mostrar bienes raíces en República Dominicana.' :
-              'René Castillo, renowned television host with 18 years of media experience and 6 years leading the Dominican real estate sector. His YouTube channel has over 200,000 subscribers and millions of views, featuring exclusive tours of celebrity, artist and athlete mansions in the country. With over 600,000 social media followers, René has revolutionized the way real estate is presented in the Dominican Republic.'
-            }</p>
-          </>
-        )}
-      </section>
     </div>
     
-    <!-- Content VISUAL -->
+    <!-- Visual Content -->
     <div class="relative z-20 container mx-auto px-4">
       <div class="max-w-5xl mx-auto">
         <div class="text-center">
@@ -298,7 +353,7 @@ if (import.meta.env.DEV) {
           </p>
         </div>
 
-        <!-- BUSCADOR CENTRADO -->
+        <!-- Search Component - Critical -->
         <div class="mb-8">
           <SearchComponent 
             showTitle={false}
@@ -312,26 +367,20 @@ if (import.meta.env.DEV) {
           />
         </div>
 
-        <!-- Value Propositions -->
+        <!-- Value Propositions - Optimized -->
         <div class="text-center">
           <div class="flex flex-wrap items-center justify-center gap-8 text-sm text-white/80">
             <span class="flex items-center gap-2">
               <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span class="font-medium">
-                {language === 'es' ? "Asesoría personalizada" : language === 'en' ? "Personalized advice" : "Conseil personnalisé"}
-              </span>
+              <span class="font-medium">{t.valueProps.personalized[language]}</span>
             </span>
             <span class="flex items-center gap-2">
               <div class="w-2 h-2 bg-amber-400 rounded-full"></div>
-              <span class="font-medium">
-                {language === 'es' ? "Experiencia local" : language === 'en' ? "Local expertise" : "Expertise locale"}
-              </span>
+              <span class="font-medium">{t.valueProps.local[language]}</span>
             </span>
             <span class="flex items-center gap-2">
               <div class="w-2 h-2 bg-emerald-400 rounded-full"></div>
-              <span class="font-medium">
-                {language === 'es' ? "Proceso transparente" : language === 'en' ? "Transparent process" : "Processus transparent"}
-              </span>
+              <span class="font-medium">{t.valueProps.transparent[language]}</span>
             </span>
           </div>
         </div>
@@ -339,8 +388,8 @@ if (import.meta.env.DEV) {
     </div>
   </section>
 
-  <!-- Estadísticas Rápidas del País -->
-  {countryConfig.hasContent && quickStats && (
+  <!-- Quick Stats - Conditional Render -->
+  {shouldShowQuickStats && (
     <section class="py-8 bg-gray-900 text-white">
       <div class="container mx-auto px-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -381,7 +430,7 @@ if (import.meta.env.DEV) {
     </section>
   )}
 
-  <!-- 1. Popular Locations - PRIMERO -->
+  <!-- Popular Locations - Lazy Load -->
   {shouldShowPopularLocations && (
     <PopularLocations 
       hotItems={hotItems}
@@ -396,7 +445,8 @@ if (import.meta.env.DEV) {
       }}
       layout="grid"
       maxItems={12}
-      loadingStrategy="eager"
+      loadingStrategy="lazy"
+      client:visible
       title={language === 'es' ? 'Descubre las Mejores Oportunidades de Inversión' :
              language === 'en' ? 'Discover the Best Investment Opportunities' :
              'Découvrez les Meilleures Opportunités d\'Investissement'}
@@ -406,7 +456,7 @@ if (import.meta.env.DEV) {
     />
   )}
 
-  <!-- 2. Featured Properties - SEGUNDO (Conversión principal) -->
+  <!-- Featured Properties - High Priority -->
   {featuredProperties && featuredProperties.length > 0 && (
     <PropertyCarousel 
       title={featuredPropsSection?.title}
@@ -421,11 +471,12 @@ if (import.meta.env.DEV) {
         code: countryCode,
         name: countryName
       }}
+      client:visible
     />
   )}
 
-  <!-- 3. Founder Story - TERCERO (Credibilidad temprana - solo RD) -->
-  {isDefaultCountry && (
+  <!-- Founder Story - Conditional -->
+  {shouldShowFounderStory && (
     <section class="py-16 bg-white">
       <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -452,52 +503,11 @@ if (import.meta.env.DEV) {
                     y un canal de YouTube con 200K+ suscriptores y millones de visualizaciones</strong>, René combina 
                     entretenimiento y bienes raíces de manera única en el mercado dominicano.
                   </p>
-                  <p>
-                    A través de <strong class="text-gray-900">tours exclusivos por mansiones de artistas, deportistas y personalidades destacadas</strong>, 
-                    René inspira sobre decoración, diseño interior y el sueño de la casa propia, mientras conecta con 
-                    audiencias que buscan propiedades de lujo y oportunidades de inversión inmobiliaria.
-                  </p>
-                </>
-              )}
-              {language === 'en' && (
-                <>
-                  <p>
-                    <strong class="text-gray-900">René Castillo has positioned himself as the most recognized real estate TV host in the Dominican Republic</strong>, 
-                    taking viewers inside the most exclusive homes of celebrities and public figures in the country.
-                  </p>
-                  <p>
-                    With <strong class="text-gray-900">18 years of television experience, 600K+ social media followers, 
-                    and a YouTube channel with 200K+ subscribers and millions of views</strong>, René uniquely combines 
-                    entertainment and real estate in the Dominican market.
-                  </p>
-                  <p>
-                    Through <strong class="text-gray-900">exclusive tours of mansions owned by artists, athletes, and notable personalities</strong>, 
-                    René inspires audiences about decoration, interior design, and homeownership dreams, while connecting with 
-                    viewers seeking luxury properties and real estate investment opportunities.
-                  </p>
-                </>
-              )}
-              {language === 'fr' && (
-                <>
-                  <p>
-                    <strong class="text-gray-900">René Castillo s'est positionné comme le présentateur immobilier le plus reconnu de République Dominicaine</strong>, 
-                    emmenant les téléspectateurs à l'intérieur des maisons les plus exclusives de célébrités et figures publiques du pays.
-                  </p>
-                  <p>
-                    Avec <strong class="text-gray-900">18 ans d'expérience télévisuelle, 600K+ abonnés sur les réseaux sociaux 
-                    et une chaîne YouTube avec 200K+ abonnés et des millions de vues</strong>, René combine de manière unique 
-                    divertissement et immobilier sur le marché dominicain.
-                  </p>
-                  <p>
-                    À travers <strong class="text-gray-900">des visites exclusives de demeures d'artistes, sportifs et personnalités notables</strong>, 
-                    René inspire les audiences sur la décoration, le design d'intérieur et le rêve de la maison propre, tout en 
-                    se connectant avec des spectateurs recherchant des propriétés de luxe et opportunités d'investissement immobilier.
-                  </p>
                 </>
               )}
             </div>
             
-            <!-- Achievement Stats para René -->
+            <!-- Achievement Stats -->
             <div class="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-gray-200">
               <div class="text-center">
                 <div class="text-2xl font-bold text-[#f04e00]">18+</div>
@@ -522,17 +532,18 @@ if (import.meta.env.DEV) {
                       '/fr/conseillers/rene-castillo'}
                 class="block w-full h-full group relative"
               >
-                <img 
-                  src="https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/images/rene%20castillo%20-clic%20con%20placa.png" 
-                  alt={`${language === 'es' ? 'René Castillo con placa de YouTube de 200K suscriptores, presentador de TV y fundador de CLIC Inmobiliaria' : 
-                         language === 'en' ? 'René Castillo with YouTube 200K subscribers plaque, TV host and founder of CLIC Real Estate' : 
-                         'René Castillo avec plaque YouTube 200K abonnés, présentateur TV et fondateur de CLIC Immobilier'}`}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <!-- Overlay siempre visible -->
+                <picture>
+                  <img 
+                    src="https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/images/rene%20castillo%20-clic%20con%20placa.png" 
+                    alt="René Castillo con placa de YouTube, presentador de TV y fundador de CLIC"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
                 <div class="absolute bottom-4 left-4 bg-white/95 rounded-lg px-4 py-2 shadow-lg">
                   <div class="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <span>{language === 'es' ? 'Ver Perfil Completo' : language === 'en' ? 'View Full Profile' : 'Voir Profil Complet'}</span>
+                    <span>{language === 'es' ? 'Ver Perfil Completo' : 'View Full Profile'}</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                     </svg>
@@ -546,14 +557,14 @@ if (import.meta.env.DEV) {
     </section>
   )}
 
-  <!-- 4. Video Gallery - CUARTO (Engagement) -->
+  <!-- Video Gallery - Lazy Load -->
   {featuredVideos && featuredVideos.length > 0 && (
     <VideoGallery 
       videos={featuredVideos}
       title={language === 'es' ? `Canal Inmobiliario de ${countryName}` : 
              language === 'en' ? `${countryName} Real Estate Channel` : 
              `Chaîne Immobilière de ${countryName}`}
-      subtitle={isDefaultCountry 
+      subtitle={shouldShowFounderStory 
         ? (language === 'es' ? "De casas de famosos a consejos de inversión - 200K+ suscriptores nos respaldan" :
            language === 'en' ? "From celebrity homes to investment advice - 200K+ subscribers support us" :
            "Des maisons de célébrités aux conseils d'investissement - 200K+ abonnés nous soutiennent")
@@ -564,86 +575,84 @@ if (import.meta.env.DEV) {
       language={language}
       countryContext={{
         code: countryCode,
-        showFounder: isDefaultCountry
+        showFounder: shouldShowFounderStory
       }}
+      client:idle
     />
   )}
 
-  <!-- 5. Testimonials - QUINTO (Validación social) -->
+  <!-- Testimonials - Lazy Load -->
   {testimonials && testimonials.length > 0 && (
     <Testimonials 
       testimonials={testimonials}
       title={testimonialsSection?.title}
-      subtitle={isDefaultCountry 
+      subtitle={shouldShowFounderStory 
         ? (language === 'es' ? "La credibilidad y profesionalismo de René se refleja en cada transacción" :
-           language === 'en' ? "René's credibility and professionalism is reflected in every transaction" :
-           "La crédibilité et le professionnalisme de René se reflètent dans chaque transaction")
+           "René's credibility and professionalism is reflected in every transaction")
         : (language === 'es' ? `Clientes satisfechos en ${countryName} confían en nuestro equipo` :
-           language === 'en' ? `Satisfied clients in ${countryName} trust our team` :
-           `Clients satisfaits en ${countryName} font confiance à notre équipe`)}
+           `Satisfied clients in ${countryName} trust our team`)}
       language={language}
       countryContext={{
         code: countryCode,
         averageRating: testimonialsSection?.countryContext?.averageRating
       }}
+      client:visible
     />
   )}
 
-  <!-- 6. Team/Advisors - SEXTO (Confianza) - DISEÑO MODERNO Y RECTANGULAR -->
-  {featuredAdvisors && featuredAdvisors.length > 0 && (
+  <!-- Team Section - Optimized with pre-processed data -->
+  {processedAdvisors && processedAdvisors.length > 0 && (
     <section class="py-16 bg-gradient-to-b from-gray-50 to-white">
       <div class="container mx-auto px-4">
         <div class="text-center mb-12">
           <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             {advisorsSection?.title || (
               language === 'es' ? 'Nuestro Equipo Experto' :
-              language === 'en' ? 'Our Expert Team' :
-              'Notre Équipe d\'Experts'
+              'Our Expert Team'
             )}
           </h2>
           <p class="text-lg text-gray-600 max-w-3xl mx-auto">
             {language === 'es' ? `Profesionales especializados que te brindan asesoría experta y personalizada` :
-             language === 'en' ? `Specialized professionals who provide you with expert and personalized advice` :
-             `Professionnels spécialisés qui vous fournissent des conseils d'experts et personnalisés`}
+             `Specialized professionals who provide you with expert and personalized advice`}
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {featuredAdvisors.map((advisor) => (
-            <div class="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-gray-200">
+          {processedAdvisors.map((advisor, index) => (
+            <div key={`advisor-${index}`} class="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-gray-200">
               
-              {/* Efecto de gradiente sutil en hover */}
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
               <div class="relative p-6 flex items-start gap-6">
                 
-                {/* Avatar rectangular más moderno */}
+                <!-- Avatar optimizado -->
                 <div class="relative flex-shrink-0">
                   <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden ring-2 ring-gray-100 group-hover:ring-gray-200 transition-all duration-300">
                     <img 
-                      src={getAvatarUrl(advisor.avatar)} 
+                      src={advisor.avatarUrl} 
                       alt={advisor.name}
                       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
+                      width="112"
+                      height="112"
                     />
                   </div>
                   
-                  {/* Badge moderno para René */}
-                  {advisor.name === 'René Castillo' && (
+                  {advisor.isFounder && (
                     <div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f04e00] to-[#ff6b35] text-white px-2 py-1 rounded-lg text-xs font-semibold shadow-lg">
-                      {language === 'es' ? 'CEO' : language === 'en' ? 'CEO' : 'PDG'}
+                      {language === 'es' ? 'CEO' : 'CEO'}
                     </div>
                   )}
                   
-                  {/* Indicador de rating */}
                   <div class="absolute -bottom-2 -right-2 bg-amber-400 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-lg">
                     {advisor.clientSatisfaction}
                   </div>
                 </div>
 
-                {/* Contenido principal */}
+                <!-- Content -->
                 <div class="flex-1 min-w-0">
                   
-                  {/* Header con nombre y posición */}
                   <div class="mb-3">
                     <h3 class="text-xl font-bold text-gray-900 mb-1 group-hover:text-gray-800 transition-colors">
                       {advisor.name}
@@ -652,7 +661,6 @@ if (import.meta.env.DEV) {
                       {advisor.position}
                     </p>
                     
-                    {/* Estadísticas inline más elegantes */}
                     <div class="flex items-center gap-4 text-xs text-gray-500">
                       {advisor.yearsExperience > 0 && (
                         <span class="flex items-center gap-1">
@@ -673,39 +681,35 @@ if (import.meta.env.DEV) {
                     </div>
                   </div>
                   
-                  {/* Bio más compacta */}
                   <p class="text-sm text-gray-600 line-clamp-2 leading-relaxed mb-4">
-                    {stripHtmlTags(advisor.bio || advisor.description || '').substring(0, 120)}
-                    {stripHtmlTags(advisor.bio || advisor.description || '').length > 120 ? '...' : ''}
+                    {advisor.cleanBio}
+                    {advisor.cleanBio.length >= 120 ? '...' : ''}
                   </p>
                   
-                  {/* Footer con idiomas y acciones */}
                   <div class="flex items-center justify-between">
                     
-                    {/* Idiomas compactos */}
-                    {advisor.languages && advisor.languages.length > 0 && (
+                    {advisor.topLanguages && advisor.topLanguages.length > 0 && (
                       <div class="flex gap-1">
-                        {advisor.languages.slice(0, 2).map((lang: string) => (
-                          <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-medium">
+                        {advisor.topLanguages.map((lang: string, langIndex: number) => (
+                          <span key={`lang-${index}-${langIndex}`} class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-medium">
                             {lang === 'Español' ? 'ES' : lang === 'Inglés' ? 'EN' : lang.substring(0, 2).toUpperCase()}
                           </span>
                         ))}
-                        {advisor.languages.length > 2 && (
+                        {advisor.hasMoreLanguages && (
                           <span class="text-xs text-gray-400 px-1 py-1">
-                            +{advisor.languages.length - 2}
+                            +{advisor.extraLanguagesCount}
                           </span>
                         )}
                       </div>
                     )}
                     
-                    {/* Acciones discretas */}
                     <div class="flex items-center gap-3">
                       {advisor.url && (
                         <a 
                           href={advisor.url}
                           class="text-gray-600 hover:text-[#f04e00] text-sm font-medium flex items-center gap-1 transition-colors"
                         >
-                          <span>{language === 'es' ? 'Perfil' : language === 'en' ? 'Profile' : 'Profil'}</span>
+                          <span>{language === 'es' ? 'Perfil' : 'Profile'}</span>
                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                           </svg>
@@ -716,8 +720,7 @@ if (import.meta.env.DEV) {
                         <a 
                           href={`https://wa.me/${advisor.whatsapp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
                             language === 'es' ? `Hola ${advisor.name}, vi tu perfil y me interesa recibir asesoría` :
-                            language === 'en' ? `Hello ${advisor.name}, I saw your profile and I'm interested in receiving advice` :
-                            `Bonjour ${advisor.name}, j'ai vu votre profil et je suis intéressé à recevoir des conseils`
+                            `Hello ${advisor.name}, I saw your profile and I'm interested in receiving advice`
                           )}`}
                           target="_blank"
                           class="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs px-3 py-2 rounded-lg transition-colors font-medium shadow-sm hover:shadow-md"
@@ -733,31 +736,21 @@ if (import.meta.env.DEV) {
                 </div>
               </div>
               
-              {/* Línea de acento sutil */}
               <div class="h-1 bg-gradient-to-r from-gray-100 via-[#f04e00]/20 to-gray-100 group-hover:via-[#f04e00]/40 transition-all duration-500"></div>
             </div>
           ))}
         </div>
         
-        {/* Indicador de más asesores si existen */}
-        {featuredAdvisors.length >= 4 && (
+        {shouldShowMoreAdvisors && (
           <div class="text-center mt-8">
             <p class="text-sm text-gray-500 mb-4">
-              {language === 'es' ? 'Mostrando algunos de nuestros especialistas' : 
-               language === 'en' ? 'Showing some of our specialists' : 
-               'Affichage de quelques-uns de nos spécialistes'}
+              {language === 'es' ? 'Mostrando algunos de nuestros especialistas' : 'Showing some of our specialists'}
             </p>
             <a 
-              href={language === 'es' ? '/asesores' : 
-                    language === 'en' ? '/en/advisors' : 
-                    '/fr/conseillers'}
+              href={language === 'es' ? '/asesores' : '/en/advisors'}
               class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium transition-colors"
             >
-              <span>
-                {language === 'es' ? 'Ver todo el equipo' : 
-                 language === 'en' ? 'View full team' : 
-                 'Voir toute l\'équipe'}
-              </span>
+              <span>{language === 'es' ? 'Ver todo el equipo' : 'View full team'}</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
               </svg>
@@ -768,52 +761,57 @@ if (import.meta.env.DEV) {
     </section>
   )}
 
-  <!-- 7. Blog Articles - SÉPTIMO (SEO + expertise) -->
+  <!-- Articles - Lazy Load -->
   {featuredArticles && featuredArticles.length > 0 && (
     <RelatedArticles 
       articles={featuredArticles}
-      title={language === 'es' ? `Centro de Conocimiento de ${countryName}` : 
-             language === 'en' ? `${countryName} Knowledge Center` : 
-             `Centre de Connaissances de ${countryName}`}
-      subtitle={isDefaultCountry 
+      title={language === 'es' ? `Centro de Conocimiento de ${countryName}` : `${countryName} Knowledge Center`}
+      subtitle={shouldShowFounderStory 
         ? (language === 'es' ? "Guías, análisis y consejos escritos por René y su equipo de expertos" :
-           language === 'en' ? "Guides, analysis and advice written by René and his team of experts" :
-           "Guides, analyses et conseils écrits par René et son équipe d'experts")
+           "Guides, analysis and advice written by René and his team of experts")
         : (language === 'es' ? `Contenido experto sobre el mercado inmobiliario de ${countryName}` :
-           language === 'en' ? `Expert content about ${countryName}'s real estate market` :
-           `Contenu expert sur le marché immobilier de ${countryName}`)}
+           `Expert content about ${countryName}'s real estate market`)}
       layout="featured"
       language={language}
       countryContext={{
         code: countryCode,
-        showFounder: isDefaultCountry
+        showFounder: shouldShowFounderStory
       }}
+      client:idle
     />
   )}
 
-  <!-- 8. FAQs - OCTAVO (Antes del CTA final) -->
+  <!-- FAQs - Lazy Load -->
   {faqs && faqs.length > 0 && (
     <DynamicFAQs 
       faqs={faqs}
       language={language}
       title={faqsSection?.title || (
         language === 'es' ? 'Preguntas Frecuentes - República Dominicana' :
-        language === 'en' ? 'Frequently Asked Questions - Dominican Republic' :
-        'Questions Fréquemment Posées - République Dominicaine'
+        'Frequently Asked Questions - Dominican Republic'
       )}
-      context={enhancedContext}
+      context={{
+        location: countryName,
+        country: countryName,
+        isDefault: isDefaultCountry,
+        seoData: { country: { name: countryName, code: countryCode } },
+        insights: {
+          hasMarketInsights: true,
+          hasTips: true,
+          hasInvestmentData: true,
+          hasNeighborhoodInfo: true
+        }
+      }}
+      client:visible
     />
   )}
 
-  <!-- 9. CTA Section - NOVENO (Conversión final) - COLOR MÁS CLARO PARA CONTRASTE CON FOOTER -->
+  <!-- CTA Final -->
   <section class="py-24 bg-gradient-to-r from-gray-100 to-gray-200">
     <div class="container mx-auto px-4 text-center">
-      
       <div class="max-w-3xl mx-auto">
         <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-8 leading-tight">
-          {language === 'es' ? 'Listos cuando tú lo estés' : 
-           language === 'en' ? 'Ready when you are' : 
-           'Prêts quand vous l\'êtes'}
+          {language === 'es' ? 'Listos cuando tú lo estés' : 'Ready when you are'}
         </h2>
         
         <div class="flex flex-col sm:flex-row gap-6 justify-center">
@@ -821,24 +819,19 @@ if (import.meta.env.DEV) {
             href={language === 'es' ? '/contacto' : `/${language}/contact`}
             class="inline-flex items-center justify-center px-8 py-4 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold text-lg"
           >
-            {language === 'es' ? 'Contactar' : 
-             language === 'en' ? 'Contact' : 
-             'Contact'}
+            {language === 'es' ? 'Contactar' : 'Contact'}
           </a>
           
           {globalConfig?.contact?.whatsapp && (
             <a 
               href={`https://wa.me/${globalConfig.contact.whatsapp.replace(/[^\d]/g, '')}?text=${encodeURIComponent(
                 language === 'es' ? 'Hola, me interesa recibir información' :
-                language === 'en' ? 'Hello, I\'m interested in receiving information' :
-                'Bonjour, je souhaite recevoir des informations'
+                'Hello, I\'m interested in receiving information'
               )}`}
               target="_blank"
               class="inline-flex items-center justify-center px-8 py-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-lg"
             >
-              {language === 'es' ? 'Escribir' : 
-               language === 'en' ? 'Write' : 
-               'Écrire'}
+              {language === 'es' ? 'Escribir' : 'Write'}
             </a>
           )}
         </div>
@@ -846,277 +839,32 @@ if (import.meta.env.DEV) {
     </div>
   </section>
 
-  <!-- Schema.org COMPLETO DE LA EDGE FUNCTION + FAQ + BreadcrumbList + Agregados -->
-  <script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": companyName,
-    "description": seoData.description,
-    "url": seoData.canonical_url || layoutProps.canonical,
-    "publisher": {
-      "@type": "Organization", 
-      "name": companyName,
-      "legalName": globalConfig?.legal?.company_full_name || companyName,
-      "url": seoData.canonical_url || layoutProps.canonical,
-      "logo": {
-        "@type": "ImageObject",
-        "url": globalConfig?.legal?.logo_url || layoutProps.ogImage
-      },
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": globalConfig?.contact?.phone,
-        "contactType": "customer service",
-        "email": globalConfig?.contact?.email,
-        "availableLanguage": ["Spanish", "English"]
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": globalConfig?.contact?.address,
-        "addressLocality": countryName,
-        "addressCountry": countryCode
-      },
-      "sameAs": [
-        globalConfig?.social?.company?.youtube,
-        globalConfig?.social?.company?.facebook,
-        globalConfig?.social?.company?.instagram_url,
-        globalConfig?.social?.company?.linkedin,
-        globalConfig?.social?.company?.tiktok_url
-      ].filter(Boolean),
-      "aggregateRating": quickStats.averageRating ? {
-        "@type": "AggregateRating",
-        "ratingValue": quickStats.averageRating.toString(),
-        "reviewCount": testimonials.length.toString(),
-        "bestRating": "5",
-        "worstRating": "1"
-      } : undefined,
-      "numberOfEmployees": quickStats.totalAdvisors || featuredAdvisors.length
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": `${seoData.canonical_url || ''}/buscar?q={search_term_string}`,
-      "query-input": "required name=search_term_string"
-    }
-  })} />
+  <!-- Consolidated Schema.org -->
+  <script type="application/ld+json" set:html={JSON.stringify(consolidatedSchema)} />
 
-  <!-- Schema.org para FAQs Rich Snippets -->
-  {faqs && faqs.length > 0 && (
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": faqs.map(faq => ({
-        "@type": "Question",
-        "name": faq.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": faq.answer
-        }
-      }))
-    })} />
-  )}
+</Layout>
 
-  <!-- Schema.org para Real Estate Agent -->
-  {featuredAdvisors && featuredAdvisors.length > 0 && (
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "RealEstateAgent",
-      "name": companyName,
-      "alternateName": heroConfig.tagline,
-      "founder": isDefaultCountry ? {
-        "@type": "Person",
-        "name": "René Castillo",
-        "jobTitle": language === 'es' ? "Fundador y Presentador de TV" : 
-                    language === 'en' ? "Founder and TV Host" : 
-                    "Fondateur et Présentateur TV",
-        "description": language === 'es' ? "Presentador dominicano con 18 años de experiencia en televisión y 6 años fundando empresas de bienes raíces. Con 600K+ seguidores en redes sociales y un canal de YouTube con 200K+ suscriptores." :
-                       language === 'en' ? "Dominican TV host with 18 years of television experience and 6 years founding real estate companies. With 600K+ social media followers and a YouTube channel with 200K+ subscribers." :
-                       "Présentateur dominicain avec 18 ans d'expérience télévision et 6 ans fondant des entreprises immobilières. Avec 600K+ abonnés sur les réseaux sociaux et une chaîne YouTube avec 200K+ abonnés.",
-        "sameAs": [
-          globalConfig?.social?.founder?.instagram_url,
-          globalConfig?.social?.founder?.facebook,
-          globalConfig?.social?.founder?.tiktok_url
-        ].filter(Boolean)
-      } : {
-        "@type": "Person", 
-        "name": founderName,
-        "jobTitle": language === 'es' ? "Experto Inmobiliario Local" :
-                    language === 'en' ? "Local Real Estate Expert" :
-                    "Expert Immobilier Local"
-      },
-      "employee": featuredAdvisors.map(advisor => ({
-        "@type": "Person",
-        "name": advisor.name,
-        "jobTitle": advisor.position,
-        "description": stripHtmlTags(advisor.bio || '').substring(0, 160),
-        "telephone": advisor.phone,
-        "knowsLanguage": advisor.languages || ["Spanish"],
-        "url": advisor.url ? `${seoData.canonical_url || ''}${advisor.url}` : undefined
-      })),
-      "description": seoData.description,
-      "url": seoData.canonical_url,
-      "telephone": globalConfig?.contact?.phone,
-      "email": globalConfig?.contact?.email,
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": countryName,
-        "addressCountry": countryCode,
-        "streetAddress": globalConfig?.contact?.address
-      },
-      "areaServed": {
-        "@type": "Country",
-        "name": countryName
-      },
-      "aggregateRating": quickStats.averageRating ? {
-        "@type": "AggregateRating", 
-        "ratingValue": quickStats.averageRating.toString(),
-        "reviewCount": testimonials.length.toString(),
-        "bestRating": "5",
-        "worstRating": "1"
-      } : undefined,
-      "numberOfEmployees": featuredAdvisors.length,
-      "serviceArea": {
-        "@type": "Country",
-        "name": countryName
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": language === 'es' ? 'Servicios Inmobiliarios' : 
-               language === 'en' ? 'Real Estate Services' : 
-               'Services Immobiliers',
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": language === 'es' ? 'Compra de Propiedades' : 
-                     language === 'en' ? 'Property Purchase' : 
-                     'Achat de Propriétés',
-              "description": language === 'es' ? 'Asesoría completa para la compra de propiedades residenciales y comerciales' :
-                           language === 'en' ? 'Complete advisory for residential and commercial property purchases' :
-                           'Conseil complet pour l\'achat de propriétés résidentielles et commerciales'
-            }
-          },
-          {
-            "@type": "Offer", 
-            "itemOffered": {
-              "@type": "Service",
-              "name": language === 'es' ? 'Venta de Propiedades' :
-                     language === 'en' ? 'Property Sale' :
-                     'Vente de Propriétés',
-              "description": language === 'es' ? 'Comercialización y venta profesional de bienes inmuebles' :
-                           language === 'en' ? 'Professional marketing and sale of real estate' :
-                           'Marketing professionnel et vente de biens immobiliers'
-            }
-          },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service", 
-              "name": language === 'es' ? 'Alquiler de Propiedades' :
-                     language === 'en' ? 'Property Rental' :
-                     'Location de Propriétés',
-              "description": language === 'es' ? 'Gestión de alquileres residenciales y comerciales' :
-                           language === 'en' ? 'Residential and commercial rental management' :
-                           'Gestion de locations résidentielles et commerciales'
-            }
-          }
-        ]
-      }
-    })} />
-  )}
-
-  <!-- Schema.org para BreadcrumbList -->
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": language === 'es' ? 'Inicio' : language === 'en' ? 'Home' : 'Accueil',
-        "item": seoData.canonical_url || layoutProps.canonical
-      }
-    ]
-  })} />
-
-  <!-- Schema.org para VideoObject si hay videos -->
-  {featuredVideos && featuredVideos.length > 0 && (
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "name": language === 'es' ? `Videos de ${companyName}` :
-             language === 'en' ? `${companyName} Videos` :
-             `Vidéos de ${companyName}`,
-      "description": language === 'es' ? 'Canal de contenido inmobiliario con tours exclusivos y consejos de inversión' :
-                     language === 'en' ? 'Real estate content channel with exclusive tours and investment advice' :
-                     'Chaîne de contenu immobilier avec visites exclusives et conseils d\'investissement',
-      "itemListElement": featuredVideos.slice(0, 3).map((video, index) => ({
-        "@type": "VideoObject",
-        "position": index + 1,
-        "name": video.title,
-        "description": video.description || video.title,
-        "thumbnailUrl": video.thumbnail,
-        "uploadDate": new Date().toISOString(),
-        "duration": video.duration,
-        "contentUrl": `${seoData.canonical_url || ''}${video.url}`,
-        "embedUrl": `${seoData.canonical_url || ''}${video.url}`,
-        "publisher": {
-          "@type": "Organization",
-          "name": companyName,
-          "logo": {
-            "@type": "ImageObject",
-            "url": globalConfig?.legal?.logo_url
-          }
-        }
-      }))
-    })} />
-  )}
-
-  <!-- Schema.org para Articles si hay artículos -->
-  {featuredArticles && featuredArticles.length > 0 && (
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "ItemList", 
-      "name": language === 'es' ? `Artículos de ${companyName}` :
-             language === 'en' ? `${companyName} Articles` :
-             `Articles de ${companyName}`,
-      "description": language === 'es' ? 'Guías expertas, análisis de mercado y consejos inmobiliarios' :
-                     language === 'en' ? 'Expert guides, market analysis and real estate advice' :
-                     'Guides d\'experts, analyses de marché et conseils immobiliers',
-      "itemListElement": featuredArticles.slice(0, 3).map((article, index) => ({
-        "@type": "Article",
-        "position": index + 1,
-        "headline": article.title,
-        "description": article.excerpt,
-        "image": article.featuredImage,
-        "url": `${seoData.canonical_url || ''}${article.url}`,
-        "datePublished": article.publishedAt,
-        "dateModified": article.publishedAt,
-        "author": {
-          "@type": "Person",
-          "name": article.author?.name || founderName,
-          "image": article.author?.avatar
-        },
-        "publisher": {
-          "@type": "Organization", 
-          "name": companyName,
-          "logo": {
-            "@type": "ImageObject",
-            "url": globalConfig?.legal?.logo_url
-          }
-        },
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `${seoData.canonical_url || ''}${article.url}`
-        }
-      }))
-    })} />
-  )}
-
+<!-- Critical CSS -->
 <style>
-  .line-clamp-4 {
+  .line-clamp-2 {
     display: -webkit-box;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  
+  /* Preload hero image */
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url(var(--hero-image));
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    pointer-events: none;
   }
 </style>
