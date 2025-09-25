@@ -1,5 +1,5 @@
 ---
-// src/layouts/VideosMainLayout.astro - Layout para página principal de videos con validación defensiva
+// src/layouts/VideosMainLayout.astro - Layout para página principal de videos optimizado para SEO
 import Layout from './Layout.astro';
 
 // ===================================================================
@@ -39,227 +39,124 @@ const { data } = Astro.props;
 const language = safeString(data?.language, 'es');
 
 // ===================================================================
-// DATOS ESTÁTICOS DE FALLBACK 
+// PROCESAMIENTO DEFENSIVO DE DATOS
 // ===================================================================
 
 let videosData = safeObject(data);
 
-// Si no hay datos, usar fallback estático
-if (!videosData || !videosData.categories) {
-  console.log('🎹 VideosMainLayout: Usando datos estáticos de fallback');
-  
-  videosData = {
-    language: language,
-    categories: [
-      {
-        id: 'casa-famosos',
-        slug: 'la-casa-de-los-famosos',
-        title: language === 'es' ? 'La Casa de los Famosos' :
-               language === 'en' ? 'Celebrity Homes' :
-               'Maisons des Célébrités',
-        description: language === 'es' ? 'Tours exclusivos por las propiedades de las celebridades dominicanas' :
-                     language === 'en' ? 'Exclusive tours of Dominican celebrities\' properties' :
-                     'Visites exclusives des propriétés des célébrités dominicaines',
-        thumbnail: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
-        videoCount: 24,
-        featured: true,
-        popularVideos: [
-          language === 'es' ? 'Casa de Luz García en Cacicazgos' :
-          language === 'en' ? 'Luz García\'s House in Cacicazgos' :
-          'Maison de Luz García à Cacicazgos',
-          language === 'es' ? 'Penthouse de Romeo Santos' :
-          language === 'en' ? 'Romeo Santos\' Penthouse' :
-          'Penthouse de Romeo Santos',
-          language === 'es' ? 'Villa de Juan Luis Guerra' :
-          language === 'en' ? 'Juan Luis Guerra\'s Villa' :
-          'Villa de Juan Luis Guerra'
-        ]
-      },
-      {
-        id: 'decoracion',
-        slug: 'tips-de-decoracion',
-        title: language === 'es' ? 'Tips de Decoración' :
-               language === 'en' ? 'Decoration Tips' :
-               'Conseils de Décoration',
-        description: language === 'es' ? 'Consejos profesionales para transformar tu hogar en un espacio de ensueño' :
-                     language === 'en' ? 'Professional tips to transform your home into a dream space' :
-                     'Conseils professionnels pour transformer votre maison en un espace de rêve',
-        thumbnail: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
-        videoCount: 18,
-        popularVideos: [
-          language === 'es' ? '5 Tips para decorar como profesional' :
-          language === 'en' ? '5 Tips to decorate like a professional' :
-          '5 Conseils pour décorer comme un professionnel',
-          language === 'es' ? 'Transforma tu villa con $1000' :
-          language === 'en' ? 'Transform your villa with $1000' :
-          'Transformez votre villa avec 1000$',
-          language === 'es' ? 'Decoración minimalista moderna' :
-          language === 'en' ? 'Modern minimalist decoration' :
-          'Décoration minimaliste moderne'
-        ]
-      },
-      {
-        id: 'proyectos',
-        slug: 'proyectos-nuevos',
-        title: language === 'es' ? 'Proyectos Nuevos' :
-               language === 'en' ? 'New Projects' :
-               'Nouveaux Projets',
-        description: language === 'es' ? 'Recorridos virtuales por los desarrollos más exclusivos de República Dominicana' :
-                     language === 'en' ? 'Virtual tours of the most exclusive developments in Dominican Republic' :
-                     'Visites virtuelles des développements les plus exclusifs de République dominicaine',
-        thumbnail: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=600&fit=crop',
-        videoCount: 32,
-        featured: true,
-        popularVideos: [
-          language === 'es' ? 'Vista Cana - Lo mejor de Bávaro' :
-          language === 'en' ? 'Vista Cana - The best of Bávaro' :
-          'Vista Cana - Le meilleur de Bávaro',
-          'Cap Cana Heritage',
-          'Torre Anacaona 27'
-        ]
-      },
-      {
-        id: 'recorridos',
-        slug: 'recorridos-de-propiedades',
-        title: language === 'es' ? 'Recorridos de Propiedades' :
-               language === 'en' ? 'Property Tours' :
-               'Visites de Propriétés',
-        description: language === 'es' ? 'Tours detallados por propiedades disponibles para venta y alquiler' :
-                     language === 'en' ? 'Detailed tours of properties available for sale and rent' :
-                     'Visites détaillées de propriétés disponibles à la vente et à la location',
-        thumbnail: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-        videoCount: 45,
-        popularVideos: [
-          language === 'es' ? 'Villa frente al mar en Punta Cana' :
-          language === 'en' ? 'Oceanfront villa in Punta Cana' :
-          'Villa en bord de mer à Punta Cana',
-          language === 'es' ? 'Penthouse de lujo en Naco' :
-          language === 'en' ? 'Luxury penthouse in Naco' :
-          'Penthouse de luxe à Naco',
-          language === 'es' ? 'Casa moderna en Arroyo Hondo' :
-          language === 'en' ? 'Modern house in Arroyo Hondo' :
-          'Maison moderne à Arroyo Hondo'
-        ]
-      },
-      {
-        id: 'entrevistas',
-        slug: 'entrevistas-exclusivas',
-        title: language === 'es' ? 'Entrevistas Exclusivas' :
-               language === 'en' ? 'Exclusive Interviews' :
-               'Entretiens Exclusifs',
-        description: language === 'es' ? 'Conversaciones con personalidades sobre sus hogares y estilo de vida' :
-                     language === 'en' ? 'Conversations with personalities about their homes and lifestyle' :
-                     'Conversations avec des personnalités sur leurs maisons et leur style de vie',
-        thumbnail: 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
-        videoCount: 15,
-        popularVideos: [
-          language === 'es' ? 'Juan Luis Guerra habla de su nueva casa' :
-          language === 'en' ? 'Juan Luis Guerra talks about his new house' :
-          'Juan Luis Guerra parle de sa nouvelle maison',
-          language === 'es' ? 'El Mayor Clásico y su penthouse' :
-          language === 'en' ? 'El Mayor Clásico and his penthouse' :
-          'El Mayor Clásico et son penthouse',
-          language === 'es' ? 'Natti Natasha: Mi refugio en RD' :
-          language === 'en' ? 'Natti Natasha: My refuge in DR' :
-          'Natti Natasha: Mon refuge en RD'
-        ]
-      },
-      {
-        id: 'tips',
-        slug: 'tips-de-inversion',
-        title: language === 'es' ? 'Tips de Inversión' :
-               language === 'en' ? 'Investment Tips' :
-               'Conseils d\'Investissement',
-        description: language === 'es' ? 'Guías expertas para maximizar tu inversión inmobiliaria' :
-                     language === 'en' ? 'Expert guides to maximize your real estate investment' :
-                     'Guides d\'experts pour maximiser votre investissement immobilier',
-        thumbnail: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
-        videoCount: 28,
-        popularVideos: [
-          language === 'es' ? 'ROI en Airbnb: Caso real 2024' :
-          language === 'en' ? 'Airbnb ROI: Real case 2024' :
-          'ROI Airbnb: Cas réel 2024',
-          language === 'es' ? 'Cómo evaluar una propiedad' :
-          language === 'en' ? 'How to evaluate a property' :
-          'Comment évaluer une propriété',
-          language === 'es' ? 'Mejores zonas para invertir' :
-          language === 'en' ? 'Best areas to invest' :
-          'Meilleures zones pour investir'
-        ]
-      }
-    ],
-    stats: {
-      subscribers: '200K+',
-      totalVideos: 162,
-      totalViews: '10M+',
-      avgRating: 4.8
-    },
-    seo: {
-      title: language === 'es' ? 'Videos Inmobiliarios - CLIC' :
-             language === 'en' ? 'Real Estate Videos - CLIC' :
-             'Vidéos Immobilières - CLIC',
-      description: language === 'es' ? 'Explora nuestra colección de videos: tours de propiedades, casas de famosos, tips de decoración e inversión inmobiliaria en República Dominicana' :
-                   language === 'en' ? 'Explore our video collection: property tours, celebrity homes, decoration and real estate investment tips in Dominican Republic' :
-                   'Explorez notre collection de vidéos: visites de propriétés, maisons de célébrités, conseils de décoration et d\'investissement immobilier en République dominicaine',
-      canonical_url: language === 'es' ? '/videos' : `/${language}/videos`,
-      ogImage: '/og-videos.jpg',
-      keywords: language === 'es' ? 'videos inmobiliarios, casas famosos, decoración, inversión' :
-                language === 'en' ? 'real estate videos, celebrity homes, decoration, investment' :
-                'vidéos immobilières, maisons célébrités, décoration, investissement',
-      hreflang: {}
-    }
-  };
-}
-
-// ===================================================================
-// PROCESAMIENTO DEFENSIVO DE DATOS FINALES
-// ===================================================================
-
-// Procesar categorías de forma defensiva
-const rawCategories = safeArray(videosData.categories);
-const safeCategories = rawCategories.map((cat, index) => ({
-  id: safeString(cat.id, `category-${index}`),
-  slug: safeString(cat.slug, `categoria-${index}`),
-  title: safeString(cat.title, 'Categoría sin nombre'),
-  description: safeString(cat.description, 'Descripción no disponible'),
-  thumbnail: safeString(cat.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
-  videoCount: safeNumber(cat.videoCount, 0),
-  featured: Boolean(cat.featured),
-  popularVideos: safeArray(cat.popularVideos, [])
+// Procesar videos destacados
+const rawFeaturedVideos = safeArray(videosData.featuredVideos);
+const safeFeaturedVideos = rawFeaturedVideos.map((video, index) => ({
+  id: safeString(video.id, `featured-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  description: safeString(video.description, 'Descripción no disponible'),
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(video.videoSlug || video.slug, '#'),
+  duration: safeString(video.duration, '0:00'),
+  publishedAt: safeString(video.publishedAt, new Date().toISOString()),
+  views: safeNumber(video.views, 0),
+  featured: Boolean(video.featured),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug),
+  author: safeObject(video.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario'
+  })
 }));
 
-// Separar categorías destacadas y regulares
-const featuredCategories = safeCategories.filter(cat => cat.featured);
-const regularCategories = safeCategories.filter(cat => !cat.featured);
+// Procesar videos recientes
+const rawRecentVideos = safeArray(videosData.recentVideos);
+const safeRecentVideos = rawRecentVideos.map((video, index) => ({
+  id: safeString(video.id, `recent-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  description: safeString(video.description, 'Descripción no disponible'),
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(video.videoSlug || video.slug, '#'),
+  duration: safeString(video.duration, '0:00'),
+  publishedAt: safeString(video.publishedAt, new Date().toISOString()),
+  views: safeNumber(video.views, 0),
+  featured: Boolean(video.featured),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug),
+  author: safeObject(video.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario'
+  })
+}));
 
-// Procesar estadísticas
+// Encontrar el video más popular (mayor views)
+const allVideos = [...safeFeaturedVideos, ...safeRecentVideos];
+const mostPopularVideo = allVideos.reduce((prev, current) => 
+  (current.views > prev.views) ? current : prev, 
+  allVideos[0] || null
+);
+
+// Videos para el grid (excluir el más popular)
+const gridVideos = allVideos.filter(video => 
+  video.id !== mostPopularVideo?.id
+);
+
+// Procesar categorías con iconos Font Awesome
+const rawCategories = safeArray(videosData.categories);
+const safeCategories = rawCategories.map((cat, index) => {
+  // Mapeo de categorías a iconos Font Awesome
+  const iconMap = {
+    'lanzamientos': 'fa-rocket',
+    'consejos': 'fa-lightbulb',
+    'diseno-y-decoracion': 'fa-palette',
+    'la-casa-de-los-famosos': 'fa-star',
+    'entrevistas': 'fa-microphone',
+    'recorridos': 'fa-video'
+  };
+  
+  return {
+    id: safeString(cat.id, `category-${index}`),
+    name: safeString(cat.name, 'Categoría sin nombre'),
+    slug: safeString(cat.slug, `categoria-${index}`),
+    url: safeString(cat.url, `#categoria-${index}`),
+    videoCount: safeNumber(cat.videoCount, 0),
+    featured: Boolean(cat.featured),
+    icon: iconMap[cat.slug] || 'fa-play-circle'
+  };
+});
+
+// Procesar estadísticas - Priorizar datos del backend
 const rawStats = safeObject(videosData.stats);
 const safeStats = {
-  subscribers: safeString(rawStats.subscribers, '200K+'),
-  totalVideos: safeNumber(rawStats.totalVideos, safeCategories.reduce((sum, cat) => sum + cat.videoCount, 0)),
-  totalViews: safeString(rawStats.totalViews, '10M+'),
-  avgRating: safeNumber(rawStats.avgRating, 4.8)
+  totalVideos: rawStats.totalVideos || allVideos.length,
+  totalCategories: rawStats.totalCategories || safeCategories.length,
+  totalViews: rawStats.totalViews || allVideos.reduce((sum, video) => sum + video.views, 0)
 };
 
-// Procesar SEO
+// Procesar SEO - Priorizar datos del backend
 const rawSeo = safeObject(videosData.seo);
 const safeSeo = {
-  title: safeString(rawSeo.title, 
-    language === 'en' ? 'Real Estate Videos - CLIC' :
-    language === 'fr' ? 'Vidéos Immobilières - CLIC' :
-    'Videos Inmobiliarios - CLIC'),
-  description: safeString(rawSeo.description,
-    language === 'en' ? 'Explore our video collection: property tours, celebrity homes, decoration and real estate investment tips in Dominican Republic' :
-    language === 'fr' ? 'Explorez notre collection de vidéos: visites de propriétés, maisons de célébrités, conseils de décoration et d\'investissement immobilier en République dominicaine' :
-    'Explora nuestra colección de videos: tours de propiedades, casas de famosos, tips de decoración e inversión inmobiliaria en República Dominicana'),
+  title: safeString(rawSeo.title) || text.title,
+  description: safeString(rawSeo.description) || text.subtitle,
+  h1: safeString(rawSeo.h1) || text.title,
+  h2: safeString(rawSeo.h2) || text.subtitle,
   canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/videos' : `/${language}/videos`),
-  ogImage: safeString(rawSeo.ogImage, '/og-videos.jpg'),
+  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-videos.jpg'),
   keywords: safeString(rawSeo.keywords),
-  hreflang: safeObject(rawSeo.hreflang)
+  hreflang: safeObject(rawSeo.hreflang),
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, [
+    {
+      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+      url: language === 'es' ? '/' : `/${language}/`
+    },
+    {
+      name: language === 'en' ? 'Videos' : language === 'fr' ? 'Vidéos' : 'Videos',
+      url: language === 'es' ? '/videos' : `/${language}/videos`
+    }
+  ]),
+  structured_data: safeObject(rawSeo.structured_data),
+  open_graph: safeObject(rawSeo.open_graph),
+  twitter_card: safeObject(rawSeo.twitter_card)
 };
-
-// Calcular total de videos
-const totalVideos = safeCategories.reduce((sum, cat) => sum + cat.videoCount, 0);
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -269,61 +166,73 @@ const TEXTS = {
   es: {
     title: 'Centro de Videos CLIC Inmobiliaria',
     subtitle: 'Descubre propiedades, conoce las casas de los famosos, aprende tips de decoración e inversión con el canal inmobiliario #1 de República Dominicana',
-    featuredTitle: 'Categorías Destacadas',
-    allCategoriesTitle: 'Todas las Categorías',
+    watchVideo: 'Ver video',
+    watchFull: 'Ver video completo',
+    showMore: 'Ver descripción completa',
+    showLess: 'Mostrar menos',
+    moreVideos: 'Más videos inmobiliarios',
+    allCategories: 'Explorar por categorías',
+    duration: 'duración',
+    views: 'visualizaciones',
+    author: 'Por',
+    publishedOn: 'Publicado el',
+    videos: 'videos',
     ctaTitle: '¿No encuentras lo que buscas?',
     ctaSubtitle: 'Suscríbete a nuestro canal de YouTube para no perderte ningún video nuevo',
     ctaButton1: 'Suscribirse al canal',
     ctaButton2: 'Solicitar un video personalizado',
-    viewCategory: 'Ver categoría',
-    viewAll: 'Ver todos',
-    videos: 'videos',
-    videosAvailable: 'videos disponibles',
-    popularVideos: 'Videos populares:',
     statsLabels: {
-      subscribers: 'Suscriptores',
       videos: 'Videos disponibles',
-      views: 'Visualizaciones'
+      categories: 'Categorías',
+      views: 'Visualizaciones totales'
     }
   },
   en: {
     title: 'CLIC Real Estate Video Center',
     subtitle: 'Discover properties, explore celebrity homes, learn decoration and investment tips with the #1 real estate channel in Dominican Republic',
-    featuredTitle: 'Featured Categories',
-    allCategoriesTitle: 'All Categories',
+    watchVideo: 'Watch video',
+    watchFull: 'Watch full video',
+    showMore: 'Show full description',
+    showLess: 'Show less',
+    moreVideos: 'More real estate videos',
+    allCategories: 'Browse by categories',
+    duration: 'duration',
+    views: 'views',
+    author: 'By',
+    publishedOn: 'Published on',
+    videos: 'videos',
     ctaTitle: 'Can\'t find what you\'re looking for?',
     ctaSubtitle: 'Subscribe to our YouTube channel to never miss a new video',
     ctaButton1: 'Subscribe to channel',
     ctaButton2: 'Request a personalized video',
-    viewCategory: 'View category',
-    viewAll: 'View all',
-    videos: 'videos',
-    videosAvailable: 'videos available',
-    popularVideos: 'Popular videos:',
     statsLabels: {
-      subscribers: 'Subscribers',
       videos: 'Videos available',
-      views: 'Views'
+      categories: 'Categories',
+      views: 'Total views'
     }
   },
   fr: {
     title: 'Centre Vidéo CLIC Immobilier',
     subtitle: 'Découvrez des propriétés, explorez les maisons de célébrités, apprenez des conseils de décoration et d\'investissement avec la chaîne immobilière #1 de République dominicaine',
-    featuredTitle: 'Catégories en Vedette',
-    allCategoriesTitle: 'Toutes les Catégories',
+    watchVideo: 'Regarder la vidéo',
+    watchFull: 'Regarder la vidéo complète',
+    showMore: 'Voir la description complète',
+    showLess: 'Afficher moins',
+    moreVideos: 'Plus de vidéos immobilières',
+    allCategories: 'Parcourir par catégories',
+    duration: 'durée',
+    views: 'vues',
+    author: 'Par',
+    publishedOn: 'Publié le',
+    videos: 'vidéos',
     ctaTitle: 'Vous ne trouvez pas ce que vous cherchez?',
     ctaSubtitle: 'Abonnez-vous à notre chaîne YouTube pour ne manquer aucune nouvelle vidéo',
     ctaButton1: 'S\'abonner à la chaîne',
     ctaButton2: 'Demander une vidéo personnalisée',
-    viewCategory: 'Voir la catégorie',
-    viewAll: 'Voir tout',
-    videos: 'vidéos',
-    videosAvailable: 'vidéos disponibles',
-    popularVideos: 'Vidéos populaires:',
     statsLabels: {
-      subscribers: 'Abonnés',
       videos: 'Vidéos disponibles',
-      views: 'Vues'
+      categories: 'Catégories',
+      views: 'Vues totales'
     }
   }
 };
@@ -348,8 +257,40 @@ const routes = {
 
 const currentRoutes = routes[language] || routes.es;
 
+// Función para formatear fecha
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+    
+    const months = {
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
+}
+
+// Función para truncar descripción HTML
+function truncateDescription(htmlContent, maxLength = 300) {
+  if (!htmlContent) return '';
+  
+  // Remover tags HTML y truncar
+  const textContent = htmlContent.replace(/<[^>]*>/g, '').trim();
+  if (textContent.length <= maxLength) return textContent;
+  
+  return textContent.substring(0, maxLength).trim() + '...';
+}
+
 // ===================================================================
-// PREPARAR PROPS PARA LAYOUT (IGUAL QUE ADVISORSLAYOUT Y ARTICLESLAYOUT)
+// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
 // ===================================================================
 
 const layoutProps = {
@@ -363,167 +304,365 @@ const layoutProps = {
   language: language,
   trackingString: videosData?.trackingString || '',
   hotItems: videosData?.hotItems || {},
-  country: videosData?.country || {}
+  country: videosData?.country || {},
+  breadcrumbs: safeSeo.breadcrumbs,
+  structuredData: safeSeo.structured_data,
+  openGraph: safeSeo.open_graph,
+  twitterCard: safeSeo.twitter_card
 };
 
-console.log('✅ VideosMainLayout preparado con validación defensiva:', {
+console.log('✅ VideosMainLayout preparado:', {
   language,
+  totalVideos: safeStats.totalVideos,
+  mostPopularVideo: mostPopularVideo?.title,
+  gridVideosCount: gridVideos.length,
   categoriesCount: safeCategories.length,
-  featuredCount: featuredCategories.length,
-  totalVideos: totalVideos,
-  layoutProps
+  totalViews: safeStats.totalViews
 });
 ---
 
 <Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "VideoGallery",
+    "name": safeSeo.title || text.title,
+    "description": safeSeo.description || text.subtitle,
+    "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${safeSeo.canonical_url}`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "CLIC Inmobiliaria",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
+      }
+    },
+    "video": allVideos.map(video => ({
+      "@type": "VideoObject",
+      "name": video.title,
+      "description": video.description,
+      "thumbnailUrl": video.thumbnail,
+      "duration": video.duration,
+      "uploadDate": video.publishedAt,
+      "author": {
+        "@type": "Person",
+        "name": video.author.name
+      },
+      "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${video.url}`
+    }))
+  })} />
+
   <div class="min-h-screen bg-gray-50">
     
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-b from-gray-50 to-white py-16">
+    <!-- Hero Section with Categories -->
+    <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16 pb-8">
       <div class="container mx-auto px-4">
-        <div class="text-center mb-12">
-          <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            {text.title}
+        <div class="text-center text-white">
+          <h1 class="text-4xl md:text-5xl font-bold mb-6">
+            {safeSeo.h1 || safeSeo.title || text.title}
           </h1>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            {text.subtitle}
+          <p class="text-xl max-w-3xl mx-auto mb-8 text-white/90">
+            {safeSeo.h2 || safeSeo.description || text.subtitle}
           </p>
           
           <!-- Stats -->
-          <div class="flex flex-wrap justify-center gap-8">
+          <div class="flex flex-wrap justify-center gap-8 mt-10 mb-12">
             <div class="text-center">
-              <div class="text-3xl font-bold text-[#f04e00]">{safeStats.subscribers}</div>
-              <div class="text-sm text-gray-600">{text.statsLabels.subscribers}</div>
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.totalVideos}+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.videos}</div>
             </div>
             <div class="text-center">
-              <div class="text-3xl font-bold text-[#f04e00]">{safeStats.totalVideos}</div>
-              <div class="text-sm text-gray-600">{text.statsLabels.videos}</div>
+              <div class="text-3xl font-bold text-white mb-2">{Math.floor(safeStats.totalViews / 1000).toLocaleString()}K+</div>
+              <div class="text-sm text-white/80">{text.statsLabels.views}</div>
             </div>
             <div class="text-center">
-              <div class="text-3xl font-bold text-[#f04e00]">{safeStats.totalViews}</div>
-              <div class="text-sm text-gray-600">{text.statsLabels.views}</div>
+              <div class="text-3xl font-bold text-white mb-2">{safeStats.totalCategories}</div>
+              <div class="text-sm text-white/80">{text.statsLabels.categories}</div>
             </div>
           </div>
+
+          <!-- Categories as minimal badges using full width -->
+          {safeCategories.length > 0 && (
+            <div class="text-left max-w-none mx-auto mt-8">
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 max-w-6xl mx-auto">
+                {safeCategories.map((category, index) => (
+                  <a 
+                    href={`${currentRoutes.videosBase}/${category.slug}`}
+                    class="group flex flex-col items-center justify-center bg-white/10 hover:bg-white hover:text-gray-800 text-white p-4 rounded-lg text-sm font-medium transition-all duration-300 backdrop-blur-sm border border-white/20 hover:border-white min-h-[80px]"
+                    key={category.id}
+                  >
+                    <i class={`fas ${category.icon} text-lg mb-2 group-hover:text-[#f04e00]`}></i>
+                    <span class="text-center leading-tight">{category.name}</span>
+                    <span class="text-xs opacity-80 mt-1 group-hover:text-gray-600">
+                      {category.videoCount} {text.videos}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
 
-    <!-- Featured Categories -->
-    {safeArray(featuredCategories).length > 0 && (
-      <section class="py-12">
-        <div class="container mx-auto px-4">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.featuredTitle}</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {safeArray(featuredCategories).map((category, index) => (
-              <a 
-                href={`${currentRoutes.videosBase}/${category.slug}`}
-                class="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                key={category.id || index}
-              >
-                <div class="aspect-[16/9] relative">
-                  <img 
-                    src={category.thumbnail} 
-                    alt={category.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                  
-                  <!-- Content overlay -->
-                  <div class="absolute bottom-0 left-0 right-0 p-8">
-                    <h3 class="text-3xl font-bold text-white mb-2">{category.title}</h3>
-                    <p class="text-lg text-white/90 mb-4">{category.description}</p>
-                    
-                    <div class="flex items-center justify-between">
-                      <span class="text-white/80">
-                        {category.videoCount} {text.videosAvailable}
-                      </span>
-                      <span class="inline-flex items-center gap-2 text-white group-hover:gap-3 transition-all">
-                        {text.viewCategory}
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                      </span>
+    <!-- Breadcrumbs Bar -->
+    <nav class="bg-white shadow-sm">
+      <div class="container mx-auto px-4 py-3">
+        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
+          <div aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm text-gray-600">
+              {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+                <li class="flex items-center">
+                  {index > 0 && (
+                    <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+                  )}
+                  {index === safeSeo.breadcrumbs.length - 1 ? (
+                    <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                  ) : (
+                    <a href={breadcrumb.url} class="hover:text-[#f04e00] transition-colors">
+                      {breadcrumb.name}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-12 bg-white">
+      <div class="container mx-auto px-4">
+
+        <!-- Featured Video with Magazine-Style Editorial Layout -->
+        {mostPopularVideo && (
+          <article class="mb-16 max-w-6xl mx-auto">
+            <!-- Video header - Full Width -->
+            <header class="mb-8">
+              <!-- Author info -->
+              <div class="flex items-center gap-4 mb-6">
+                <img 
+                  src={mostPopularVideo.author.avatar} 
+                  alt={mostPopularVideo.author.name}
+                  class="w-12 h-12 rounded-full"
+                />
+                <div>
+                  <div class="text-sm text-gray-600">
+                    <span class="font-medium text-gray-900">{text.author} {mostPopularVideo.author.name}</span>
+                    <span class="mx-2">•</span>
+                    <span>{formatDate(mostPopularVideo.publishedAt)}</span>
+                    <span class="mx-2">•</span>
+                    <span>
+                      <i class="far fa-eye mr-1"></i>
+                      {mostPopularVideo.views.toLocaleString()} {text.views}
+                    </span>
+                    <span class="mx-2">•</span>
+                    <span>
+                      <i class="far fa-clock mr-1"></i>
+                      {mostPopularVideo.duration}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Title and description - Full Width -->
+              <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                {mostPopularVideo.title}
+              </h2>
+            </header>
+
+            <!-- Magazine-style content with floating video thumbnail -->
+            <div class="editorial-content">
+              <div id="video-preview">
+                <!-- Content with floating video -->
+                <div class="relative">
+                  <!-- Floating video thumbnail with elegant overlay -->
+                  <figure class="float-left mr-8 mb-6 w-96 group">
+                    <div class="aspect-video relative overflow-hidden rounded-xl shadow-lg">
+                      <img 
+                        src={mostPopularVideo.thumbnail} 
+                        alt={mostPopularVideo.title}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <!-- Play button overlay -->
+                      <div class="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors duration-300">
+                        <div class="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center group-hover:bg-white transition-colors duration-300">
+                          <i class="fas fa-play text-3xl text-[#f04e00] ml-1"></i>
+                        </div>
+                      </div>
+                      <!-- Duration badge -->
+                      <div class="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm font-medium">
+                        {mostPopularVideo.duration}
+                      </div>
+                      <!-- Watch button -->
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-4 left-4 right-4">
+                          <a 
+                            href={mostPopularVideo.url}
+                            class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
+                          >
+                            {text.watchFull}
+                          </a>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <!-- Popular videos preview -->
-                    {safeArray(category.popularVideos).length > 0 && (
-                      <div class="mt-4 pt-4 border-t border-white/20">
-                        <p class="text-sm text-white/70 mb-2">{text.popularVideos}</p>
-                        <ul class="text-sm text-white/90 space-y-1">
-                          {safeArray(category.popularVideos).slice(0, 3).map((video, videoIndex) => (
-                            <li class="flex items-center gap-2" key={videoIndex}>
-                              <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z"/>
-                              </svg>
-                              {safeString(video, 'Video')}
-                            </li>
-                          ))}
-                        </ul>
+                  </figure>
+
+                  <!-- Justified text that wraps around the video -->
+                  <div class="text-gray-700 leading-7 text-base magazine-text">
+                    {mostPopularVideo.description && (() => {
+                      const previewText = truncateDescription(mostPopularVideo.description, 600);
+                      return (
+                        <p class="mb-5 text-justify hyphens-auto" set:html={previewText} />
+                      );
+                    })()}
+                  </div>
+                  
+                  <!-- Clear float for button -->
+                  <div class="clear-both mt-6">
+                    <button 
+                      onclick="toggleVideoContent()"
+                      id="video-toggle-btn"
+                      class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
+                    >
+                      <span id="video-toggle-text">{text.showMore}</span>
+                      <i id="video-toggle-icon" class="fas fa-chevron-down transition-all duration-200 group-hover:translate-x-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Expanded content - Full width -->
+              <div id="video-expanded" class="hidden">
+                <!-- Full content with floating video -->
+                <div class="relative">
+                  <!-- Same floating video -->
+                  <figure class="float-left mr-8 mb-6 w-96 group">
+                    <div class="aspect-video relative overflow-hidden rounded-xl shadow-lg">
+                      <img 
+                        src={mostPopularVideo.thumbnail} 
+                        alt={mostPopularVideo.title}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div class="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors duration-300">
+                        <div class="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center group-hover:bg-white transition-colors duration-300">
+                          <i class="fas fa-play text-3xl text-[#f04e00] ml-1"></i>
+                        </div>
+                      </div>
+                      <div class="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm font-medium">
+                        {mostPopularVideo.duration}
+                      </div>
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-4 left-4 right-4">
+                          <a 
+                            href={mostPopularVideo.url}
+                            class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
+                          >
+                            {text.watchFull}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </figure>
+
+                  <!-- Full justified content -->
+                  <div class="text-gray-700 leading-7 text-base magazine-text">
+                    {mostPopularVideo.description && (
+                      <div class="magazine-full-content">
+                        <p class="mb-5 text-justify hyphens-auto" set:html={mostPopularVideo.description} />
                       </div>
                     )}
                   </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-    )}
 
-    <!-- Regular Categories -->
-    {safeArray(regularCategories).length > 0 && (
-      <section class="py-12 bg-gray-50">
-        <div class="container mx-auto px-4">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.allCategoriesTitle}</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {safeArray(regularCategories).map((category, index) => (
-              <a 
-                href={`${currentRoutes.videosBase}/${category.slug}`}
-                class="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
-                key={category.id || index}
-              >
-                <div class="aspect-video relative overflow-hidden rounded-t-lg">
-                  <img 
-                    src={category.thumbnail} 
-                    alt={category.title}
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-                  <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                      <svg class="w-8 h-8 text-[#f04e00] ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
+                  <!-- Collapse button -->
+                  <div class="clear-both mt-8">
+                    <button 
+                      onclick="toggleVideoContent()"
+                      class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
+                    >
+                      <span>{text.showLess}</span>
+                      <i class="fas fa-chevron-up transition-all duration-200 group-hover:translate-x-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        )}
+
+        <!-- Videos Grid -->
+        {gridVideos.length > 0 && (
+          <section>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.moreVideos}</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {gridVideos.map((video, index) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden" key={video.id}>
+                  <a href={video.url} class="group block">
+                    <!-- Video Thumbnail -->
+                    <div class="aspect-video relative overflow-hidden">
+                      <img 
+                        src={video.thumbnail} 
+                        alt={video.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <!-- Play button overlay -->
+                      <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                          <i class="fas fa-play text-lg text-[#f04e00] ml-0.5"></i>
+                        </div>
+                      </div>
+                      <!-- Duration badge -->
+                      <div class="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                        {video.duration}
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
-                <div class="p-6">
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
-                    {category.title}
-                  </h3>
-                  <p class="text-gray-600 mb-4">{category.description}</p>
-                  
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-500">
-                      {category.videoCount} {text.videos}
-                    </span>
-                    <span class="text-[#f04e00] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                      {text.viewAll}
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-    )}
+                    
+                    <!-- Content -->
+                    <div class="p-4">
+                      <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                        {video.title}
+                      </h3>
+                      
+                      <p class="text-gray-600 mb-3 line-clamp-2 text-xs leading-relaxed">
+                        {truncateDescription(video.description, 120)}
+                      </p>
+                      
+                      <!-- Meta -->
+                      <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <div class="flex items-center gap-1">
+                          <img 
+                            src={video.author.avatar} 
+                            alt={video.author.name}
+                            class="w-4 h-4 rounded-full"
+                          />
+                          <span class="truncate">{video.author.name}</span>
+                        </div>
+                        <span class="flex items-center gap-1">
+                          <i class="far fa-eye"></i>
+                          {video.views.toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <!-- Watch link -->
+                      <div class="inline-flex items-center gap-1 text-[#f04e00] font-medium text-xs group-hover:gap-2 transition-all">
+                        <span>{text.watchVideo}</span>
+                        <i class="fas fa-play"></i>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+    </main>
 
     <!-- CTA Section -->
     <section class="py-16 bg-[#f04e00]">
@@ -538,7 +677,7 @@ console.log('✅ VideosMainLayout preparado con validación defensiva:', {
           <a 
             href="https://youtube.com/@clicinmobiliaria" 
             target="_blank"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
           >
             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -547,7 +686,7 @@ console.log('✅ VideosMainLayout preparado con validación defensiva:', {
           </a>
           <a 
             href={currentRoutes.contact} 
-            class="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
           >
             {text.ctaButton2}
           </a>
@@ -556,23 +695,88 @@ console.log('✅ VideosMainLayout preparado con validación defensiva:', {
     </section>
 
   </div>
+
+  <script>
+    function toggleVideoContent() {
+      const preview = document.getElementById('video-preview');
+      const expanded = document.getElementById('video-expanded');
+      const btnText = document.getElementById('video-toggle-text');
+      const btnIcon = document.getElementById('video-toggle-icon');
+      
+      if (!preview || !expanded || !btnText || !btnIcon) {
+        console.error('Toggle elements not found');
+        return;
+      }
+      
+      if (expanded.classList.contains('hidden')) {
+        // Show expanded content
+        preview.classList.add('hidden');
+        expanded.classList.remove('hidden');
+        btnIcon.className = 'fas fa-chevron-up transition-all duration-200 group-hover:translate-x-1';
+        
+        // Update text based on current language
+        const currentText = btnText.textContent.toLowerCase();
+        if (currentText.includes('show') || currentText.includes('description')) {
+          btnText.textContent = 'Show less';
+        } else if (currentText.includes('voir') || currentText.includes('description')) {
+          btnText.textContent = 'Afficher moins';
+        } else {
+          btnText.textContent = 'Mostrar menos';
+        }
+        
+        // Scroll to expanded content smoothly
+        expanded.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+      } else {
+        // Show preview content
+        preview.classList.remove('hidden');
+        expanded.classList.add('hidden');
+        btnIcon.className = 'fas fa-chevron-down transition-all duration-200 group-hover:translate-x-1';
+        
+        // Restore original text
+        const currentText = btnText.textContent.toLowerCase();
+        if (currentText.includes('show less') || currentText.includes('less')) {
+          btnText.textContent = 'Show full description';
+        } else if (currentText.includes('afficher moins') || currentText.includes('moins')) {
+          btnText.textContent = 'Voir la description complète';
+        } else {
+          btnText.textContent = 'Ver descripción completa';
+        }
+        
+        // Scroll back to preview
+        preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Video toggle initialized');
+      
+      // Add click event listener as backup
+      const toggleBtn = document.getElementById('video-toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          toggleVideoContent();
+        });
+      }
+    });
+  </script>
 </Layout>
 
 <style>
-  .transform {
-    transition: transform 0.3s ease;
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
-  .bg-gradient-to-b {
-    background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
-  }
-  
-  .bg-gradient-to-r {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
-  }
-  
-  .bg-gradient-to-t {
-    background-image: linear-gradient(to top, var(--tw-gradient-stops));
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
   .hover\:scale-105:hover {
@@ -587,19 +791,62 @@ console.log('✅ VideosMainLayout preparado con validación defensiva:', {
     color: #f04e00;
   }
   
-  .group:hover .group-hover\:translate-x-1 {
-    transform: translateX(0.25rem);
+  .group:hover .group-hover\:gap-2 {
+    gap: 0.5rem;
   }
-  
-  .group:hover .group-hover\:gap-3 {
-    gap: 0.75rem;
+
+  /* Magazine-style text formatting */
+  .magazine-text {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
   }
-  
-  .group:hover .group-hover\:bg-black\/30 {
-    background-color: rgba(0, 0, 0, 0.3);
+
+  /* Float behavior for magazine layout */
+  .magazine-text p:first-child,
+  .magazine-text p:nth-child(2) {
+    text-indent: 0;
   }
-  
-  .group:hover .group-hover\:opacity-100 {
-    opacity: 1;
+
+  .magazine-text p:not(:first-child):not(:nth-child(2)) {
+    text-indent: 1.5em;
+  }
+
+  /* Better floating video behavior */
+  figure.float-left {
+    shape-outside: margin-box;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Video thumbnail specific styles */
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Better responsive behavior */
+  @media (max-width: 1024px) {
+    figure.float-left {
+      width: 320px !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    figure.float-left {
+      float: none !important;
+      width: 100% !important;
+      margin-right: 0 !important;
+      margin-bottom: 2rem;
+    }
+    
+    .magazine-text p {
+      text-indent: 0 !important;
+    }
+  }
+
+  /* Smooth transitions for toggle */
+  #video-preview, #video-expanded {
+    transition: opacity 0.3s ease-in-out;
   }
 </style>

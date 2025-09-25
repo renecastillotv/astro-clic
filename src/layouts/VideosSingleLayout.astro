@@ -1,9 +1,6 @@
 ---
 // src/layouts/VideosSingleLayout.astro - Layout para video individual con validación defensiva
 import Layout from './Layout.astro';
-import PropertyCarousel from '../components/PropertyCarousel.astro';
-import VideoGallery from '../components/VideoGallery.astro';
-import AreaAdvisors from '../components/AreaAdvisors.astro';
 
 // ===================================================================
 // FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
@@ -40,8 +37,6 @@ function safeNumber(num, defaultValue = 0) {
 
 const { data } = Astro.props;
 const language = safeString(data?.language, 'es');
-const categorySlug = safeString(data?.categorySlug || data?.category, 'casa-famosos');
-const videoSlug = safeString(data?.videoSlug || data?.slug, 'video-sin-titulo');
 
 // ===================================================================
 // PROCESAMIENTO DEFENSIVO DE DATOS
@@ -49,156 +44,103 @@ const videoSlug = safeString(data?.videoSlug || data?.slug, 'video-sin-titulo');
 
 let videoData = safeObject(data);
 
-// Crear datos seguros del video
+// Procesar video principal de forma defensiva
+const rawVideo = safeObject(videoData.video);
 const safeVideoData = {
   language: language,
-  slug: safeString(videoData.slug || videoSlug, 'video-sin-titulo'),
-  categorySlug: safeString(videoData.categorySlug || categorySlug, 'casa-famosos'),
-  title: safeString(videoData.title, 
-    language === 'es' ? 'Casa de Celebrity en Santo Domingo' :
-    language === 'en' ? 'Celebrity House in Santo Domingo' :
-    'Maison de Célébrité à Santo Domingo'),
-  subtitle: safeString(videoData.subtitle,
-    language === 'es' ? 'Tour exclusivo por una espectacular propiedad' :
-    language === 'en' ? 'Exclusive tour of a spectacular property' :
-    'Visite exclusive d\'une propriété spectaculaire'),
-  description: safeString(videoData.description,
-    language === 'es' ? `Acompáñanos en este recorrido exclusivo por una impresionante propiedad ubicada en una de las mejores zonas de Santo Domingo.
-    
-Esta propiedad combina elegancia moderna con toques tropicales, creando el hogar perfecto.
-
-Características destacadas:
-• Múltiples habitaciones con baño privado
-• Cocina gourmet con isla central
-• Sala de entretenimiento
-• Área de piscina
-• Jardín tropical
-• Espacios de entretenimiento
-
-La decoración refleja un estilo sofisticado pero acogedor, con arte local y mobiliario de calidad.` :
-    language === 'en' ? `Join us on this exclusive tour of an impressive property located in one of the best areas of Santo Domingo.
-
-This property combines modern elegance with tropical touches, creating the perfect home.
-
-Featured characteristics:
-• Multiple bedrooms with private bathroom
-• Gourmet kitchen with central island
-• Entertainment room
-• Pool area
-• Tropical garden
-• Entertainment spaces
-
-The decoration reflects a sophisticated but cozy style, with local art and quality furniture.` :
-    `Rejoignez-nous dans cette visite exclusive d'une propriété impressionnante située dans l'un des meilleurs quartiers de Santo Domingo.
-
-Cette propriété combine élégance moderne et touches tropicales, créant la maison parfaite.
-
-Caractéristiques en vedette:
-• Plusieurs chambres avec salle de bain privée
-• Cuisine gastronomique avec îlot central
-• Salle de divertissement
-• Zone piscine
-• Jardin tropical
-• Espaces de divertissement
-
-La décoration reflète un style sophistiqué mais chaleureux, avec de l'art local et du mobilier de qualité.`),
-  videoId: safeString(videoData.videoId, 'dQw4w9WgXcQ'),
-  duration: safeString(videoData.duration, '15:00'),
-  views: safeString(videoData.views, '100,000'),
-  publishedAt: safeString(videoData.publishedAt, new Date().toISOString()),
-  category: safeString(videoData.category,
-    language === 'es' ? 'Casa de Famosos' :
-    language === 'en' ? 'Celebrity Homes' :
-    'Maisons des Célébrités'),
-  location: safeString(videoData.location, 'Santo Domingo'),
-  propertyType: safeString(videoData.propertyType,
-    language === 'es' ? 'Villa de Lujo' :
-    language === 'en' ? 'Luxury Villa' :
-    'Villa de Luxe'),
-  thumbnail: safeString(videoData.thumbnail || videoData.featuredImage, 
-    'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop')
+  id: safeString(rawVideo.id, 'video-default'),
+  title: safeString(rawVideo.title, 'Video sin título'),
+  description: safeString(rawVideo.description, 'Descripción no disponible'),
+  thumbnail: safeString(rawVideo.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(rawVideo.videoSlug || rawVideo.slug, 'video-default'),
+  duration: safeString(rawVideo.duration, '0:00'),
+  publishedAt: safeString(rawVideo.publishedAt, new Date().toISOString()),
+  views: safeNumber(rawVideo.views, 0),
+  featured: Boolean(rawVideo.featured),
+  url: safeString(rawVideo.url, '#'),
+  slug: safeString(rawVideo.slug, 'video-default'),
+  author: safeObject(rawVideo.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario',
+    bio: ''
+  })
 };
 
-// Procesar galería de fotos de forma defensiva
-const rawPhotoGallery = safeArray(videoData.photoGallery);
-const safePhotoGallery = rawPhotoGallery.length > 0 ? rawPhotoGallery.map((photo, index) => ({
-  url: safeString(photo.url || photo.image, 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop'),
-  caption: safeString(photo.caption || photo.title,
-    language === 'es' ? `Imagen ${index + 1} de la propiedad` :
-    language === 'en' ? `Property image ${index + 1}` :
-    `Image ${index + 1} de la propriété`)
-})) : [
-  {
-    url: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1200&h=800&fit=crop',
-    caption: language === 'es' ? 'Fachada principal' : language === 'en' ? 'Main facade' : 'Façade principale'
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=1200&h=800&fit=crop',
-    caption: language === 'es' ? 'Sala principal' : language === 'en' ? 'Main living room' : 'Salon principal'
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop',
-    caption: language === 'es' ? 'Cocina gourmet' : language === 'en' ? 'Gourmet kitchen' : 'Cuisine gastronomique'
-  }
-];
-
-// Procesar propiedades similares de forma defensiva
-const rawSimilarProperties = safeArray(videoData.similarProperties);
-const safeSimilarProperties = rawSimilarProperties.map((property, index) => ({
-  id: safeString(property.id, `property-${index}`),
-  slug: safeString(property.slug, `propiedad-${index}`),
-  titulo: safeString(property.titulo || property.title, 'Propiedad sin título'),
-  precio: safeString(property.precio || property.price, '$0'),
-  imagen: safeString(property.imagen || property.image || property.featuredImage, 
-    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'),
-  sector: safeString(property.sector || property.location, 'Santo Domingo'),
-  habitaciones: safeNumber(property.habitaciones || property.bedrooms, 3),
-  banos: safeNumber(property.banos || property.bathrooms, 3),
-  metros: safeNumber(property.metros || property.area, 200),
-  tipo: safeString(property.tipo || property.type, 'Villa'),
-  destacado: Boolean(property.destacado || property.featured),
-  nuevo: Boolean(property.nuevo || property.isNew)
-}));
+// Procesar categoría de forma defensiva
+const rawCategory = safeObject(videoData.category);
+const safeCategoryData = {
+  id: safeString(rawCategory.id, 'category-default'),
+  name: safeString(rawCategory.name, 'Videos'),
+  slug: safeString(rawCategory.slug, 'videos')
+};
 
 // Procesar videos relacionados de forma defensiva
 const rawRelatedVideos = safeArray(videoData.relatedVideos);
 const safeRelatedVideos = rawRelatedVideos.map((video, index) => ({
-  id: safeString(video.id, `video-${index}`),
+  id: safeString(video.id, `related-${index}`),
   title: safeString(video.title, 'Video sin título'),
-  thumbnail: safeString(video.thumbnail || video.image, 
-    'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=450&fit=crop'),
-  duration: safeString(video.duration, '10:00'),
-  views: safeString(video.views, '1K'),
-  category: safeString(video.category, 'videos'),
-  videoId: safeString(video.videoId, 'dQw4w9WgXcQ'),
-  slug: safeString(video.slug, `video-${index}`),
-  url: safeString(video.url, '#')
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  duration: safeString(video.duration, '0:00'),
+  views: safeNumber(video.views, 0),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug, `video-${index}`)
 }));
 
-// Procesar asesores del área de forma defensiva
-const rawAreaAdvisors = safeArray(videoData.areaAdvisors);
-const safeAreaAdvisors = rawAreaAdvisors.map((advisor, index) => ({
-  id: safeString(advisor.id, `advisor-${index}`),
-  slug: safeString(advisor.slug, `asesor-${index}`),
-  name: safeString(advisor.name, 'Asesor Inmobiliario'),
-  title: safeString(advisor.title,
-    language === 'es' ? 'Especialista Inmobiliario' :
-    language === 'en' ? 'Real Estate Specialist' :
-    'Spécialiste Immobilier'),
-  avatar: safeString(advisor.avatar, 'https://i.pravatar.cc/150?img=1'),
-  specialties: safeArray(advisor.specialties, ['Santo Domingo']),
-  areas: safeArray(advisor.areas, [language === 'es' ? 'Propiedades' : 'Properties']),
-  languages: safeArray(advisor.languages, [language === 'es' ? 'Español' : 'Spanish']),
-  phone: safeString(advisor.phone, '+1 809 555 0100'),
-  whatsapp: safeString(advisor.whatsapp, '18095550100'),
-  rating: safeNumber(advisor.rating, 4.5),
-  reviewCount: safeNumber(advisor.reviewCount, 10)
-}));
-
-// SEO seguro
+// SEO seguro - Priorizar datos del backend
 const safeSeo = {
-  title: safeString(safeGet(videoData, 'seo.title'), `${safeVideoData.title} - Video CLIC`),
-  description: safeString(safeGet(videoData, 'seo.description'), safeVideoData.subtitle)
+  title: safeString(safeGet(videoData, 'seo.title'), `${safeVideoData.title} - Videos CLIC`),
+  description: safeString(safeGet(videoData, 'seo.description'), safeVideoData.description),
+  h1: safeString(safeGet(videoData, 'seo.h1'), safeVideoData.title),
+  h2: safeString(safeGet(videoData, 'seo.h2'), safeCategoryData.name),
+  canonical_url: safeString(safeGet(videoData, 'seo.canonical_url'), safeVideoData.url),
+  ogImage: safeString(safeGet(videoData, 'seo.ogImage') || safeGet(videoData, 'seo.open_graph.image'), safeVideoData.thumbnail),
+  keywords: safeString(safeGet(videoData, 'seo.keywords'), `${safeVideoData.title}, videos inmobiliarios, República Dominicana`),
+  hreflang: safeObject(safeGet(videoData, 'seo.hreflang'), {}),
+  breadcrumbs: safeArray(safeGet(videoData, 'seo.breadcrumbs'), [
+    {
+      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+      url: language === 'es' ? '/' : `/${language}/`
+    },
+    {
+      name: language === 'en' ? 'Videos' : language === 'fr' ? 'Vidéos' : 'Videos',
+      url: language === 'es' ? '/videos' : `/${language}/videos`
+    },
+    {
+      name: safeCategoryData.name,
+      url: language === 'es' ? `/videos/${safeCategoryData.slug}` : `/${language}/videos/${safeCategoryData.slug}`
+    },
+    {
+      name: safeVideoData.title,
+      url: safeVideoData.url
+    }
+  ]),
+  structured_data: safeObject(safeGet(videoData, 'seo.structured_data'), {}),
+  open_graph: safeObject(safeGet(videoData, 'seo.open_graph'), {}),
+  twitter_card: safeObject(safeGet(videoData, 'seo.twitter_card'), {})
+};
+
+// ===================================================================
+// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
+// ===================================================================
+
+const layoutProps = {
+  title: safeSeo.title,
+  description: safeSeo.description,
+  ogImage: safeSeo.ogImage,
+  canonical: safeSeo.canonical_url,
+  keywords: safeSeo.keywords,
+  hreflangData: safeSeo.hreflang,
+  globalConfig: data?.globalConfig || videoData?.globalConfig || {},
+  language: language,
+  trackingString: videoData?.trackingString || '',
+  hotItems: videoData?.hotItems || {},
+  country: videoData?.country || {},
+  breadcrumbs: safeSeo.breadcrumbs,
+  structuredData: safeSeo.structured_data,
+  openGraph: safeSeo.open_graph,
+  twitterCard: safeSeo.twitter_card
 };
 
 // ===================================================================
@@ -209,59 +151,47 @@ const TEXTS = {
   es: {
     breadcrumbVideos: 'Videos',
     description: 'Descripción',
-    photoGalleryTitle: 'Galería de Fotos Exclusivas',
-    similarPropertiesTitle: 'Propiedades similares disponibles',
-    similarPropertiesSubtitle: 'Encuentra tu hogar ideal en las mejores zonas de Santo Domingo',
-    relatedVideosTitle: 'Videos que te pueden interesar',
-    relatedVideosSubtitle: 'Continúa explorando propiedades exclusivas',
-    advisorsTitle: 'Asesores especializados en propiedades de lujo',
-    ctaTitle: '¿Te gustó esta propiedad?',
-    ctaSubtitle: 'Podemos mostrarte propiedades similares disponibles en las mejores zonas',
-    ctaButton1: 'Agenda una visita',
-    ctaButton2: 'Ver propiedades en',
-    views: 'vistas',
+    watchVideo: 'Ver video',
+    relatedVideosTitle: 'Videos relacionados',
+    relatedVideosSubtitle: 'Continúa explorando contenido similar',
+    ctaTitle: '¿Te gustó este video?',
+    ctaSubtitle: 'Suscríbete a nuestro canal para no perderte más contenido exclusivo',
+    ctaButton1: 'Suscribirse al canal',
+    ctaButton2: 'Ver más videos',
+    views: 'visualizaciones',
     duration: 'Duración',
     published: 'Publicado el',
-    location: 'Ubicación',
-    propertyType: 'Tipo de propiedad'
+    author: 'Por'
   },
   en: {
     breadcrumbVideos: 'Videos',
     description: 'Description',
-    photoGalleryTitle: 'Exclusive Photo Gallery',
-    similarPropertiesTitle: 'Similar properties available',
-    similarPropertiesSubtitle: 'Find your ideal home in the best areas of Santo Domingo',
-    relatedVideosTitle: 'Videos that might interest you',
-    relatedVideosSubtitle: 'Continue exploring exclusive properties',
-    advisorsTitle: 'Advisors specialized in luxury properties',
-    ctaTitle: 'Did you like this property?',
-    ctaSubtitle: 'We can show you similar properties available in the best areas',
-    ctaButton1: 'Schedule a visit',
-    ctaButton2: 'View properties in',
+    watchVideo: 'Watch video',
+    relatedVideosTitle: 'Related videos',
+    relatedVideosSubtitle: 'Continue exploring similar content',
+    ctaTitle: 'Did you like this video?',
+    ctaSubtitle: 'Subscribe to our channel to not miss more exclusive content',
+    ctaButton1: 'Subscribe to channel',
+    ctaButton2: 'Watch more videos',
     views: 'views',
     duration: 'Duration',
     published: 'Published on',
-    location: 'Location',
-    propertyType: 'Property type'
+    author: 'By'
   },
   fr: {
     breadcrumbVideos: 'Vidéos',
     description: 'Description',
-    photoGalleryTitle: 'Galerie de Photos Exclusives',
-    similarPropertiesTitle: 'Propriétés similaires disponibles',
-    similarPropertiesSubtitle: 'Trouvez votre maison idéale dans les meilleures zones de Santo Domingo',
-    relatedVideosTitle: 'Vidéos qui pourraient vous intéresser',
-    relatedVideosSubtitle: 'Continuez à explorer des propriétés exclusives',
-    advisorsTitle: 'Conseillers spécialisés en propriétés de luxe',
-    ctaTitle: 'Cette propriété vous a plu?',
-    ctaSubtitle: 'Nous pouvons vous montrer des propriétés similaires disponibles dans les meilleures zones',
-    ctaButton1: 'Planifier une visite',
-    ctaButton2: 'Voir les propriétés à',
+    watchVideo: 'Regarder la vidéo',
+    relatedVideosTitle: 'Vidéos similaires',
+    relatedVideosSubtitle: 'Continuez à explorer du contenu similaire',
+    ctaTitle: 'Cette vidéo vous a plu?',
+    ctaSubtitle: 'Abonnez-vous à notre chaîne pour ne pas manquer plus de contenu exclusif',
+    ctaButton1: 'S\'abonner à la chaîne',
+    ctaButton2: 'Voir plus de vidéos',
     views: 'vues',
     duration: 'Durée',
     published: 'Publié le',
-    location: 'Emplacement',
-    propertyType: 'Type de propriété'
+    author: 'Par'
   }
 };
 
@@ -271,17 +201,14 @@ const text = TEXTS[language] || TEXTS.es;
 const routes = {
   es: {
     contact: '/contacto',
-    properties: '/comprar',
     videosBase: '/videos'
   },
   en: {
     contact: '/en/contact',
-    properties: '/en/buy',
     videosBase: '/en/videos'
   },
   fr: {
     contact: '/fr/contact',
-    properties: '/fr/acheter',
     videosBase: '/fr/videos'
   }
 };
@@ -297,189 +224,320 @@ function formatDate(dateString) {
     }
     
     const months = {
-      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
       en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
     };
     
     const monthNames = months[language] || months.es;
-    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
   } catch (error) {
     return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
   }
 }
 
-console.log('✅ VideosSingleLayout preparado con validación defensiva:', {
+// Función para extraer videoId de YouTube URL o thumbnail
+function extractVideoId(thumbnail) {
+  if (!thumbnail) return 'dQw4w9WgXcQ';
+  
+  // Extraer de URL de thumbnail de YouTube
+  const match = thumbnail.match(/\/vi\/([^\/]+)\//);
+  if (match && match[1]) {
+    return match[1];
+  }
+  
+  // Fallback
+  return 'dQw4w9WgXcQ';
+}
+
+const videoId = extractVideoId(safeVideoData.thumbnail);
+
+// Función para limpiar descripción HTML
+function cleanDescription(htmlContent) {
+  if (!htmlContent) return '';
+  
+  // Remover tags HTML pero mantener saltos de línea
+  return htmlContent
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+console.log('✅ VideosSingleLayout preparado:', {
   language,
-  categorySlug,
-  videoSlug,
-  title: safeVideoData.title,
-  similarPropertiesCount: safeSimilarProperties.length,
+  videoTitle: safeVideoData.title,
+  categoryName: safeCategoryData.name,
   relatedVideosCount: safeRelatedVideos.length,
-  photoGalleryCount: safePhotoGallery.length,
-  advisorsCount: safeAreaAdvisors.length
+  videoId: videoId,
+  views: safeVideoData.views
 });
 ---
 
-<Layout 
-  title={safeSeo.title}
-  description={safeSeo.description}
-  language={language}
->
-  <!-- Breadcrumbs -->
-  <section class="bg-gray-50 py-4">
-    <div class="container mx-auto px-4">
-      <nav class="text-sm text-gray-600">
-        <a href={currentRoutes.videosBase} class="hover:text-[#f04e00]">{text.breadcrumbVideos}</a>
-        <span class="mx-2">/</span>
-        <a href={`${currentRoutes.videosBase}/${safeVideoData.categorySlug}`} class="hover:text-[#f04e00]">
-          {safeVideoData.category}
-        </a>
-        <span class="mx-2">/</span>
-        <span class="text-gray-900">{safeVideoData.title}</span>
-      </nav>
-    </div>
-  </section>
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-  <!-- Video Section -->
-  <section class="py-8">
-    <div class="container mx-auto px-4">
-      <div class="max-w-6xl mx-auto">
-        <!-- Title and metadata -->
-        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          {safeVideoData.title}
-        </h1>
-        <p class="text-xl text-gray-600 mb-6">{safeVideoData.subtitle}</p>
-        
-        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-8">
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-            </svg>
-            {safeVideoData.views} {text.views}
-          </span>
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
-            {formatDate(safeVideoData.publishedAt)}
-          </span>
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            {safeVideoData.location}
-          </span>
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-            {safeVideoData.propertyType}
-          </span>
-        </div>
+  <!-- Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    "name": safeVideoData.title,
+    "description": cleanDescription(safeVideoData.description),
+    "thumbnailUrl": safeVideoData.thumbnail,
+    "uploadDate": safeVideoData.publishedAt,
+    "duration": safeVideoData.duration,
+    "embedUrl": `https://www.youtube.com/embed/${videoId}`,
+    "author": {
+      "@type": "Person",
+      "name": safeVideoData.author.name
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "CLIC Inmobiliaria",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
+      }
+    },
+    "interactionStatistic": {
+      "@type": "InteractionCounter",
+      "interactionType": { "@type": "WatchAction" },
+      "userInteractionCount": safeVideoData.views
+    }
+  })} />
 
-        <!-- Video Embed -->
-        <div class="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-8">
-          <iframe 
-            src={`https://www.youtube.com/embed/${safeVideoData.videoId}`}
-            title={safeVideoData.title}
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-            class="w-full h-full"
-          ></iframe>
-        </div>
-
-        <!-- Description -->
-        <div class="prose prose-lg max-w-none mb-12">
-          <h2 class="text-2xl font-bold mb-4">{text.description}</h2>
-          <div class="whitespace-pre-line text-gray-700">{safeVideoData.description}</div>
-        </div>
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- Breadcrumbs Bar -->
+    <nav class="bg-white shadow-sm">
+      <div class="container mx-auto px-4 py-3">
+        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
+          <div aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm text-gray-600">
+              {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+                <li class="flex items-center">
+                  {index > 0 && (
+                    <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+                  )}
+                  {index === safeSeo.breadcrumbs.length - 1 ? (
+                    <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                  ) : (
+                    <a href={breadcrumb.url} class="hover:text-[#f04e00] transition-colors">
+                      {breadcrumb.name}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
-    </div>
-  </section>
+    </nav>
 
-  <!-- Photo Gallery -->
-  {safeArray(safePhotoGallery).length > 0 && (
-    <section class="py-12 bg-gray-50">
+    <!-- Video Section -->
+    <section class="py-8 bg-white">
       <div class="container mx-auto px-4">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-          {text.photoGalleryTitle}
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {safeArray(safePhotoGallery).map((photo, index) => (
-            <div class="group cursor-pointer" key={index}>
-              <div class="aspect-[4/3] overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-shadow">
-                <img 
-                  src={photo.url} 
-                  alt={photo.caption}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+        <div class="max-w-6xl mx-auto">
+          
+          <!-- Title and metadata -->
+          <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+              {safeSeo.h1 || safeVideoData.title}
+            </h1>
+            
+            <!-- Author and metadata -->
+            <div class="flex items-center gap-4 mb-6">
+              <img 
+                src={safeVideoData.author.avatar} 
+                alt={safeVideoData.author.name}
+                class="w-12 h-12 rounded-full"
+              />
+              <div>
+                <div class="text-sm text-gray-600">
+                  <span class="font-medium text-gray-900">{text.author} {safeVideoData.author.name}</span>
+                  <span class="mx-2">•</span>
+                  <span>{formatDate(safeVideoData.publishedAt)}</span>
+                  <span class="mx-2">•</span>
+                  <span>
+                    <i class="far fa-eye mr-1"></i>
+                    {safeVideoData.views.toLocaleString()} {text.views}
+                  </span>
+                  <span class="mx-2">•</span>
+                  <span>
+                    <i class="far fa-clock mr-1"></i>
+                    {safeVideoData.duration}
+                  </span>
+                </div>
+                <div class="text-sm text-gray-500 mt-1">
+                  {safeVideoData.author.position}
+                </div>
               </div>
-              <p class="mt-2 text-sm text-gray-600 text-center">{photo.caption}</p>
             </div>
-          ))}
+          </header>
+
+          <!-- Video Embed -->
+          <div class="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-8">
+            <iframe 
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={safeVideoData.title}
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              class="w-full h-full"
+            ></iframe>
+          </div>
+
+          <!-- Description -->
+          {safeVideoData.description && (
+            <div class="prose prose-lg max-w-none mb-12">
+              <h2 class="text-2xl font-bold mb-4">{text.description}</h2>
+              <div class="text-gray-700 leading-relaxed whitespace-pre-line" set:html={safeVideoData.description}></div>
+            </div>
+          )}
+
+          <!-- Author Bio -->
+          {safeVideoData.author.bio && (
+            <div class="bg-gray-50 rounded-xl p-6 mb-12">
+              <div class="flex items-start gap-4">
+                <img 
+                  src={safeVideoData.author.avatar} 
+                  alt={safeVideoData.author.name}
+                  class="w-16 h-16 rounded-full flex-shrink-0"
+                />
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    {safeVideoData.author.name}
+                  </h3>
+                  <p class="text-sm text-gray-600 mb-3">{safeVideoData.author.position}</p>
+                  <div class="text-sm text-gray-700 prose prose-sm max-w-none" set:html={safeVideoData.author.bio}></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
-  )}
 
-  <!-- Similar Properties -->
-  {safeArray(safeSimilarProperties).length > 0 && (
-    <PropertyCarousel 
-      title={text.similarPropertiesTitle}
-      subtitle={text.similarPropertiesSubtitle}
-      properties={safeSimilarProperties}
-      viewAllLink={`${currentRoutes.properties}/villa/santo-domingo?zona=norte`}
-      language={language}
-    />
-  )}
+    <!-- Related Videos -->
+    {safeRelatedVideos.length > 0 && (
+      <section class="py-12 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            {text.relatedVideosTitle}
+          </h2>
+          <p class="text-gray-600 mb-8">{text.relatedVideosSubtitle}</p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {safeRelatedVideos.map((video, index) => (
+              <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={video.id}>
+                <a href={video.url} class="block">
+                  <!-- Video Thumbnail -->
+                  <div class="aspect-video relative overflow-hidden">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <!-- Play button overlay -->
+                    <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                        <i class="fas fa-play text-lg text-[#f04e00] ml-0.5"></i>
+                      </div>
+                    </div>
+                    <!-- Duration badge -->
+                    <div class="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                      {video.duration}
+                    </div>
+                  </div>
+                  
+                  <!-- Content -->
+                  <div class="p-4">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                      {video.title}
+                    </h3>
+                    
+                    <!-- Meta -->
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                      <span class="flex items-center gap-1">
+                        <i class="far fa-eye"></i>
+                        {video.views.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <!-- Watch link -->
+                    <div class="inline-flex items-center gap-1 text-[#f04e00] font-medium text-xs group-hover:gap-2 transition-all">
+                      <span>{text.watchVideo}</span>
+                      <i class="fas fa-play"></i>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
 
-  <!-- Related Videos -->
-  {safeArray(safeRelatedVideos).length > 0 && (
-    <VideoGallery 
-      videos={safeRelatedVideos}
-      title={text.relatedVideosTitle}
-      subtitle={text.relatedVideosSubtitle}
-      language={language}
-    />
-  )}
-
-  <!-- Area Advisors -->
-  {safeArray(safeAreaAdvisors).length > 0 && (
-    <AreaAdvisors 
-      advisors={safeAreaAdvisors}
-      title={text.advisorsTitle}
-      location="Santo Domingo Norte"
-      language={language}
-    />
-  )}
-
-  <!-- CTA Section -->
-  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
-    <div class="container mx-auto px-4 text-center">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-        {text.ctaTitle}
-      </h2>
-      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-        {text.ctaSubtitle}
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a 
-          href={currentRoutes.contact} 
-          class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
-        >
-          {text.ctaButton1}
-        </a>
-        <a 
-          href={`${currentRoutes.properties}/villa/${safeVideoData.location.toLowerCase().replace(/,.*/, '').replace(/\s+/g, '-')}`}
-          class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
-        >
-          {text.ctaButton2} {safeVideoData.location.split(',')[0]}
-        </a>
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.ctaTitle}
+        </h2>
+        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          {text.ctaSubtitle}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="https://youtube.com/@clicinmobiliaria" 
+            target="_blank"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+            {text.ctaButton1}
+          </a>
+          <a 
+            href={currentRoutes.videosBase}
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            {text.ctaButton2}
+          </a>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+  </div>
 </Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Smooth transitions */
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+  
+  .group:hover .group-hover\:gap-2 {
+    gap: 0.5rem;
+  }
+</style>
