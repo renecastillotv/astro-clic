@@ -1,5 +1,5 @@
 ---
-// src/pages/[...slug].astro — Router compatible con middleware (assets fuera, 1 fetch, cache+CB)
+// src/pages/[...slug].astro – Router compatible con middleware (assets fuera, 1 fetch, cache+CB)
 
 import PropertyListLayout from '../layouts/PropertyListLayout.astro';
 import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
@@ -76,8 +76,6 @@ const FAIL_TTL_MS  = 8000;
 const MAIN_TIMEOUT_MS = 5000;
 const CONTENT_TIMEOUT_MS = 5000;
 
-
-
 // 4) Parse de ruta
 const { slug } = Astro.params;
 let segments: string[] = [];
@@ -104,7 +102,11 @@ backendPath += rest.length ? `/${rest.join('/')}` : '/';
 async function callBackendOnce(backendBase: string, path: string) {
   const isContent = backendBase.includes('content-backend');
   const timeoutMs = isContent ? CONTENT_TIMEOUT_MS : MAIN_TIMEOUT_MS;
-  const url = `${backendBase}${path}?domain=${Astro.url.hostname}`;
+  
+  // 🔧 FIX: Preservar query parameters originales + agregar domain
+  const originalParams = new URLSearchParams(Astro.url.search);
+  originalParams.set('domain', Astro.url.hostname);
+  const url = `${backendBase}${path}?${originalParams.toString()}`;
 
   // circuit breaker: si falló recientemente, no bloquee SSR
   const lastFail = FAIL_MEMO.get(url) ?? 0;
@@ -122,6 +124,7 @@ async function callBackendOnce(backendBase: string, path: string) {
   }
 
   console.log(`➡️ Using: ${isContent ? 'CONTENT' : 'MAIN'} → ${backendPath}`);
+  console.log(`🔍 Full URL with params: ${url}`);
   console.time(`⏱️ ${url}`);
   try {
     const res = await fetch(url, {

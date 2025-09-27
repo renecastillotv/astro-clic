@@ -1,5 +1,5 @@
 ---
-// src/components/property/PropertyLocation.astro
+// src/components/property/PropertyLocation.astro - GOOGLE MAPS VERSION (Reemplaza Mapbox)
 export interface Props {
   data: any;
   language?: 'es' | 'en' | 'fr';
@@ -45,6 +45,7 @@ const translations = {
     mapLoadingError: 'Error al cargar el mapa',
     walkingDistance: 'A pie',
     totalServices: 'servicios disponibles',
+    mapLoading: 'Cargando mapa...',
     
     // Categorías de lugares (singular y plural) - AMPLIADAS
     banco: 'Banco',
@@ -118,6 +119,7 @@ const translations = {
     mapLoadingError: 'Map loading error',
     walkingDistance: 'Walking',
     totalServices: 'services available',
+    mapLoading: 'Loading map...',
     
     // Categorías de lugares (singular y plural) - AMPLIADAS
     banco: 'Bank',
@@ -191,6 +193,7 @@ const translations = {
     mapLoadingError: 'Erreur de chargement de la carte',
     walkingDistance: 'À pied',
     totalServices: 'services disponibles',
+    mapLoading: 'Chargement de la carte...',
     
     // Categorías de lugares (singular y plural) - AMPLIADAS
     banco: 'Banque',
@@ -275,7 +278,7 @@ function getDisplayCoordinates() {
       source: locationData.coordinatesSource || 'provider',
       showExactLocation: locationData.showExactLocation || false,
       hasExactCoordinates: locationData.hasExactCoordinates || false,
-      zoom: locationData.mapConfig?.zoom || 14,
+      zoom: locationData.mapConfig?.zoom || 15,
       showMarker: locationData.mapConfig?.showMarker !== false
     };
   }
@@ -289,7 +292,7 @@ function getDisplayCoordinates() {
       source: data.location.coordinatesSource || 'direct',
       showExactLocation: data.location.showExactLocation || false,
       hasExactCoordinates: data.location.hasExactCoordinates || false,
-      zoom: data.location.mapConfig?.zoom || 14,
+      zoom: data.location.mapConfig?.zoom || 15,
       showMarker: true
     };
   }
@@ -465,7 +468,7 @@ const displayCoordinates = getPrivacyAdjustedCoordinates(
 const lugares = locationContext?.nearby_places?.lugares_destacados || [];
 const showSpecificTitle = hasRealDistances(lugares);
 
-console.log('🗺️ PropertyLocation loaded:', {
+console.log('🗺️ PropertyLocation loaded (GOOGLE MAPS):', {
   language: language,
   coordinates: displayCoordinates,
   zoom: mapConfig.zoom,
@@ -503,9 +506,20 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
     )}
   </h2>
   
-  <!-- Mapbox -->
+  <!-- Google Maps Container - ESTE ES EL ELEMENTO QUE BUSCA EL SCRIPT DEL LAYOUT -->
   <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-    <div id="mapbox-map" class="w-full h-64"></div>
+    <div 
+      id="google-map" 
+      class="w-full h-64"
+    >
+      <!-- Fallback mientras carga Google Maps -->
+      <div class="w-full h-full flex items-center justify-center bg-gray-100">
+        <div class="text-center">
+          <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+          <p class="text-gray-600">{t.mapLoading}</p>
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- NUEVO ORDEN: Primero lugares destacados, luego resumen de servicios -->
@@ -578,9 +592,6 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
               </div>
             ))}
           </div>
-          
-          
-          <!-- NO HAY botón Ver más/menos para lugares destacados - se muestran todos -->
         </div>
       )}
 
@@ -691,46 +702,19 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
   )}
 </div>
 
-<!-- Mapbox CSS y JS (mantenido igual) -->
-<link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
-<script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
-
+<!-- Script para pasar datos a Google Maps del layout -->
 <script define:vars={{ 
   coordinates: displayCoordinates, 
-  propertyTitle: property.title || 'Propiedad',
+  propertyTitle: property.title_display || property.title || property.name || 'Propiedad',
   mapConfig: mapConfig,
   locationData: locationData,
   language: language,
-  translations: translations
+  translations: translations,
+  nearbyPlaces: lugares
 }}>
   // Hacer las traducciones globales para los botones
   window.translations = translations;
   window.language = language;
-
-  // Función para toggle de lugares
-  window.togglePlaces = function() {
-    const extraGrid = document.getElementById('places-grid-extra');
-    const toggleBtn = document.getElementById('toggle-places-btn');
-    const toggleText = document.getElementById('toggle-places-text');
-    const toggleIcon = document.getElementById('toggle-places-icon');
-    const t = translations[language] || translations['es'];
-    
-    if (extraGrid && toggleBtn && toggleText && toggleIcon) {
-      if (extraGrid.classList.contains('hidden')) {
-        extraGrid.classList.remove('hidden');
-        extraGrid.classList.add('grid');
-        toggleText.textContent = t.showLess;
-        toggleIcon.classList.remove('fa-chevron-down');
-        toggleIcon.classList.add('fa-chevron-up');
-      } else {
-        extraGrid.classList.add('hidden');
-        extraGrid.classList.remove('grid');
-        toggleText.textContent = t.showMore;
-        toggleIcon.classList.remove('fa-chevron-up');
-        toggleIcon.classList.add('fa-chevron-down');
-      }
-    }
-  };
 
   // Función para toggle de servicios
   window.toggleServices = function() {
@@ -757,143 +741,29 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
     }
   };
 
-  document.addEventListener('DOMContentLoaded', function() {
-    const mapElement = document.getElementById('mapbox-map');
-    if (!mapElement) {
-      console.error('❌ Elemento del mapa no encontrado');
-      return;
-    }
-
-    const t = translations[language] || translations['es'];
-
-    console.log('🗺️ Map Script - Language:', {
-      language: language,
+  // DATOS PARA GOOGLE MAPS DEL LAYOUT
+  if (typeof window !== 'undefined') {
+    window.propertyData = {
       coordinates: coordinates,
-      hasTranslations: !!t
-    });
+      title: propertyTitle,
+      showMarker: mapConfig.showMarker,
+      zoom: mapConfig.zoom,
+      // Convertir lugares cercanos para Google Maps
+      nearbyPoints: nearbyPlaces.slice(0, 5).map(place => ({
+        name: place.nombre,
+        description: place.categoria,
+        address: `${place.direccion} - ${place.distancia_display || '500m'}`
+      }))
+    };
     
-    if (!coordinates || coordinates === null) {
-      console.log('⚠️ No hay coordenadas reales disponibles - mostrando mapa regional');
-      mapElement.innerHTML = `
-        <div class="w-full h-64 bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 flex items-center justify-center rounded-xl">
-          <div class="text-center">
-            <i class="fas fa-map text-[#f04e00] text-4xl mb-3"></i>
-            <p class="text-gray-800 font-semibold mb-1">${t.generalLocation}</p>
-            <p class="text-sm text-gray-600 mb-3">${propertyTitle}</p>
-            <p class="text-xs text-gray-500">📍 ${locationData.address || t.addressNotSpecified}</p>
-          </div>
-        </div>
-      `;
-      return;
-    }
-    
-    if (typeof coordinates.lat !== 'number' || typeof coordinates.lng !== 'number') {
-      console.error('❌ Coordenadas inválidas:', coordinates);
-      mapElement.innerHTML = `
-        <div class="w-full h-64 bg-gray-100 flex items-center justify-center rounded-xl">
-          <div class="text-center">
-            <i class="fas fa-exclamation-triangle text-gray-500 text-3xl mb-2"></i>
-            <p class="text-gray-700">${t.mapLoadingError}</p>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    try {
-      mapboxgl.accessToken = 'pk.eyJ1IjoiY2xpY2lubW9iaWxpYXJpYXJkIiwiYSI6ImNtZTI5NGQxYzBrNmkycXBybmkxNDA5NTcifQ.sknz-kLZp77tsm-bGZupzQ';
-      
-      const map = new mapboxgl.Map({
-        container: 'mapbox-map',
-        style: 'mapbox://styles/mapbox/light-v11',
-        center: [coordinates.lng, coordinates.lat],
-        zoom: mapConfig.zoom || 14
-      });
-
-      let markerColor = '#f04e00';
-      
-      if (mapConfig.hasExactCoordinates) {
-        if (mapConfig.showExactLocation) {
-          markerColor = '#f04e00';
-        } else {
-          markerColor = '#ff6b35';
-        }
-      } else {
-        markerColor = '#ff8c69';
-      }
-
-      let popupText;
-      if (mapConfig.hasExactCoordinates) {
-        popupText = mapConfig.showExactLocation ? 
-          `🎯 ${t.exactLocation}` : 
-          `📍 ${t.approximateLocation}`;
-      } else {
-        popupText = `📍 ${t.generalArea}`;
-      }
-
-      const marker = new mapboxgl.Marker({
-        color: markerColor,
-        scale: 1.2
-      })
-      .setLngLat([coordinates.lng, coordinates.lat])
-      .setPopup(
-        new mapboxgl.Popup({ offset: 25 })
-        .setHTML(`
-          <div style="text-align: center; font-family: Inter, sans-serif; padding: 12px;">
-            <strong style="color: ${markerColor}; font-size: 14px;">${propertyTitle}</strong>
-            <br>
-            <small style="color: #666; font-size: 12px;">
-              ${popupText}
-            </small>
-          </div>
-        `)
-      )
-      .addTo(map);
-
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      map.scrollZoom.disable();
-      map.on('click', () => map.scrollZoom.enable());
-      map.on('mouseout', () => map.scrollZoom.disable());
-
-      console.log('✅ Mapa inicializado correctamente con coordenadas reales');
-
-    } catch (error) {
-      console.error('❌ Error inicializando mapa:', error);
-      
-      const googleMapsLink = coordinates ? 
-        `<a href="https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}" 
-           target="_blank" 
-           class="text-[#f04e00] hover:underline text-sm">
-          ${t.viewOnGoogleMaps}
-        </a>` : '';
-      
-      mapElement.innerHTML = `
-        <div class="w-full h-64 bg-gray-100 flex items-center justify-center rounded-xl">
-          <div class="text-center">
-            <i class="fas fa-map-marker-alt text-[#f04e00] text-3xl mb-2"></i>
-            <p class="text-gray-700 mb-2">${t.errorLoadingMap}</p>
-            ${googleMapsLink}
-          </div>
-        </div>
-      `;
-    }
-  });
+    console.log('🗺️ Datos pasados a Google Maps del layout:', window.propertyData);
+  }
 </script>
 
 <style>
-  #mapbox-map {
+  /* Estilos para Google Maps */
+  #google-map {
     border-radius: 12px;
-  }
-  
-  .mapboxgl-popup-content {
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    padding: 0;
-  }
-  
-  .mapboxgl-popup-tip {
-    border-top-color: white;
   }
   
   /* Clamp para truncar texto */
@@ -904,10 +774,25 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
     overflow: hidden;
   }
   
+  /* Estilos para info windows de Google Maps */
+  .gm-style-iw-content {
+    padding: 8px !important;
+  }
+  
+  .gm-style-iw-content h4 {
+    margin: 0 0 4px 0;
+    font-weight: 600;
+  }
+  
+  .gm-style-iw-content p {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+  }
+  
   @media (max-width: 640px) {
-    .mapboxgl-ctrl-top-right {
-      top: 10px;
-      right: 10px;
+    .gm-style-iw {
+      max-width: 250px !important;
     }
   }
 </style>

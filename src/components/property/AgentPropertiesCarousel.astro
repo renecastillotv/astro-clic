@@ -1,5 +1,7 @@
 ---
-// src/components/property/AgentPropertiesCarousel.astro
+// src/components/property/AgentPropertiesCarousel.astro - UPDATED FOR NEW DATA STRUCTURE
+// Actualizado para usar data.agent.main, data.agent.properties, data.agent.should_show_properties
+
 export interface Props {
   data: any;
   language?: string;
@@ -10,7 +12,7 @@ const { data, language } = Astro.props;
 // Try to get language from multiple sources
 const currentLanguage = language || 
                        data.language || 
-                       data.globalConfig?.language || 
+                       data.meta?.language || 
                        'es';
 
 // Multilingual translations
@@ -23,8 +25,7 @@ const translations = {
     propertiesShown: 'propiedades mostradas',
     viewAllProperties: 'Ver todas las',
     propertiesOf: 'propiedades de',
-    thisAdvisorLower: 'este asesor',
-    consultPrice: 'Consultar precio'
+    thisAdvisorLower: 'este asesor'
   },
   en: {
     morePropertiesOf: 'More Properties by',
@@ -34,8 +35,7 @@ const translations = {
     propertiesShown: 'properties shown',
     viewAllProperties: 'View all',
     propertiesOf: 'properties by',
-    thisAdvisorLower: 'this advisor',
-    consultPrice: 'Price on request'
+    thisAdvisorLower: 'this advisor'
   },
   fr: {
     morePropertiesOf: 'Plus de Propriétés de',
@@ -45,149 +45,38 @@ const translations = {
     propertiesShown: 'propriétés affichées', 
     viewAllProperties: 'Voir toutes les',
     propertiesOf: 'propriétés de',
-    thisAdvisorLower: 'ce conseiller',
-    consultPrice: 'Prix sur demande'
-  }
-};
-
-// Operation translations
-const operationTranslations = {
-  es: {
-    'Venta': 'Venta',
-    'Venta Amueblada': 'Venta Amueblada',
-    'Alquiler': 'Alquiler', 
-    'Alquiler Amueblado': 'Alquiler Amueblado',
-    'Temporal': 'Temporal',
-    'Consultar': 'Consultar'
-  },
-  en: {
-    'Venta': 'Sale',
-    'Venta Amueblada': 'Furnished Sale',
-    'Alquiler': 'Rental',
-    'Alquiler Amueblado': 'Furnished Rental', 
-    'Temporal': 'Short-term',
-    'Consultar': 'Inquire'
-  },
-  fr: {
-    'Venta': 'Vente',
-    'Venta Amueblada': 'Vente Meublée',
-    'Alquiler': 'Location',
-    'Alquiler Amueblado': 'Location Meublée',
-    'Temporal': 'Temporaire', 
-    'Consultar': 'Consulter'
+    thisAdvisorLower: 'ce conseiller'
   }
 };
 
 const t = translations[currentLanguage] || translations.es;
 
-const agent = data.agent || {};
-const agentProperties = data.agentProperties || [];
-const agentPropertiesInfo = data.agentPropertiesInfo || {};
+// ===== USAR NUEVA ESTRUCTURA DE DATOS =====
+// Los datos ya vienen procesados con title_display, price_display, URL, etc.
 
-// Solo mostrar si hay propiedades del asesor
-const showCarousel = agentPropertiesInfo.has_agent_properties && agentProperties.length > 0;
+const agent = data.agent?.main || {};
+const agentProperties = data.agent?.properties || [];
+const shouldShowCarousel = data.agent?.should_show_properties || false;
 
-// Get localized property title
-function getLocalizedTitle(property, targetLang) {
-  if (targetLang === 'en' && property.content_en?.name) {
-    return property.content_en.name;
+// Solo mostrar si debe mostrar carrusel Y hay propiedades
+const showCarousel = shouldShowCarousel && agentProperties.length > 0;
+
+// Helper function para limpiar imagen URL
+function getCleanImageUrl(imageUrl) {
+  if (!imageUrl) return '/images/placeholder-property.jpg';
+  
+  // Si la imagen contiene _small., intentar upgrade a _large.
+  if (imageUrl.includes('_small.')) {
+    return imageUrl.replace('_small.', '_large.');
   }
   
-  if (targetLang === 'fr' && property.content_fr?.name) {
-    return property.content_fr.name;
-  }
-  
-  return property.titulo || property.name || 'Propiedad';
+  return imageUrl;
 }
 
-// Get localized operation
-function getLocalizedOperation(operation, targetLang) {
-  const opTranslations = operationTranslations[targetLang] || operationTranslations.es;
-  return opTranslations[operation] || operation;
-}
-
-// Get localized category
-function getLocalizedCategory(property, targetLang) {
-  if (!property.property_categories) {
-    return property.tipo || 'Propiedad';
-  }
-  
-  const category = property.property_categories;
-  
-  if (targetLang === 'en' && category.name_en) {
-    return category.name_en;
-  }
-  
-  if (targetLang === 'fr' && category.name_fr) {
-    return category.name_fr;
-  }
-  
-  return category.name || property.tipo || 'Propiedad';
-}
-
-// Función para determinar precio y etiqueta de operación - CORREGIDA
-function getPriceAndOperation(property) {
-  // Función helper para validar si un precio es válido
-  function isValidPrice(price) {
-    return price !== null && price !== undefined && price !== 0 && price !== '';
-  }
-
-  // Prioridad: venta -> venta amueblada -> alquiler -> alquiler amueblado -> temporal
-  if (isValidPrice(property.sale_price)) {
-    return {
-      precio: formatPrice(property.sale_price, property.sale_currency),
-      operacion: 'Venta'
-    };
-  } else if (isValidPrice(property.furnished_sale_price)) {
-    return {
-      precio: formatPrice(property.furnished_sale_price, property.furnished_sale_currency),
-      operacion: 'Venta Amueblada'
-    };
-  } else if (isValidPrice(property.rental_price)) {
-    return {
-      precio: formatPrice(property.rental_price, property.rental_currency),
-      operacion: 'Alquiler'
-    };
-  } else if (isValidPrice(property.furnished_rental_price)) {
-    return {
-      precio: formatPrice(property.furnished_rental_price, property.furnished_rental_currency),
-      operacion: 'Alquiler Amueblado'
-    };
-  } else if (isValidPrice(property.temp_rental_price)) {
-    return {
-      precio: formatPrice(property.temp_rental_price, property.temp_rental_currency),
-      operacion: 'Temporal'
-    };
-  } else {
-    // Si ya tiene precio formateado del layout, usarlo
-    return {
-      precio: property.precio || t.consultPrice,
-      operacion: property.operacion || 'Venta'
-    };
-  }
-}
-
-// Alternativa: También puedes mejorar la función formatPrice para ser más robusta
-function formatPrice(price, currency) {
-  // Validar que el precio sea un número válido y mayor que 0
-  if (!price || isNaN(price) || price <= 0) {
-    return t.consultPrice;
-  }
-  
-  const symbol = currency === 'USD' ? 'US$' : 'RD$';
-  
-  // Convertir a número si es string
-  const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-  
-  if (isNaN(numericPrice) || numericPrice <= 0) {
-    return t.consultPrice;
-  }
-  
-  return `${symbol}${numericPrice.toLocaleString()}`;
-}
-
-// Función helper para generar URL del asesor con idioma correcto
+// Helper function para generar URL del asesor con idioma correcto
 function getAdvisorUrl(slug, language, trackingString = '') {
+  if (!slug) return '#';
+  
   const translations = {
     'es': 'asesores',
     'en': 'en/advisors', 
@@ -199,34 +88,67 @@ function getAdvisorUrl(slug, language, trackingString = '') {
   
   // Agregar referencia si existe trackingString
   if (trackingString) {
-    return `${baseUrl}?ref=${trackingString}`;
+    const separator = trackingString.startsWith('?') ? '' : '?';
+    return `${baseUrl}${separator}${trackingString}`;
   }
   
   return baseUrl;
 }
 
-// Procesar propiedades - combinar datos del layout con lógica correcta
-const processedProperties = agentProperties.map(property => {
-  const priceData = getPriceAndOperation(property);
-  return {
-    ...property,
-    ...priceData,
-    localizedTitle: getLocalizedTitle(property, currentLanguage),
-    localizedOperation: getLocalizedOperation(priceData.operacion, currentLanguage),
-    localizedCategory: getLocalizedCategory(property, currentLanguage)
-  };
-});
+// Procesar propiedades usando datos display-ready de la edge function
+const processedProperties = agentProperties.map(property => ({
+  // Usar datos ya procesados por la edge function
+  id: property.id,
+  title_display: property.title_display || property.name || 'Propiedad',
+  price_display: property.price_display || 'Consultar',
+  operation_display: property.operation_display || 'Venta',
+  category_display: property.category_display || property.property_categories?.name || 'Propiedad',
+  location_display: property.location_display || property.sectors?.name || property.cities?.name || '',
+  url: property.url || '#',
+  
+  // Procesar imagen con upgrade a large
+  main_image_url: getCleanImageUrl(property.main_image_url),
+  
+  // Características básicas
+  bedrooms: property.bedrooms || 0,
+  bathrooms: property.bathrooms || 0,
+  built_area: property.built_area || 0,
+  parking_spots: property.parking_spots || 0,
+  nivel: property.nivel || null,
+  
+  // Datos adicionales de pricing si existen
+  pricing_data: property.pricing_data || null,
+  category_data: property.category_data || null
+}));
 
 // Calculate correct counts
-const totalProperties = agentPropertiesInfo.total_found || 0;
+const totalProperties = data.agent?.properties_count || agentProperties.length;
 const shownProperties = agentProperties.length;
 
-console.log('🏠 AgentPropertiesCarousel loaded:', {
+console.log('🏠 AgentPropertiesCarousel ACTUALIZADO (Nueva estructura):', {
   language: currentLanguage,
   hasAgentProperties: showCarousel,
+  shouldShowCarousel: shouldShowCarousel,
   totalProperties: totalProperties,
   shownProperties: shownProperties,
-  agentId: agentPropertiesInfo.agent_id
+  agentId: agent?.id,
+  agentName: agent?.first_name && agent?.last_name ? `${agent.first_name} ${agent.last_name}` : 'Asesor',
+  agentSource: data.agent?.source,
+  trackingString: data.trackingString,
+  firstPropertyData: processedProperties[0] ? {
+    title: processedProperties[0].title_display,
+    price: processedProperties[0].price_display,
+    operation: processedProperties[0].operation_display,
+    url: processedProperties[0].url,
+    image: processedProperties[0].main_image_url
+  } : null,
+  dataSource: 'enhanced_handler_v2',
+  newStructureUsed: {
+    agentMain: !!data.agent?.main,
+    agentProperties: !!data.agent?.properties,
+    shouldShowProperties: data.agent?.should_show_properties,
+    cocaptorsCount: data.agent?.cocaptors_count || 0
+  }
 });
 ---
 
@@ -238,15 +160,22 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
       <div>
         <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
           <a 
-            href={getAdvisorUrl(data.agent.slug, currentLanguage, data.trackingString)}
+            href={getAdvisorUrl(agent?.slug, currentLanguage, data.trackingString)}
             class="hover:text-[#f04e00] transition-colors duration-300"
           >
-                                                            {t.morePropertiesOf}&nbsp;{agent.name || t.thisAdvisor}
+            {t.morePropertiesOf}&nbsp;{(agent?.first_name && agent?.last_name) ? `${agent.first_name} ${agent.last_name}` : agent?.name || t.thisAdvisor}
           </a>
         </h2>
         <p class="text-sm text-gray-600 mt-2">
           <span>{shownProperties}</span>{' '}
           <span>{shownProperties === 1 ? t.propertyAvailable : t.propertiesShown}</span>
+          {data.agent?.source && (
+            <span class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+              {data.agent.source === 'referral' ? 'Agente Referido' : 
+               data.agent.source === 'default' ? 'Agente por Defecto' : 
+               data.agent.source === 'original' ? 'Agente Original' : 'Agente'}
+            </span>
+          )}
         </p>
       </div>
       
@@ -279,14 +208,14 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
         {processedProperties.map((property, index) => (
           <div class="flex-shrink-0 w-72 carousel-item">
             <a 
-              href={property.url?.startsWith('/') ? property.url : `/${property.url}`}
+              href={property.url.startsWith('/') ? property.url : `/${property.url}`}
               class="group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 overflow-hidden border border-gray-100 hover:border-gray-200 relative"
             >
               <!-- Imagen más compacta -->
               <div class="relative h-40 overflow-hidden">
                 <img 
-                  src={property.imagen || '/images/placeholder-property.jpg'}
-                  alt={property.localizedTitle}
+                  src={property.main_image_url}
+                  alt={property.title_display}
                   class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   loading="lazy"
                   onerror="this.src='/images/placeholder-property.jpg'"
@@ -296,57 +225,57 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
                 <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
               
-              <!-- Badge ribbon de operación (derecha) -->
+              <!-- Badge ribbon de operación (derecha) - usando datos display -->
               <div class="ribbon">
-                {property.localizedOperation}
+                {property.operation_display}
               </div>
               
-              <!-- Badge ribbon del tipo de propiedad (izquierda) -->
+              <!-- Badge ribbon del tipo de propiedad (izquierda) - usando datos display -->
               <div class="ribbon-left">
-                {property.localizedCategory}
+                {property.category_display}
               </div>
               
               <!-- Contenido más compacto -->
               <div class="p-4">
-                <!-- Ubicación con precio a la derecha -->
+                <!-- Ubicación con precio a la derecha - usando datos display -->
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-1">
                     <i class="fas fa-map-marker-alt text-gray-400 text-xs"></i>
                     <p class="text-xs text-gray-500 font-medium">
-                      {property.sector || 'Santo Domingo'}
+                      {property.location_display || 'Santo Domingo'}
                     </p>
                   </div>
                   <span class="text-sm font-bold text-[#f04e00] group-hover:text-[#e03400] transition-colors">
-                    {property.precio}
+                    {property.price_display}
                   </span>
                 </div>
                 
-                <!-- Título más pequeño -->
+                <!-- Título más pequeño - usando datos display -->
                 <h3 class="text-sm font-semibold text-gray-900 mb-3 group-hover:text-[#f04e00] transition-colors line-clamp-2 leading-tight">
-                  {property.localizedTitle}
+                  {property.title_display}
                 </h3>
                 
                 <!-- Características con iconos consistentes y flecha alineada -->
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3 text-xs text-gray-600">
-                    {(property.habitaciones && property.habitaciones > 0) && (
+                    {(property.bedrooms && property.bedrooms > 0) && (
                       <div class="flex items-center gap-1">
                         <i class="fas fa-bed text-gray-500"></i>
-                        <span class="font-medium text-gray-700">{property.habitaciones}</span>
+                        <span class="font-medium text-gray-700">{property.bedrooms}</span>
                       </div>
                     )}
                     
-                    {(property.banos && property.banos > 0) && (
+                    {(property.bathrooms && property.bathrooms > 0) && (
                       <div class="flex items-center gap-1">
                         <i class="fas fa-bath text-gray-500"></i>
-                        <span class="font-medium text-gray-700">{property.banos}</span>
+                        <span class="font-medium text-gray-700">{property.bathrooms}</span>
                       </div>
                     )}
                     
-                    {(property.metros && property.metros > 0) && (
+                    {(property.built_area && property.built_area > 0) && (
                       <div class="flex items-center gap-1">
                         <i class="fas fa-th-large text-gray-500"></i>
-                        <span class="font-medium text-gray-700">{property.metros}m²</span>
+                        <span class="font-medium text-gray-700">{property.built_area}m²</span>
                       </div>
                     )}
                     
@@ -379,10 +308,10 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
     {totalProperties > shownProperties && (
       <div class="text-center pt-4 border-t border-gray-200">
         <a 
-          href={getAdvisorUrl(data.agent.slug, currentLanguage, data.trackingString)}
+          href={getAdvisorUrl(agent?.slug, currentLanguage, data.trackingString)}
           class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-colors"
         >
-          <span>{t.viewAllProperties} {totalProperties} {t.propertiesOf} {agent.name || t.thisAdvisorLower}</span>
+          <span>{t.viewAllProperties} {totalProperties} {t.propertiesOf} {(agent?.first_name && agent?.last_name) ? `${agent.first_name} ${agent.last_name}` : agent?.name || t.thisAdvisorLower}</span>
           <i class="fas fa-arrow-right text-xs"></i>
         </a>
       </div>
@@ -423,7 +352,7 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
     font-size: 0.75rem;
     font-weight: 500;
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-    box-shadow: 0 2px 4px rgba (0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border-bottom-right-radius: 2px;
     z-index: 10;
   }
@@ -453,17 +382,17 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
 
   /* Estilos para carrusel expandido por el layout */
   .carousel-full-width #carousel-container {
-    gap: 1.5rem; /* Aumentar gap cuando está expandido */
+    gap: 1.5rem;
   }
 
   .carousel-full-width .carousel-item {
-    width: 20rem; /* w-80 en lugar de w-72 cuando está expandido */
+    width: 20rem;
   }
 
   /* Responsive adjustments para carrusel expandido */
   @media (min-width: 1536px) {
     .carousel-full-width .carousel-item {
-      width: 22rem; /* Aún más ancho en pantallas muy grandes */
+      width: 22rem;
     }
   }
 </style>
@@ -510,12 +439,13 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
     const effectiveItemWidth = itemWidth + 16; // Incluir gap
     visibleItems = Math.floor(containerWidth / effectiveItemWidth);
     
-    console.log('🎠 Calculando elementos visibles:', {
+    console.log('🎠 Calculando elementos visibles (NUEVA ESTRUCTURA):', {
       containerWidth,
       itemWidth,
       effectiveItemWidth,
       visibleItems: Math.max(1, visibleItems),
-      isLayoutControlled
+      isLayoutControlled,
+      dataStructure: 'enhanced_handler_v2'
     });
     
     return Math.max(1, visibleItems);
@@ -606,13 +536,15 @@ console.log('🏠 AgentPropertiesCarousel loaded:', {
       updateButtons();
     }
     
-    console.log('🎠 Carrusel inicializado:', {
+    console.log('🎠 Carrusel inicializado (NUEVA ESTRUCTURA):', {
       totalItems: items,
       visibleItems: visibleItems,
       maxSlides: maxSlides,
       showControls: showControls,
       isLayoutControlled: isLayoutControlled,
-      itemWidth: itemWidth
+      itemWidth: itemWidth,
+      dataSource: 'enhanced_handler_v2',
+      shouldShowCarousel: true
     });
   }
 

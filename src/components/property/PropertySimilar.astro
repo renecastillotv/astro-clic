@@ -1,5 +1,7 @@
 ---
-// src/components/property/PropertySimilar.astro
+// src/components/property/PropertySimilar.astro - OPTIMIZED VERSION
+// Usa datos display-ready de la edge function, elimina procesamiento redundante
+
 export interface Props {
   data: any;
   language?: string;
@@ -26,63 +28,65 @@ const translations = {
   }
 };
 
-// Operation translations
-const operationTranslations = {
-  es: {
-    'Venta': 'Venta',
-    'Venta Amueblada': 'Venta Amueblada',
-    'Alquiler': 'Alquiler', 
-    'Alquiler Amueblado': 'Alquiler Amueblado',
-    'Temporal': 'Temporal',
-    'Consultar': 'Consultar'
-  },
-  en: {
-    'Venta': 'Sale',
-    'Venta Amueblada': 'Furnished Sale',
-    'Alquiler': 'Rental',
-    'Alquiler Amueblado': 'Furnished Rental', 
-    'Temporal': 'Short-term',
-    'Consultar': 'Inquire'
-  },
-  fr: {
-    'Venta': 'Vente',
-    'Venta Amueblada': 'Vente Meublée',
-    'Alquiler': 'Location',
-    'Alquiler Amueblado': 'Location Meublée',
-    'Temporal': 'Temporaire', 
-    'Consultar': 'Consulter'
-  }
-};
-
 const t = translations[currentLanguage] || translations.es;
 
-// Function to get localized property title
-function getLocalizedTitle(property, targetLang) {
-  // Try language-specific content first
-  if (targetLang === 'en' && property.content_en?.name) {
-    return property.content_en.name;
+// ===== USAR DATOS DIRECTOS DE LA EDGE FUNCTION =====
+// La edge function ya procesó todo: precios, operaciones, URLs, multilenguaje
+
+const similarProperties = data.similarProperties || [];
+const hasSimilarProperties = data.hasSimilarProperties || similarProperties.length > 0;
+
+// Helper function para limpiar imagen URL si es necesario
+function getCleanImageUrl(imageUrl) {
+  if (!imageUrl) return '/images/placeholder-property.jpg';
+  
+  // Si la imagen contiene _small., intentar upgrade a _large.
+  if (imageUrl.includes('_small.')) {
+    return imageUrl.replace('_small.', '_large.');
   }
   
-  if (targetLang === 'fr' && property.content_fr?.name) {
-    return property.content_fr.name;
-  }
+  return imageUrl;
+}
+
+// Procesar solo lo mínimo necesario para UI
+const processedSimilarProperties = similarProperties.map(property => ({
+  // Usar datos ya procesados por la edge function
+  id: property.id,
+  title_display: property.title_display || property.name || 'Propiedad',
+  price_display: property.price_display || 'Consultar',
+  operation_display: property.operation_display || 'Venta',
+  category_display: property.category_display || property.property_categories?.name || 'Propiedad',
+  location_display: property.location_display || property.sectors?.name || property.cities?.name || '',
+  url: property.url || '#',
   
-  // Fallback to main title fields
-  return property.titulo || property.name || 'Propiedad';
-}
-
-// Function to get translated operation
-function getLocalizedOperation(operation, targetLang) {
-  const opTranslations = operationTranslations[targetLang] || operationTranslations.es;
-  return opTranslations[operation] || operation;
-}
-
-// Process similar properties with localized titles and operations
-const processedSimilarProperties = (data.similarProperties || []).map(similar => ({
-  ...similar,
-  localizedTitle: getLocalizedTitle(similar, currentLanguage),
-  localizedOperation: getLocalizedOperation(similar.operacion, currentLanguage)
+  // Procesar imagen con upgrade a large
+  main_image_url: getCleanImageUrl(property.main_image_url),
+  
+  // Características básicas
+  bedrooms: property.bedrooms || 0,
+  bathrooms: property.bathrooms || 0,
+  built_area: property.built_area || 0,
+  parking_spots: property.parking_spots || 0,
+  
+  // Metadatos de la edge function
+  relation_type: property.relation_type || 'unknown',
+  relation_source: property.relation_source || 'algorithm'
 }));
+
+console.log('PropertySimilar Debug:', {
+  language: currentLanguage,
+  totalSimilarProperties: similarProperties.length,
+  processedCount: processedSimilarProperties.length,
+  hasSimilarProperties,
+  firstPropertyData: processedSimilarProperties[0] ? {
+    title: processedSimilarProperties[0].title_display,
+    price: processedSimilarProperties[0].price_display,
+    operation: processedSimilarProperties[0].operation_display,
+    url: processedSimilarProperties[0].url,
+    image: processedSimilarProperties[0].main_image_url,
+    relation_type: processedSimilarProperties[0].relation_type
+  } : null
+});
 ---
 
 <style>
@@ -105,16 +109,22 @@ const processedSimilarProperties = (data.similarProperties || []).map(similar =>
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border-bottom-left-radius: 2px;
+    z-index: 10;
   }
 </style>
 
 <!-- Propiedades Similares -->
-{data.hasSimilarProperties && processedSimilarProperties && processedSimilarProperties.length > 0 && (
+{hasSimilarProperties && processedSimilarProperties.length > 0 && (
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
         {t.title}
       </h2>
+      
+      <!-- Debug info (remover en producción) -->
+      <div class="text-xs text-gray-500">
+        {processedSimilarProperties.length} encontradas
+      </div>
     </div>
     
     <!-- Grid 2 columnas compacto -->
@@ -127,8 +137,8 @@ const processedSimilarProperties = (data.similarProperties || []).map(similar =>
           <!-- Imagen compacta -->
           <div class="relative w-32 flex-shrink-0 overflow-hidden">
             <img 
-              src={similar.imagen || '/images/placeholder-property.jpg'}
-              alt={similar.localizedTitle}
+              src={similar.main_image_url}
+              alt={similar.title_display}
               class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
               onerror="this.src='/images/placeholder-property.jpg'"
@@ -141,54 +151,73 @@ const processedSimilarProperties = (data.similarProperties || []).map(similar =>
           <div class="flex-1 p-3 flex flex-col justify-between min-w-0 relative">
             <!-- Badge ribbon integrado -->
             <div class="ribbon">
-              {similar.localizedOperation}
+              {similar.operation_display}
             </div>
             
-            <!-- Precio -->
+            <!-- Precio (ya formateado por edge function) -->
             <div class="mb-1">
               <span class="text-lg font-bold text-[#f04e00] leading-none group-hover:text-[#e03400] transition-colors duration-300">
-                {similar.precio}
+                {similar.price_display || 'Consultar'}
               </span>
             </div>
             
-            <!-- Título con 2 líneas máximo -->
+            <!-- Título (ya traducido por edge function) -->
             <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2 group-hover:text-[#f04e00] transition-colors duration-300 leading-tight">
-              {similar.localizedTitle}
+              {similar.title_display}
             </h3>
             
-            <!-- Ubicación con pin -->
-            {similar.sector && (
+            <!-- Ubicación -->
+            {similar.location_display && (
               <div class="flex items-center gap-1 mb-1">
                 <i class="fas fa-map-marker-alt text-gray-500 text-xs"></i>
-                <span class="text-xs text-gray-600 truncate">{similar.sector}</span>
+                <span class="text-xs text-gray-600 truncate">{similar.location_display}</span>
               </div>
             )}
             
-            <!-- Características en línea horizontal con iconos consistentes con PropertyHero -->
+            <!-- Características en línea horizontal -->
             <div class="flex items-center gap-3 text-xs text-gray-600">
-              <div class="flex items-center gap-1">
-                <i class="fas fa-bed text-gray-500 text-xs"></i>
-                <span class="font-medium text-gray-700">{similar.habitaciones}</span>
-              </div>
+              {similar.bedrooms > 0 && (
+                <div class="flex items-center gap-1">
+                  <i class="fas fa-bed text-gray-500 text-xs"></i>
+                  <span class="font-medium text-gray-700">{similar.bedrooms}</span>
+                </div>
+              )}
               
-              <div class="flex items-center gap-1">
-                <i class="fas fa-bath text-gray-500 text-xs"></i>
-                <span class="font-medium text-gray-700">{similar.banos}</span>
-              </div>
+              {similar.bathrooms > 0 && (
+                <div class="flex items-center gap-1">
+                  <i class="fas fa-bath text-gray-500 text-xs"></i>
+                  <span class="font-medium text-gray-700">{similar.bathrooms}</span>
+                </div>
+              )}
               
-              <div class="flex items-center gap-1">
-                <i class="fas fa-car text-gray-500 text-xs"></i>
-                <span class="font-medium text-gray-700">{similar.parking_spots || 1}</span>
-              </div>
+              {similar.parking_spots > 0 && (
+                <div class="flex items-center gap-1">
+                  <i class="fas fa-car text-gray-500 text-xs"></i>
+                  <span class="font-medium text-gray-700">{similar.parking_spots}</span>
+                </div>
+              )}
               
-              <div class="flex items-center gap-1">
-                <i class="fas fa-th-large text-gray-500 text-xs"></i>
-                <span class="font-medium text-gray-700">{similar.metros}m²</span>
-              </div>
+              {similar.built_area > 0 && (
+                <div class="flex items-center gap-1">
+                  <i class="fas fa-th-large text-gray-500 text-xs"></i>
+                  <span class="font-medium text-gray-700">{similar.built_area}m²</span>
+                </div>
+              )}
             </div>
+            
+
           </div>
         </a>
       ))}
     </div>
+    
+    <!-- Footer con información adicional -->
+    {processedSimilarProperties.length > 6 && (
+      <div class="text-center pt-2">
+        <p class="text-sm text-gray-600">
+          Mostrando 6 de {processedSimilarProperties.length} propiedades similares
+        </p>
+      </div>
+    )}
   </div>
 )}
