@@ -1,8 +1,16 @@
 ---
-// MiniSearchBar.astro - VERSIÓN CON EDGE FUNCTION
+// MiniSearchBar.astro - COMPLETE REWRITE with direct data integration
 import { Search, BedDouble, Bath, Car, Home, MapPin, Filter, ChevronDown, X } from "lucide-astro";
 
 export interface Props {
+  // Datos del search tags handler
+  searchTags?: any;
+  locationHierarchy?: any;
+  preselectedFilters?: any;
+  language?: string;
+  country?: any;
+  trackingString?: string;
+  // Props legacy (mantenidas para compatibilidad)
   currentFilters?: {
     accion?: string;
     tipo?: string;
@@ -18,90 +26,84 @@ export interface Props {
     caracteristicas?: string[];
   };
   isSticky?: boolean;
-  supabaseUrl?: string;
 }
 
-const { currentFilters = {}, isSticky = false, supabaseUrl } = Astro.props;
+const { 
+  searchTags,
+  locationHierarchy,
+  preselectedFilters,
+  language = 'es',
+  country,
+  trackingString = '',
+  currentFilters = {},
+  isSticky = false 
+} = Astro.props;
 
-// Función para extraer filtros desde la URL actual
-function extractFiltersFromURL(url: URL) {
-  const pathname = url.pathname;
-  const segments = pathname.split('/').filter(Boolean);
+// Detectar monedas disponibles desde searchTags o usar default
+let availableCurrencies = ['USD', 'DOP'];
+let defaultCurrency = 'USD';
+
+if (searchTags?.currencies) {
+  availableCurrencies = searchTags.currencies.available || ['USD', 'DOP'];
+  defaultCurrency = searchTags.currencies.default || availableCurrencies[0];
+} else if (country?.currencies) {
+  availableCurrencies = country.currencies.available || ['USD', 'DOP'];
+  defaultCurrency = country.currencies.default || availableCurrencies[0];
+}
+
+// Usar solo las primeras 2 monedas máximo
+availableCurrencies = availableCurrencies.slice(0, 2);
+
+// Fusionar filtros: preselectedFilters tiene prioridad sobre currentFilters
+const mergedFilters = {
+  accion: 'comprar',
+  moneda: defaultCurrency,
+  ubicacion: '',
+  sector: '',
+  tipo: '',
+  habitaciones: '',
+  banos: '',
+  parqueos: '',
+  area: '',
+  precio: '',
+  caracteristicas: [],
+  ...currentFilters,
+  ...(preselectedFilters || {})
+};
+
+// Manejar mapeo de campos específicos de preselectedFilters
+if (preselectedFilters) {
+  // Usar ciudad en lugar de ubicacion si ciudad tiene valor
+  if (preselectedFilters.ciudad && !mergedFilters.ubicacion) {
+    mergedFilters.ubicacion = preselectedFilters.ciudad;
+  }
   
-  const filters: any = {
-    accion: 'comprar',
-    moneda: 'USD',
-    ubicacion: '',
-    sector: '',
-    tipo: '',
-    habitaciones: '',
-    banos: '',
-    parqueos: '',
-    precio: '',
-    caracteristicas: []
-  };
-
-  // Detectar acción
-  if (segments.length > 0 && ['comprar', 'alquilar'].includes(segments[0])) {
-    filters.accion = segments[0];
-  }
-
-  // Procesar el resto de segmentos
-  for (let i = 1; i < segments.length; i++) {
-    const segment = segments[i];
-    
-    // Detectar precio
-    if (segment.startsWith('precio-desde-')) {
-      const priceMatch = segment.match(/^precio-desde-(\d+)(?:-(\d+))?-(usd|dop)$/i);
-      if (priceMatch) {
-        const [, min, max, currency] = priceMatch;
-        filters.moneda = currency.toUpperCase();
-        filters.precio = max ? `${min}-${max}` : `${min}+`;
-      }
-    }
-    // Detectar habitaciones, baños, parqueos
-    else if (segment.includes('-habitaciones')) {
-      const match = segment.match(/^(\d+|\d+\+)-habitaciones$/);
-      if (match) filters.habitaciones = match[1];
-    }
-    else if (segment.includes('-banos')) {
-      const match = segment.match(/^(\d+|\d+\+)-banos$/);
-      if (match) filters.banos = match[1];
-    }
-    else if (segment.includes('-parqueos')) {
-      const match = segment.match(/^(\d+|\d+\+)-parqueos$/);
-      if (match) filters.parqueos = match[1];
-    }
-    else {
-      // Para otros segmentos, los agregaremos a un array temporal
-      // que luego resolveremos contra los tags de la base de datos
-      if (!filters.segments) filters.segments = [];
-      filters.segments.push(segment);
-    }
-  }
-
-  return filters;
+  // Sincronizar campos adicionales
+  mergedFilters.ciudad = preselectedFilters.ciudad || '';
+  mergedFilters.provincia = preselectedFilters.provincia || '';
 }
 
-const urlFilters = extractFiltersFromURL(Astro.url);
-const mergedFilters = { ...urlFilters, ...currentFilters };
+// Si no hay moneda preseleccionada válida, usar default
+if (!mergedFilters.moneda || !availableCurrencies.includes(mergedFilters.moneda)) {
+  mergedFilters.moneda = defaultCurrency;
+}
 
-// URL de la Edge Function
-const edgeFunctionUrl = supabaseUrl ? 
-  `${supabaseUrl}/functions/v1/get-search-tags` : 
-  '/api/get-search-tags';
+console.log('MiniSearchBar - Inicializando:', {
+  hasSearchTags: !!searchTags,
+  hasLocationHierarchy: !!locationHierarchy,
+  hasPreselectedFilters: !!preselectedFilters,
+  mergedFilters,
+  availableCurrencies,
+  defaultCurrency,
+  language,
+  trackingString
+});
 ---
 
 <!-- Contenedor principal -->
 <div class="w-full" id="mini-search-container">
-  <!-- LOADING STATE -->
-  <div id="loading-state" class="flex items-center justify-center py-8">
-    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f04e00]"></div>
-    <span class="ml-3 text-gray-600">Cargando filtros...</span>
-  </div>
-
-  <!-- MAIN SEARCH BAR - Oculto inicialmente -->
-  <div id="search-bar-content" class="hidden">
+  <!-- MAIN SEARCH BAR -->
+  <div id="search-bar-content">
     <!-- FILTROS PRINCIPALES -->
     <div class="flex flex-col lg:flex-row gap-3 lg:gap-2 lg:items-center mb-4">
       
@@ -115,21 +117,23 @@ const edgeFunctionUrl = supabaseUrl ?
             class="mini-action-btn px-3 py-2 text-xs font-semibold rounded-md transition-all"
             data-action="comprar"
           >
-            COMPRAR
+            {language === 'en' ? 'BUY' : language === 'fr' ? 'ACHETER' : 'COMPRAR'}
           </button>
           <button 
             id="action-alquilar" 
             class="mini-action-btn px-3 py-2 text-xs font-semibold rounded-md transition-all"
             data-action="alquilar"
           >
-            ALQUILAR
+            {language === 'en' ? 'RENT' : language === 'fr' ? 'LOUER' : 'ALQUILAR'}
           </button>
         </div>
 
         <!-- 2. TIPO DE INMUEBLE -->
         <div class="relative flex-1 min-w-0">
           <select id="mini-tipo" class="mini-select-with-icon w-full pl-9 pr-7 text-sm appearance-none">
-            <option value="">Tipo de Inmueble</option>
+            <option value="">
+              {language === 'en' ? 'Property Type' : language === 'fr' ? 'Type de Propriété' : 'Tipo de Inmueble'}
+            </option>
           </select>
           <Home class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
           <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
@@ -138,7 +142,9 @@ const edgeFunctionUrl = supabaseUrl ?
         <!-- 3. UBICACIÓN -->
         <div class="relative flex-1 min-w-0">
           <select id="mini-ubicacion" class="mini-select-with-icon w-full pl-9 pr-7 text-sm appearance-none">
-            <option value="">Ubicación</option>
+            <option value="">
+              {language === 'en' ? 'Location' : language === 'fr' ? 'Localisation' : 'Ubicación'}
+            </option>
           </select>
           <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
           <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
@@ -151,74 +157,105 @@ const edgeFunctionUrl = supabaseUrl ?
         <!-- 4. SECTOR -->
         <div class="relative min-w-0 flex-1 lg:w-32">
           <select id="mini-sector" class="mini-select-with-icon w-full pl-3 pr-7 text-sm appearance-none" disabled>
-            <option value="">Sector</option>
+            <option value="">
+              {language === 'en' ? 'Sector' : language === 'fr' ? 'Secteur' : 'Sector'}
+            </option>
           </select>
           <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
         </div>
 
-        <!-- 5. PRECIO con toggle moneda -->
-        <div class="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 min-w-0 flex-1 lg:w-48">
-          <div class="flex bg-gray-100 rounded-l-lg">
-            <button id="currency-usd" class="mini-currency-btn px-2 py-2 text-xs font-medium rounded-l-lg transition-all border-r border-gray-200">
-              USD
-            </button>
-            <button id="currency-dop" class="mini-currency-btn px-2 py-2 text-xs font-medium transition-all">
-              DOP
-            </button>
+        <!-- 5. PRECIO con toggle moneda dinámico -->
+        <div id="price-container" class="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 min-w-0 flex-1 lg:w-48">
+          <!-- Toggle de moneda (creado dinámicamente) -->
+          <div id="currency-toggle" class="flex bg-gray-100 rounded-l-lg" style="display: none;">
+            <!-- Botones de moneda se crearán dinámicamente -->
           </div>
-          <select id="mini-precio" class="appearance-none bg-transparent border-none outline-none pl-2 pr-6 py-2 text-sm flex-1 min-w-0">
-            <option value="">Precio</option>
+          <select id="mini-precio" class="appearance-none bg-transparent border-none outline-none py-2 text-sm flex-1 min-w-0 px-3">
+            <option value="">
+              {language === 'en' ? 'Price' : language === 'fr' ? 'Prix' : 'Precio'}
+            </option>
           </select>
           <ChevronDown class="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
         </div>
 
         <!-- BOTÓN: Más filtros -->
         <button id="more-filters-toggle" class="flex items-center gap-1 px-3 py-2 bg-white border border-gray-200 hover:border-[#f04e00] text-gray-600 hover:text-[#f04e00] rounded-lg transition-all group text-sm font-medium whitespace-nowrap">
-          <span class="text-xs">Más filtros</span>
+          <span class="text-xs">
+            {language === 'en' ? 'More filters' : language === 'fr' ? 'Plus de filtres' : 'Más filtros'}
+          </span>
           <svg class="w-3 h-3 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </button>
 
         <!-- BOTÓN: Buscar -->
-        <button id="mini-search-btn" class="flex items-center gap-2 px-4 py-2 bg-[#f04e00] hover:bg-[#d94400] text-white rounded-lg transition-all font-semibold text-sm whitespace-nowrap">
+        <button id="mini-search-btn" class="flex items-center gap-2 px-4 py-2 bg-gray-300 cursor-not-allowed text-white rounded-lg transition-all font-semibold text-sm whitespace-nowrap" disabled>
           <Search class="w-4 h-4" />
-          <span class="hidden sm:inline">Buscar</span>
+          <span class="hidden sm:inline">
+            {language === 'en' ? 'Select filters' : language === 'fr' ? 'Sélectionner filtres' : 'Selecciona filtros'}
+          </span>
         </button>
       </div>
     </div>
 
     <!-- MODAL: Filtros Secundarios -->
     <div id="advanced-filters-panel" class="hidden mt-4 p-6 bg-gray-50 rounded-lg border">
-      <h3 class="text-lg font-semibold text-gray-900 mb-6">Filtros adicionales</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">
+        {language === 'en' ? 'Additional filters' : language === 'fr' ? 'Filtres supplémentaires' : 'Filtros adicionales'}
+      </h3>
       
-      <!-- Habitaciones, Baños, Parqueos -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <!-- Habitaciones, Baños, Parqueos, Área -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">Habitaciones</label>
+          <label class="text-sm font-semibold text-gray-700">
+            {language === 'en' ? 'Bedrooms' : language === 'fr' ? 'Chambres' : 'Habitaciones'}
+          </label>
           <select id="modal-habitaciones" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
-            <option value="">Cualquiera</option>
+            <option value="">
+              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+            </option>
           </select>
         </div>
         
         <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">Baños</label>
+          <label class="text-sm font-semibold text-gray-700">
+            {language === 'en' ? 'Bathrooms' : language === 'fr' ? 'Salles de bain' : 'Baños'}
+          </label>
           <select id="modal-banos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
-            <option value="">Cualquiera</option>
+            <option value="">
+              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+            </option>
           </select>
         </div>
         
         <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">Parqueos</label>
+          <label class="text-sm font-semibold text-gray-700">
+            {language === 'en' ? 'Parking' : language === 'fr' ? 'Parking' : 'Parqueos'}
+          </label>
           <select id="modal-parqueos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
-            <option value="">Cualquiera</option>
+            <option value="">
+              {language === 'en' ? 'Any' : language === 'fr' ? 'Tous' : 'Cualquiera'}
+            </option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-gray-700">
+            {language === 'en' ? 'Area' : language === 'fr' ? 'Surface' : 'Área'}
+          </label>
+          <select id="modal-area" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+            <option value="">
+              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+            </option>
           </select>
         </div>
       </div>
       
       <!-- Características -->
       <div class="mb-6">
-        <h4 class="text-sm font-semibold text-gray-700 mb-3">Características</h4>
+        <h4 class="text-sm font-semibold text-gray-700 mb-3">
+          {language === 'en' ? 'Features' : language === 'fr' ? 'Caractéristiques' : 'Características'}
+        </h4>
         <div id="caracteristicas-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           <!-- Se llenarán dinámicamente -->
         </div>
@@ -227,14 +264,14 @@ const edgeFunctionUrl = supabaseUrl ?
       <!-- Botones del modal -->
       <div class="flex justify-between items-center pt-4 border-t border-gray-200">
         <button id="clear-secondary-filters" class="text-sm text-gray-600 hover:text-gray-800 font-medium">
-          Limpiar filtros secundarios
+          {language === 'en' ? 'Clear secondary filters' : language === 'fr' ? 'Effacer filtres secondaires' : 'Limpiar filtros secundarios'}
         </button>
         <div class="flex gap-3">
           <button id="close-advanced" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            Cerrar
+            {language === 'en' ? 'Close' : language === 'fr' ? 'Fermer' : 'Cerrar'}
           </button>
           <button id="apply-secondary-filters" class="px-4 py-2 text-sm bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
-            Aplicar filtros
+            {language === 'en' ? 'Apply filters' : language === 'fr' ? 'Appliquer filtres' : 'Aplicar filtros'}
           </button>
         </div>
       </div>
@@ -242,9 +279,9 @@ const edgeFunctionUrl = supabaseUrl ?
   </div>
 </div>
 
-<script define:vars={{ mergedFilters, edgeFunctionUrl }}>
-  document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 MiniSearchBar con Edge Function - Iniciando');
+<script define:vars={{ mergedFilters, searchTags, locationHierarchy, language, trackingString, availableCurrencies, defaultCurrency }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('MiniSearchBar - Iniciando con datos directos del handler');
     
     // Estado global
     let currentState = {
@@ -253,24 +290,27 @@ const edgeFunctionUrl = supabaseUrl ?
       ubicacion: '',
       sector: '',
       precio: '',
-      moneda: 'USD',
+      moneda: defaultCurrency,
       habitaciones: '',
       banos: '',
       parqueos: '',
+      area: '',
       caracteristicas: [],
       ...mergedFilters
     };
 
-    let tagsData = null;
+    // Asegurar que caracteristicas sea un array
+    if (currentState.caracteristicas && !Array.isArray(currentState.caracteristicas)) {
+      currentState.caracteristicas = [];
+    }
+
     let isUpdatingFromCode = false;
-    let isInitializing = true;
     let searchTimeout = null;
+    let currencyBtns = [];
 
     // Referencias DOM
-    const loadingState = document.getElementById('loading-state');
-    const searchBarContent = document.getElementById('search-bar-content');
     const actionBtns = document.querySelectorAll('.mini-action-btn');
-    const currencyBtns = document.querySelectorAll('.mini-currency-btn');
+    const currencyToggle = document.getElementById('currency-toggle');
     const tipoSelect = document.getElementById('mini-tipo');
     const ubicacionSelect = document.getElementById('mini-ubicacion');
     const sectorSelect = document.getElementById('mini-sector');
@@ -278,193 +318,599 @@ const edgeFunctionUrl = supabaseUrl ?
     const modalHabitaciones = document.getElementById('modal-habitaciones');
     const modalBanos = document.getElementById('modal-banos');
     const modalParqueos = document.getElementById('modal-parqueos');
+    const modalArea = document.getElementById('modal-area');
     const caracteristicasGrid = document.getElementById('caracteristicas-grid');
     const moreFiltersToggle = document.getElementById('more-filters-toggle');
     const advancedPanel = document.getElementById('advanced-filters-panel');
     const searchBtn = document.getElementById('mini-search-btn');
 
-    // 📡 Cargar datos desde Edge Function
-    async function loadTagsData() {
-      try {
-        console.log('📡 Cargando datos desde Edge Function...');
-        
-        // Construir URL con parámetros de idioma y host
-        const urlParams = new URLSearchParams();
-        
-        // Detectar idioma desde la URL actual o navegador
-        const currentPath = window.location.pathname;
-        let detectedLang = 'es';
-        if (currentPath.startsWith('/en/')) detectedLang = 'en';
-        else if (currentPath.startsWith('/fr/')) detectedLang = 'fr';
-        
-        urlParams.set('lang', detectedLang);
-        
-        const finalUrl = `${edgeFunctionUrl}?${urlParams.toString()}`;
-        console.log('🔗 Calling Edge Function:', finalUrl);
-        
-        const response = await fetch(finalUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-original-host': window.location.host,
-            'x-forwarded-host': window.location.host,
-            'Accept-Language': navigator.language || 'es'
-          }
-        });
+    console.log('Estado inicial:', currentState);
 
-        console.log('📡 Response status:', response.status);
+    // Inicializar UI
+    initializeUI();
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ HTTP Error Response:', errorText);
-          throw new Error(`HTTP error! status: ${response.status}`);
+    function initializeUI() {
+      console.log('Inicializando UI...');
+      setupCurrencyToggle();
+      updateActionToggle(currentState.accion);
+      updateCurrencyToggle(currentState.moneda);
+      populateSelectsWithData();
+      setupEventListeners();
+      updateSearchButtonState();
+      console.log('UI inicializada correctamente');
+    }
+    
+    // Configurar toggle de moneda dinámicamente
+    function setupCurrencyToggle() {
+      if (!currencyToggle) {
+        console.warn('Currency toggle element not found');
+        return;
+      }
+      
+      console.log('Configurando toggle de moneda:', availableCurrencies);
+      
+      if (availableCurrencies.length <= 1) {
+        // Solo una moneda, ocultar toggle
+        currencyToggle.style.display = 'none';
+        const precioInput = document.getElementById('mini-precio');
+        if (precioInput) {
+          precioInput.style.paddingLeft = '12px';
         }
-
-        const result = await response.json();
-        console.log('📊 Raw response:', result);
+        console.log('Toggle de moneda oculto - solo una moneda disponible');
+        return;
+      }
+      
+      // Múltiples monedas, mostrar toggle
+      currencyToggle.style.display = 'flex';
+      currencyToggle.innerHTML = '';
+      
+      availableCurrencies.forEach((currency, index) => {
+        const button = document.createElement('button');
+        button.id = `currency-${currency.toLowerCase()}`;
+        button.className = 'mini-currency-btn px-2 py-2 text-xs font-medium transition-all';
+        button.textContent = currency;
+        button.dataset.currency = currency;
         
-        if (!result.success) {
-          throw new Error(result.error || 'Error desconocido');
+        if (index < availableCurrencies.length - 1) {
+          button.classList.add('border-r', 'border-gray-200');
         }
-
-        tagsData = result.data;
-        console.log('✅ Datos cargados exitosamente:', {
-          country: tagsData.country?.name,
-          language: tagsData.language,
-          total_tags: Object.values(tagsData.tags).reduce((sum, arr) => sum + arr.length, 0),
-          categories: Object.keys(tagsData.tags).map(cat => `${cat}: ${tagsData.tags[cat].length}`).join(', ')
-        });
         
-        return tagsData;
+        if (index === 0) {
+          button.classList.add('rounded-l-lg');
+        }
         
-      } catch (error) {
-        console.error('❌ Error cargando datos:', error);
-        
-        // Fallback con datos mínimos para desarrollo
-        console.log('🔄 Usando datos de fallback para desarrollo');
-        return {
-          country: { 
-            name: 'República Dominicana', 
-            code: 'DOM', 
-            currency: 'DOP',
-            id: '0bd97f6d-5eda-4990-90e7-270148613a25'
-          },
-          language: 'es',
-          tags: {
-            accion: [
-              { id: '1', slug: 'comprar', display_name: 'Comprar', category: 'accion', property_count: 100 },
-              { id: '2', slug: 'alquilar', display_name: 'Alquilar', category: 'accion', property_count: 50 }
-            ],
-            tipo: [
-              { id: '3', slug: 'apartamento', display_name: 'Apartamento', category: 'tipo', property_count: 75 },
-              { id: '4', slug: 'casa', display_name: 'Casa', category: 'tipo', property_count: 25 }
-            ],
-            ubicacion: [
-              { id: '5', slug: 'distrito-nacional', display_name: 'Distrito Nacional', category: 'ubicacion', property_count: 80 }
-            ],
-            sector: [],
-            precio: [],
-            habitaciones: [
-              { id: '6', slug: '1', display_name: '1', category: 'habitaciones', property_count: 20 },
-              { id: '7', slug: '2', display_name: '2', category: 'habitaciones', property_count: 40 },
-              { id: '8', slug: '3', display_name: '3', category: 'habitaciones', property_count: 30 }
-            ],
-            banos: [
-              { id: '9', slug: '1', display_name: '1', category: 'banos', property_count: 30 },
-              { id: '10', slug: '2', display_name: '2', category: 'banos', property_count: 50 }
-            ],
-            parqueos: [
-              { id: '11', slug: '1', display_name: '1', category: 'parqueos', property_count: 40 }
-            ],
-            caracteristicas: [
-              { id: '12', slug: 'piscina', display_name: 'Piscina', category: 'caracteristicas', property_count: 15 },
-              { id: '13', slug: 'gimnasio', display_name: 'Gimnasio', category: 'caracteristicas', property_count: 10 }
-            ]
-          }
-        };
+        currencyToggle.appendChild(button);
+      });
+      
+      // Actualizar referencias a botones de moneda
+      currencyBtns = currencyToggle.querySelectorAll('.mini-currency-btn');
+      console.log('Toggle de moneda configurado con', currencyBtns.length, 'botones');
+      
+      // Ajustar padding del select de precio
+      const precioInput = document.getElementById('mini-precio');
+      if (precioInput) {
+        precioInput.style.paddingLeft = '8px';
       }
     }
 
-    // 🏗️ Construir opciones de select
-    function populateSelect(selectElement, tags, emptyLabel) {
+    // Helper para obtener etiquetas vacías según idioma
+    function getEmptyLabel(type) {
+      const labels = {
+        es: {
+          tipo: 'Tipo de Inmueble',
+          ubicacion: 'Ubicación',
+          habitaciones: 'Cualquiera',
+          banos: 'Cualquiera',
+          parqueos: 'Cualquiera',
+          area: 'Cualquiera',
+          precio: 'Precio'
+        },
+        en: {
+          tipo: 'Property Type',
+          ubicacion: 'Location',
+          habitaciones: 'Any',
+          banos: 'Any',
+          parqueos: 'Any',
+          area: 'Any',
+          precio: 'Price'
+        },
+        fr: {
+          tipo: 'Type de Propriété',
+          ubicacion: 'Localisation',
+          habitaciones: 'Toutes',
+          banos: 'Toutes',
+          parqueos: 'Tous',
+          area: 'Toutes',
+          precio: 'Prix'
+        }
+      };
+      return labels[language]?.[type] || labels.es[type];
+    }
+    
+    // Poblar selects con datos reales del handler
+    function populateSelectsWithData() {
+      console.log('Poblando selects con estado:', currentState);
+      
+      // 1. TIPOS DE INMUEBLE
+      if (tipoSelect && searchTags?.tipo) {
+        updateSelectWithData(tipoSelect, searchTags.tipo, getEmptyLabel('tipo'));
+        if (currentState.tipo) {
+          tipoSelect.value = currentState.tipo;
+          console.log('Tipo preseleccionado:', currentState.tipo);
+        }
+      }
+      
+      // 2. UBICACIONES
+      if (ubicacionSelect && searchTags) {
+        const ubicaciones = [
+          ...(searchTags.provincia || []),
+          ...(searchTags.ciudad || [])
+        ].sort((a, b) => a.display_name.localeCompare(b.display_name));
+        
+        updateSelectWithData(ubicacionSelect, ubicaciones, getEmptyLabel('ubicacion'));
+        
+        const ubicacionValue = currentState.ubicacion;
+        if (ubicacionValue) {
+          ubicacionSelect.value = ubicacionValue;
+          console.log('Ubicación preseleccionada:', ubicacionValue);
+        }
+      }
+      
+      // 3. PRECIOS
+      if (precioSelect && searchTags?.precio) {
+        updatePrecioOptions();
+        if (currentState.precio) {
+          setTimeout(() => {
+            const precioOption = [...precioSelect.options].find(option => option.value === currentState.precio);
+            if (precioOption) {
+              precioSelect.value = currentState.precio;
+              console.log('Precio preseleccionado:', currentState.precio);
+            } else {
+              console.log('Precio preseleccionado no encontrado:', currentState.precio);
+            }
+          }, 100);
+        }
+      }
+      
+      // 4-6. MODAL FIELDS
+      populateModalFields();
+      
+      // 7. CARACTERÍSTICAS
+      if (caracteristicasGrid && searchTags) {
+        updateCaracteristicasWithData();
+      }
+      
+      // 8. SECTORES
+      updateSectorOptions();
+    }
+
+    function populateModalFields() {
+      // Habitaciones
+      if (modalHabitaciones && searchTags?.habitaciones) {
+        updateSelectWithData(modalHabitaciones, searchTags.habitaciones, getEmptyLabel('habitaciones'));
+        if (currentState.habitaciones && currentState.habitaciones !== '') {
+          // Buscar por slug exacto primero
+          let matchingOption = [...modalHabitaciones.options].find(option => option.value === currentState.habitaciones);
+          
+          if (matchingOption) {
+            modalHabitaciones.value = currentState.habitaciones;
+            console.log('Habitaciones preseleccionadas por slug exacto:', currentState.habitaciones);
+          } else {
+            console.log('No se encontró slug exacto para habitaciones:', currentState.habitaciones);
+            console.log('Opciones disponibles:', [...modalHabitaciones.options].map(o => ({ value: o.value, text: o.textContent })));
+          }
+        }
+      }
+      
+      // Baños
+      if (modalBanos && searchTags?.banos) {
+        updateSelectWithData(modalBanos, searchTags.banos, getEmptyLabel('banos'));
+        if (currentState.banos && currentState.banos !== '') {
+          // Buscar por slug exacto primero
+          let matchingOption = [...modalBanos.options].find(option => option.value === currentState.banos);
+          
+          if (matchingOption) {
+            modalBanos.value = currentState.banos;
+            console.log('Baños preseleccionados por slug exacto:', currentState.banos);
+          } else {
+            console.log('No se encontró slug exacto para baños:', currentState.banos);
+            console.log('Opciones disponibles:', [...modalBanos.options].map(o => ({ value: o.value, text: o.textContent })));
+          }
+        }
+      }
+      
+      // Parqueos
+      if (modalParqueos && searchTags?.parqueos) {
+        updateSelectWithData(modalParqueos, searchTags.parqueos, getEmptyLabel('parqueos'));
+        if (currentState.parqueos && currentState.parqueos !== '') {
+          // Buscar por slug exacto primero
+          let matchingOption = [...modalParqueos.options].find(option => option.value === currentState.parqueos);
+          
+          if (matchingOption) {
+            modalParqueos.value = currentState.parqueos;
+            console.log('Parqueos preseleccionados por slug exacto:', currentState.parqueos);
+          } else {
+            console.log('No se encontró slug exacto para parqueos:', currentState.parqueos);
+            console.log('Opciones disponibles:', [...modalParqueos.options].map(o => ({ value: o.value, text: o.textContent })));
+          }
+        }
+      }
+
+      // Área
+      if (modalArea && searchTags?.area) {
+        updateSelectWithData(modalArea, searchTags.area, getEmptyLabel('area'));
+        if (currentState.area && currentState.area !== '') {
+          // Para área, buscar por slug exacto
+          const matchingOption = [...modalArea.options].find(option => option.value === currentState.area);
+          if (matchingOption) {
+            modalArea.value = currentState.area;
+            console.log('Área preseleccionada:', currentState.area);
+          } else {
+            console.log('No se encontró opción para área:', currentState.area);
+            console.log('Opciones de área disponibles:', [...modalArea.options].map(o => ({ value: o.value, text: o.textContent })));
+          }
+        }
+      }
+    }
+    
+    // Actualizar select con datos
+    function updateSelectWithData(selectElement, tags, emptyLabel) {
       if (!selectElement || !tags) return;
       
-      isUpdatingFromCode = true;
+      const currentValue = selectElement.value;
       
+      isUpdatingFromCode = true;
       selectElement.innerHTML = `<option value="">${emptyLabel}</option>`;
       
       tags.forEach(tag => {
-        if (tag.property_count > 0) { // Solo mostrar tags con propiedades
-          const option = document.createElement('option');
-          option.value = tag.slug;
-          option.textContent = tag.display_name;
-          option.dataset.tagId = tag.id;
-          selectElement.appendChild(option);
-        }
+        const option = document.createElement('option');
+        option.value = tag.slug;
+        option.textContent = tag.display_name;
+        option.dataset.tagId = tag.id;
+        selectElement.appendChild(option);
       });
       
-      setTimeout(() => {
-        isUpdatingFromCode = false;
-      }, 0);
+      if (currentValue && [...selectElement.options].some(opt => opt.value === currentValue)) {
+        selectElement.value = currentValue;
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
     }
 
-    // 🏗️ Construir características
-    function populateCaracteristicas(caracteristicas) {
-      if (!caracteristicasGrid || !caracteristicas) return;
+    // Actualizar opciones de precio con filtrado y mejor logging  
+    function updatePrecioOptions() {
+      if (!precioSelect || !searchTags?.precio) {
+        console.log('No se puede actualizar precios - falta precioSelect o searchTags.precio');
+        return;
+      }
+      
+      console.log('Actualizando precios para:', {
+        accion: currentState.accion,
+        moneda: currentState.moneda,
+        totalPrecioTags: searchTags.precio.length
+      });
+      
+      const preciosDisponibles = searchTags.precio.filter(tag => {
+        // Si no tiene meta_info, incluir por defecto
+        if (!tag.meta_info) {
+          console.log(`Precio ${tag.slug}: Sin meta_info, incluido por defecto`);
+          return true;
+        }
+        
+        let metaInfo = tag.meta_info;
+        if (typeof metaInfo === 'string') {
+          try {
+            metaInfo = JSON.parse(metaInfo);
+          } catch (e) {
+            console.log(`Precio ${tag.slug}: Error parsing meta_info, incluido por defecto`);
+            return true;
+          }
+        }
+        
+        // Verificar tipo de operación
+        const requiredRangeType = currentState.accion === 'comprar' ? 'sale' : 'rent';
+        if (metaInfo.range_type && metaInfo.range_type !== requiredRangeType) {
+          console.log(`Precio ${tag.slug}: Tipo incorrecto (${metaInfo.range_type} vs ${requiredRangeType})`);
+          return false;
+        }
+        
+        // Verificar moneda
+        if (metaInfo.currency_ranges && !metaInfo.currency_ranges[currentState.moneda]) {
+          console.log(`Precio ${tag.slug}: No tiene rango para ${currentState.moneda}`);
+          return false;
+        }
+        
+        console.log(`Precio ${tag.slug}: Incluido para ${currentState.accion}/${currentState.moneda}`);
+        return true;
+      });
+      
+      console.log(`Precios filtrados: ${preciosDisponibles.length} de ${searchTags.precio.length} disponibles`);
+      
+      updateSelectWithPrices(preciosDisponibles);
+    }
+    
+    function updateSelectWithPrices(preciosDisponibles) {
+      if (!precioSelect) return;
+      
+      const currentValue = precioSelect.value;
+      
+      isUpdatingFromCode = true;
+      precioSelect.innerHTML = `<option value="">${getEmptyLabel('precio')}</option>`;
+      
+      preciosDisponibles.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.slug;
+        option.dataset.tagId = tag.id;
+        
+        // Determinar el texto a mostrar
+        let displayText = tag.display_name;
+        
+        if (tag.meta_info) {
+          let metaInfo = tag.meta_info;
+          if (typeof metaInfo === 'string') {
+            try {
+              metaInfo = JSON.parse(metaInfo);
+            } catch (e) {
+              metaInfo = null;
+            }
+          }
+          
+          // Usar label específico de moneda si existe
+          if (metaInfo?.currency_ranges?.[currentState.moneda]?.label) {
+            displayText = metaInfo.currency_ranges[currentState.moneda].label;
+          }
+        }
+        
+        option.textContent = displayText;
+        precioSelect.appendChild(option);
+        
+        console.log(`Precio agregado: ${tag.slug} = "${displayText}"`);
+      });
+      
+      // Restaurar valor seleccionado si existe
+      if (currentValue && [...precioSelect.options].some(opt => opt.value === currentValue)) {
+        precioSelect.value = currentValue;
+        console.log('Precio restaurado:', currentValue);
+      } else if (currentValue) {
+        console.log('Precio anterior no encontrado en nuevas opciones:', currentValue);
+        currentState.precio = '';
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+    
+    // Actualizar características
+    function updateCaracteristicasWithData() {
+      if (!caracteristicasGrid || !searchTags) return;
       
       caracteristicasGrid.innerHTML = '';
       
-      caracteristicas.forEach(carac => {
-        if (carac.property_count > 0) {
-          const label = document.createElement('label');
-          label.className = 'flex items-center space-x-2 cursor-pointer';
-          label.innerHTML = `
-            <input 
-              type="checkbox" 
-              value="${carac.slug}"
-              data-tag-id="${carac.id}"
-              class="modal-checkbox rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]"
-            />
-            <span class="text-sm text-gray-700">${carac.display_name}</span>
-          `;
-          caracteristicasGrid.appendChild(label);
+      const allCaracteristicas = [
+        ...(searchTags.amenity || []),
+        ...(searchTags.feature || []),
+        ...(searchTags.custom_list || [])
+      ];
+      
+      allCaracteristicas.sort((a, b) => {
+        if (a.is_featured !== b.is_featured) {
+          return b.is_featured - a.is_featured;
         }
+        return (a.priority || 999) - (b.priority || 999);
       });
+      
+      allCaracteristicas.forEach(carac => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center space-x-2 cursor-pointer';
+        
+        // Verificar si está en las características preseleccionadas
+        const isChecked = currentState.caracteristicas && 
+                          Array.isArray(currentState.caracteristicas) && 
+                          currentState.caracteristicas.includes(carac.slug);
+        
+        label.innerHTML = `
+          <input 
+            type="checkbox" 
+            value="${carac.slug}"
+            data-tag-id="${carac.id}"
+            class="modal-checkbox rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]"
+            ${isChecked ? 'checked' : ''}
+          />
+          <span class="text-sm text-gray-700 ${carac.is_featured ? 'font-medium' : ''}">${carac.display_name}</span>
+          ${carac.is_featured ? '<span class="text-xs text-blue-600">★</span>' : ''}
+        `;
+        caracteristicasGrid.appendChild(label);
+      });
+      
+      console.log('Características actualizadas. Preseleccionadas:', currentState.caracteristicas);
     }
 
-    // 🏗️ Resolver segmentos de URL contra tags
-    function resolveUrlSegments() {
-      if (!tagsData || !mergedFilters.segments) return;
+    // Actualizar sectores
+    function updateSectorOptions() {
+      if (!searchTags || !locationHierarchy) {
+        if (sectorSelect) sectorSelect.disabled = !currentState.ubicacion;
+        return;
+      }
       
-      const segments = mergedFilters.segments;
+      const ubicacionSlug = currentState.ubicacion;
       
-      segments.forEach(segment => {
-        // Buscar en todos los tags
-        Object.entries(tagsData.tags).forEach(([category, tags]) => {
-          const matchingTag = tags.find(tag => tag.slug === segment);
-          if (matchingTag) {
-            switch(category) {
-              case 'tipo':
-                currentState.tipo = segment;
-                break;
-              case 'ubicacion':
-                currentState.ubicacion = segment;
-                break;
-              case 'sector':
-                currentState.sector = segment;
-                break;
-              case 'caracteristicas':
-                if (!currentState.caracteristicas.includes(segment)) {
-                  currentState.caracteristicas.push(segment);
-                }
-                break;
-            }
+      if (!ubicacionSlug) {
+        isUpdatingFromCode = true;
+        sectorSelect.disabled = true;
+        const selectorText = language === 'en' ? 'Select location first' : 
+                            language === 'fr' ? 'Sélectionner lieu d\'abord' : 
+                            'Selecciona ubicación primero';
+        sectorSelect.innerHTML = `<option value="">${selectorText}</option>`;
+        currentState.sector = '';
+        setTimeout(() => { isUpdatingFromCode = false; }, 0);
+        return;
+      }
+      
+      const ubicacionSeleccionada = [
+        ...(searchTags.provincia || []),
+        ...(searchTags.ciudad || [])
+      ].find(tag => tag.slug === ubicacionSlug);
+      
+      if (!ubicacionSeleccionada) {
+        sectorSelect.disabled = true;
+        return;
+      }
+      
+      const sectoresDisponibles = (searchTags.sector || []).filter(sector => {
+        return sector.parent_ids && sector.parent_ids.includes(ubicacionSeleccionada.id);
+      });
+      
+      isUpdatingFromCode = true;
+      
+      if (sectoresDisponibles.length > 0) {
+        sectorSelect.disabled = false;
+        const allSectorsText = language === 'en' ? 'All sectors' : 
+                              language === 'fr' ? 'Tous les secteurs' : 
+                              'Todos los sectores';
+        updateSelectWithData(sectorSelect, sectoresDisponibles, allSectorsText);
+        
+        if (currentState.sector) {
+          const sectorExists = sectoresDisponibles.some(s => s.slug === currentState.sector);
+          if (sectorExists) {
+            sectorSelect.value = currentState.sector;
+            console.log('Sector preseleccionado:', currentState.sector);
+          } else {
+            currentState.sector = '';
+            sectorSelect.value = '';
+          }
+        }
+      } else {
+        sectorSelect.disabled = true;
+        const noSectorsText = language === 'en' ? 'No sectors available' : 
+                             language === 'fr' ? 'Aucun secteur disponible' : 
+                             'No hay sectores disponibles';
+        sectorSelect.innerHTML = `<option value="">${noSectorsText}</option>`;
+        currentState.sector = '';
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+
+    // Event Listeners
+    function setupEventListeners() {
+      // Acciones
+      actionBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const action = btn.dataset.action;
+          if (action !== currentState.accion) {
+            console.log('Acción cambiada a:', action);
+            currentState.accion = action;
+            updateActionToggle(action);
+            updatePrecioOptions();
+            updateSearchButtonState();
+          }
+        });
+      });
+
+      // Configurar listeners de moneda después de crear los botones
+      setupCurrencyListeners();
+
+      // Selectores principales
+      tipoSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.tipo && !isUpdatingFromCode) {
+          console.log('Tipo cambiado a:', this.value);
+          currentState.tipo = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      ubicacionSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.ubicacion && !isUpdatingFromCode) {
+          console.log('Ubicación cambiada a:', this.value);
+          currentState.ubicacion = this.value;
+          currentState.sector = '';
+          updateSectorOptions();
+          updateSearchButtonState();
+        }
+      });
+
+      sectorSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.sector && !isUpdatingFromCode) {
+          console.log('Sector cambiado a:', this.value);
+          currentState.sector = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      precioSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.precio && !isUpdatingFromCode) {
+          console.log('Precio cambiado a:', this.value);
+          currentState.precio = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      // Modal
+      moreFiltersToggle?.addEventListener('click', (e) => {
+        e.preventDefault();
+        advancedPanel?.classList.toggle('hidden');
+      });
+
+      document.getElementById('close-advanced')?.addEventListener('click', () => {
+        advancedPanel?.classList.add('hidden');
+      });
+
+      document.getElementById('apply-secondary-filters')?.addEventListener('click', () => {
+        currentState.habitaciones = modalHabitaciones?.value || '';
+        currentState.banos = modalBanos?.value || '';
+        currentState.parqueos = modalParqueos?.value || '';
+        currentState.area = modalArea?.value || '';
+        
+        currentState.caracteristicas = [];
+        document.querySelectorAll('.modal-checkbox:checked').forEach(checkbox => {
+          currentState.caracteristicas.push(checkbox.value);
+        });
+        
+        console.log('Filtros secundarios aplicados:', currentState);
+        
+        advancedPanel?.classList.add('hidden');
+        updateSearchButtonState();
+      });
+
+      document.getElementById('clear-secondary-filters')?.addEventListener('click', () => {
+        currentState.habitaciones = '';
+        currentState.banos = '';
+        currentState.parqueos = '';
+        currentState.area = '';
+        currentState.caracteristicas = [];
+        
+        if (modalHabitaciones) modalHabitaciones.value = '';
+        if (modalBanos) modalBanos.value = '';
+        if (modalParqueos) modalParqueos.value = '';
+        if (modalArea) modalArea.value = '';
+        
+        document.querySelectorAll('.modal-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        
+        updateSearchButtonState();
+      });
+
+      searchBtn?.addEventListener('click', executeSearch);
+    }
+
+    function setupCurrencyListeners() {
+      currencyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const currency = btn.dataset.currency;
+          if (currency !== currentState.moneda) {
+            console.log('Moneda cambiada a:', currency);
+            currentState.moneda = currency;
+            updateCurrencyToggle(currency);
+            updatePrecioOptions();
+            updateSearchButtonState();
           }
         });
       });
     }
 
-    // 🎨 Funciones de UI
+    // Funciones de UI
     function updateActionToggle(action) {
       actionBtns.forEach(btn => {
         if (btn.dataset.action === action) {
@@ -479,8 +925,7 @@ const edgeFunctionUrl = supabaseUrl ?
 
     function updateCurrencyToggle(currency) {
       currencyBtns.forEach(btn => {
-        if ((currency === 'USD' && btn.id === 'currency-usd') || 
-            (currency === 'DOP' && btn.id === 'currency-dop')) {
+        if (btn.dataset.currency === currency) {
           btn.classList.add('bg-white', 'text-[#f04e00]', 'shadow-sm');
           btn.classList.remove('text-gray-600');
         } else {
@@ -490,262 +935,140 @@ const edgeFunctionUrl = supabaseUrl ?
       });
     }
 
-    function updateSectorOptions() {
-      if (!tagsData) return;
+    function updateSearchButtonState() {
+      if (!searchBtn) return;
       
-      const ubicacionSlug = currentState.ubicacion;
+      const filterCount = getFilterCount();
+      const hasFilters = filterCount > 1;
       
-      // Si no hay ubicación seleccionada, deshabilitar sectores
-      if (!ubicacionSlug) {
-        isUpdatingFromCode = true;
-        sectorSelect.disabled = true;
-        sectorSelect.innerHTML = '<option value="">Sector</option>';
-        currentState.sector = '';
-        setTimeout(() => { isUpdatingFromCode = false; }, 0);
-        return;
-      }
-      
-      // Filtrar sectores que pertenecen a la ubicación actual
-      // Nota: En un sistema real, podrías necesitar una tabla de relación ubicacion-sector
-      // Por ahora, mostramos todos los sectores disponibles cuando hay una ubicación
-      const sectores = tagsData.tags.sector.filter(sector => {
-        return sector.property_count > 0;
-      });
-      
-      isUpdatingFromCode = true;
-      
-      if (sectores.length > 0) {
-        sectorSelect.disabled = false;
-        populateSelect(sectorSelect, sectores, 'Todos los sectores');
-        if (currentState.sector) {
-          const sectorExists = sectores.some(s => s.slug === currentState.sector);
-          if (sectorExists) {
-            sectorSelect.value = currentState.sector;
-          } else {
-            currentState.sector = '';
-            sectorSelect.value = '';
-          }
+      if (hasFilters) {
+        searchBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+        searchBtn.classList.add('bg-[#f04e00]', 'hover:bg-[#d94400]', 'cursor-pointer');
+        searchBtn.disabled = false;
+        
+        const text = searchBtn.querySelector('span');
+        if (text) {
+          const searchText = language === 'en' ? 'Search' : language === 'fr' ? 'Rechercher' : 'Buscar';
+          text.textContent = `${searchText} (${filterCount})`;
         }
       } else {
-        sectorSelect.disabled = true;
-        sectorSelect.innerHTML = '<option value="">Sector</option>';
-        currentState.sector = '';
+        searchBtn.classList.remove('bg-[#f04e00]', 'hover:bg-[#d94400]', 'cursor-pointer');
+        searchBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+        searchBtn.disabled = true;
+        
+        const text = searchBtn.querySelector('span');
+        if (text) {
+          text.textContent = getEmptyLabel('ubicacion').includes('Select') ? 'Select filters' : 
+                            getEmptyLabel('ubicacion').includes('Sélectionner') ? 'Sélectionner filtres' : 
+                            'Selecciona filtros';
+        }
       }
-      
-      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+    
+    function getFilterCount() {
+      let count = 0;
+      if (currentState.accion) count++;
+      if (currentState.tipo) count++;
+      if (currentState.ubicacion) count++;
+      if (currentState.sector) count++;
+      if (currentState.precio) count++;
+      if (currentState.habitaciones && currentState.habitaciones !== '') count++;
+      if (currentState.banos && currentState.banos !== '') count++;
+      if (currentState.parqueos && currentState.parqueos !== '') count++;
+      if (currentState.area && currentState.area !== '') count++;
+      if (currentState.caracteristicas && Array.isArray(currentState.caracteristicas) && currentState.caracteristicas.length > 0) {
+        count += currentState.caracteristicas.length;
+      }
+      return count;
     }
 
-    // 🔧 Construir URL de búsqueda
     function buildSearchURL() {
+      console.log('Construyendo URL desde estado:', currentState);
+      
       const urlParts = [];
+      
+      if (language !== 'es') {
+        urlParts.push(language);
+      }
       
       urlParts.push(currentState.accion || 'comprar');
       
-      if (currentState.tipo) urlParts.push(currentState.tipo);
+      if (currentState.tipo) {
+        urlParts.push(currentState.tipo);
+      }
       
       if (currentState.ubicacion) {
         urlParts.push(currentState.ubicacion);
-        if (currentState.sector) urlParts.push(currentState.sector);
-      }
-      
-      if (currentState.precio) {
-        const currency = currentState.moneda.toLowerCase();
-        if (currentState.precio.includes('-')) {
-          const [min, max] = currentState.precio.split('-');
-          urlParts.push(`precio-desde-${min}-${max}-${currency}`);
-        } else if (currentState.precio.includes('+')) {
-          const min = currentState.precio.replace('+', '');
-          urlParts.push(`precio-desde-${min}-${currency}`);
+        if (currentState.sector) {
+          urlParts.push(currentState.sector);
         }
       }
       
-      if (currentState.habitaciones) {
-        urlParts.push(`${currentState.habitaciones}-habitaciones`);
-      }
-      if (currentState.banos) {
-        urlParts.push(`${currentState.banos}-banos`);
-      }
-      if (currentState.parqueos) {
-        urlParts.push(`${currentState.parqueos}-parqueos`);
+      if (currentState.precio) {
+        urlParts.push(currentState.precio);
       }
       
+      // Para habitaciones, baños, parqueos - usar el slug directamente (ya son slugs)
+      if (currentState.habitaciones && currentState.habitaciones !== '') {
+        urlParts.push(currentState.habitaciones);
+        console.log('Habitaciones: incluido en URL:', currentState.habitaciones);
+      }
+      
+      if (currentState.banos && currentState.banos !== '') {
+        urlParts.push(currentState.banos);
+        console.log('Baños: incluido en URL:', currentState.banos);
+      }
+      
+      if (currentState.parqueos && currentState.parqueos !== '') {
+        urlParts.push(currentState.parqueos);
+        console.log('Parqueos: incluido en URL:', currentState.parqueos);
+      }
+      
+      // Para área - usar slug tal como está
+      if (currentState.area && currentState.area !== '') {
+        urlParts.push(currentState.area);
+        console.log('Área: incluido en URL:', currentState.area);
+      }
+      
+      // Para características - usar slugs tal como están
       if (currentState.caracteristicas && currentState.caracteristicas.length > 0) {
-        currentState.caracteristicas.sort().forEach(caracteristica => {
-          urlParts.push(caracteristica);
+        const sortedCaracteristicas = [...currentState.caracteristicas].sort();
+        sortedCaracteristicas.forEach(caracteristica => {
+          if (caracteristica && caracteristica !== '') {
+            urlParts.push(caracteristica);
+          }
         });
+        console.log('Características incluidas en URL:', sortedCaracteristicas);
       }
       
-      return '/' + urlParts.join('/');
+      const finalUrl = '/' + urlParts.join('/') + (trackingString || '');
+      console.log('URL final:', finalUrl);
+      console.log('Partes incluidas:', urlParts);
+      
+      return finalUrl;
     }
 
-    // ⚡ Ejecutar búsqueda
     function executeSearch() {
-      if (isInitializing) return;
-      
       if (searchTimeout) clearTimeout(searchTimeout);
       
       searchTimeout = setTimeout(() => {
         const url = buildSearchURL();
-        console.log('🔍 Ejecutando búsqueda:', url);
+        console.log('Navegando a:', url);
+        
+        if (searchBtn) {
+          const text = searchBtn.querySelector('span');
+          if (text) {
+            const searchingText = language === 'en' ? 'Searching...' : language === 'fr' ? 'Recherche...' : 'Buscando...';
+            text.textContent = searchingText;
+          }
+          searchBtn.disabled = true;
+        }
+        
         window.location.href = url;
       }, 300);
     }
 
-    // 📍 Inicializar componente
-    async function initializeComponent() {
-      try {
-        // Cargar datos
-        const data = await loadTagsData();
-        
-        // Resolver segmentos de URL
-        resolveUrlSegments();
-        
-        // Poblar dropdowns
-        populateSelect(tipoSelect, data.tags.tipo, 'Tipo de Inmueble');
-        populateSelect(ubicacionSelect, data.tags.ubicacion, 'Ubicación');
-        populateSelect(precioSelect, data.tags.precio, 'Precio');
-        populateSelect(modalHabitaciones, data.tags.habitaciones, 'Cualquiera');
-        populateSelect(modalBanos, data.tags.banos, 'Cualquiera');
-        populateSelect(modalParqueos, data.tags.parqueos, 'Cualquiera');
-        
-        populateCaracteristicas(data.tags.caracteristicas);
-        
-        // Actualizar UI con estado actual
-        updateActionToggle(currentState.accion);
-        updateCurrencyToggle(currentState.moneda);
-        updateSectorOptions();
-        
-        // Setear valores seleccionados
-        if (tipoSelect && currentState.tipo) tipoSelect.value = currentState.tipo;
-        if (ubicacionSelect && currentState.ubicacion) ubicacionSelect.value = currentState.ubicacion;
-        if (precioSelect && currentState.precio) precioSelect.value = currentState.precio;
-        if (modalHabitaciones && currentState.habitaciones) modalHabitaciones.value = currentState.habitaciones;
-        if (modalBanos && currentState.banos) modalBanos.value = currentState.banos;
-        if (modalParqueos && currentState.parqueos) modalParqueos.value = currentState.parqueos;
-        
-        // Marcar características seleccionadas
-        if (currentState.caracteristicas && Array.isArray(currentState.caracteristicas)) {
-          currentState.caracteristicas.forEach(caracSlug => {
-            const checkbox = caracteristicasGrid?.querySelector(`input[value="${caracSlug}"]`);
-            if (checkbox) checkbox.checked = true;
-          });
-        }
-        
-        // Ocultar loading y mostrar contenido
-        loadingState?.classList.add('hidden');
-        searchBarContent?.classList.remove('hidden');
-        
-        isInitializing = false;
-        console.log('✅ Componente inicializado correctamente');
-        
-      } catch (error) {
-        console.error('❌ Error inicializando componente:', error);
-        loadingState.innerHTML = '<div class="text-red-600">Error cargando filtros. Por favor, recarga la página.</div>';
-      }
-    }
-
-    // 🎯 Event Listeners
-    
-    // Acciones
-    actionBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const action = btn.dataset.action;
-        if (action !== currentState.accion) {
-          currentState.accion = action;
-          updateActionToggle(action);
-          executeSearch();
-        }
-      });
-    });
-
-    // Moneda
-    currencyBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const currency = btn.id === 'currency-usd' ? 'USD' : 'DOP';
-        if (currency !== currentState.moneda) {
-          currentState.moneda = currency;
-          updateCurrencyToggle(currency);
-          // Actualizar rangos de precio aquí si es necesario
-        }
-      });
-    });
-
-    // Selectores principales
-    tipoSelect?.addEventListener('change', function() {
-      if (this.value !== currentState.tipo && !isUpdatingFromCode) {
-        currentState.tipo = this.value;
-        executeSearch();
-      }
-    });
-
-    ubicacionSelect?.addEventListener('change', function() {
-      if (this.value !== currentState.ubicacion && !isUpdatingFromCode) {
-        currentState.ubicacion = this.value;
-        currentState.sector = '';
-        updateSectorOptions();
-        executeSearch();
-      }
-    });
-
-    sectorSelect?.addEventListener('change', function() {
-      if (this.value !== currentState.sector && !isUpdatingFromCode) {
-        currentState.sector = this.value;
-        executeSearch();
-      }
-    });
-
-    precioSelect?.addEventListener('change', function() {
-      if (this.value !== currentState.precio && !isUpdatingFromCode) {
-        currentState.precio = this.value;
-        executeSearch();
-      }
-    });
-
-    // Modal
-    moreFiltersToggle?.addEventListener('click', (e) => {
-      e.preventDefault();
-      advancedPanel?.classList.toggle('hidden');
-    });
-
-    document.getElementById('close-advanced')?.addEventListener('click', () => {
-      advancedPanel?.classList.add('hidden');
-    });
-
-    document.getElementById('apply-secondary-filters')?.addEventListener('click', () => {
-      currentState.habitaciones = modalHabitaciones?.value || '';
-      currentState.banos = modalBanos?.value || '';
-      currentState.parqueos = modalParqueos?.value || '';
-      
-      currentState.caracteristicas = [];
-      document.querySelectorAll('.modal-checkbox:checked').forEach(checkbox => {
-        currentState.caracteristicas.push(checkbox.value);
-      });
-      
-      advancedPanel?.classList.add('hidden');
-      executeSearch();
-    });
-
-    document.getElementById('clear-secondary-filters')?.addEventListener('click', () => {
-      currentState.habitaciones = '';
-      currentState.banos = '';
-      currentState.parqueos = '';
-      currentState.caracteristicas = [];
-      
-      if (modalHabitaciones) modalHabitaciones.value = '';
-      if (modalBanos) modalBanos.value = '';
-      if (modalParqueos) modalParqueos.value = '';
-      
-      document.querySelectorAll('.modal-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-      });
-    });
-
-    searchBtn?.addEventListener('click', executeSearch);
-
-    // 🚀 Inicializar
-    await initializeComponent();
+    console.log('MiniSearchBar inicializado correctamente');
   });
 </script>
 

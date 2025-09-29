@@ -21,6 +21,11 @@ export interface Props {
   // PROPS PARA INVENTARIO Y HERO IMAGE
   aggregatedStats?: any;
   heroImage?: string;
+  // NUEVAS PROPS PARA SEARCH TAGS
+  searchTags?: any;
+  locationHierarchy?: any;
+  preselectedFilters?: any;
+  trackingString?: string;
 }
 
 const { 
@@ -36,7 +41,11 @@ const {
   searchInfo,
   breadcrumbs = [],
   aggregatedStats,
-  heroImage
+  heroImage,
+  searchTags,
+  locationHierarchy,
+  preselectedFilters,
+  trackingString = ''
 } = Astro.props;
 
 // Traducciones para stats de inventario
@@ -234,12 +243,16 @@ const finalHeroImage = heroImage && typeof heroImage === 'string' && heroImage.t
   ? heroImage 
   : defaultHeroImage;
 
-console.log('🏠 PropertyListHeader - Hero Image Decision:', {
+console.log('PropertyListHeader - Data received:', {
   heroImageProvided: !!heroImage,
   heroImageValue: heroImage,
   finalHeroUsed: finalHeroImage,
   isFromEdgeFunction: finalHeroImage === heroImage,
-  statsExtracted: displayStats.length
+  statsExtracted: displayStats.length,
+  searchTagsReceived: !!searchTags,
+  locationHierarchyReceived: !!locationHierarchy,
+  preselectedFiltersReceived: !!preselectedFilters,
+  trackingStringReceived: !!trackingString
 });
 ---
 
@@ -271,10 +284,17 @@ console.log('🏠 PropertyListHeader - Hero Image Decision:', {
         </h2>
       </div>
 
-      <!-- Barra de búsqueda -->
+      <!-- Barra de búsqueda con datos del handler -->
       <div class="w-full max-w-6xl mx-auto px-2 mb-6">
         <div class="bg-white rounded-lg shadow-lg p-4 overflow-hidden">
-          <MiniSearchBar />
+          <MiniSearchBar 
+            searchTags={searchTags}
+            locationHierarchy={locationHierarchy}
+            preselectedFilters={preselectedFilters}
+            language={language}
+            country={country}
+            trackingString={trackingString}
+          />
         </div>
       </div>
 
