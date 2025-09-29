@@ -1,5 +1,5 @@
 ---
-// MiniSearchBar.astro - Versión actualizada con price_ranges estructurados
+// MiniSearchBar.astro - Versión con soporte multiidioma completo
 import { Search, BedDouble, Bath, Car, Home, MapPin, Filter, ChevronDown, X } from "lucide-astro";
 
 export interface Props {
@@ -9,6 +9,7 @@ export interface Props {
   language?: string;
   country?: any;
   trackingString?: string;
+  currencies?: any;
   currentFilters?: {
     accion?: string;
     tipo?: string;
@@ -33,17 +34,45 @@ const {
   language = 'es',
   country,
   trackingString = '',
+  currencies,
   currentFilters = {},
   isSticky = false 
 } = Astro.props;
 
-// Detectar monedas disponibles desde searchTags
+// Detectar monedas disponibles desde currencies prop o searchTags (fallback)
 let availableCurrencies = ['USD'];
 let defaultCurrency = 'USD';
 
-if (searchTags?.currencies) {
+if (currencies) {
+  availableCurrencies = currencies.available || ['USD'];
+  defaultCurrency = currencies.default || availableCurrencies[0];
+} else if (searchTags?.currencies) {
   availableCurrencies = searchTags.currencies.available || ['USD'];
   defaultCurrency = searchTags.currencies.default || availableCurrencies[0];
+}
+
+// Crear mapeo de acciones con slugs correctos según idioma
+const actionSlugs = {
+  comprar: 'comprar',
+  alquilar: 'alquilar'
+};
+
+if (searchTags?.accion) {
+  const buyTag = searchTags.accion.find(t => 
+    t.slug === 'comprar' || t.slug === 'buy' || t.slug === 'acheter' ||
+    t.display_name.toLowerCase().includes('compr') || 
+    t.display_name.toLowerCase().includes('buy') || 
+    t.display_name.toLowerCase().includes('achet')
+  );
+  const rentTag = searchTags.accion.find(t => 
+    t.slug === 'alquilar' || t.slug === 'rent' || t.slug === 'louer' ||
+    t.display_name.toLowerCase().includes('alquil') || 
+    t.display_name.toLowerCase().includes('rent') || 
+    t.display_name.toLowerCase().includes('louer')
+  );
+  
+  if (buyTag) actionSlugs.comprar = buyTag.slug;
+  if (rentTag) actionSlugs.alquilar = rentTag.slug;
 }
 
 // Fusionar filtros
@@ -77,16 +106,18 @@ if (!mergedFilters.moneda || !availableCurrencies.includes(mergedFilters.moneda)
 
 console.log('MiniSearchBar - Inicializando:', {
   hasSearchTags: !!searchTags,
+  hasCurrencies: !!currencies,
   mergedFilters,
   availableCurrencies,
   defaultCurrency,
+  actionSlugs,
   precioStructure: searchTags?.precio ? Object.keys(searchTags.precio) : 'N/A'
 });
 ---
 
 <div class="w-full" id="mini-search-container">
   <div id="search-bar-content">
-    <div class="flex flex-col lg:flex-row gap-3 lg:gap-2 lg:items-center mb-4">
+    <div class="flex flex-col lg:flex-row gap-4 lg:gap-2 lg:items-center">
       
       <!-- Primera fila: Acción + Tipo + Ubicación -->
       <div class="flex flex-wrap gap-2 lg:flex-nowrap lg:flex-1">
@@ -96,21 +127,23 @@ console.log('MiniSearchBar - Inicializando:', {
           <button 
             id="action-comprar" 
             class="mini-action-btn px-3 py-2 text-xs font-semibold rounded-md transition-all"
-            data-action="comprar"
+            data-action={actionSlugs.comprar}
+            data-action-key="comprar"
           >
             {language === 'en' ? 'BUY' : language === 'fr' ? 'ACHETER' : 'COMPRAR'}
           </button>
           <button 
             id="action-alquilar" 
             class="mini-action-btn px-3 py-2 text-xs font-semibold rounded-md transition-all"
-            data-action="alquilar"
+            data-action={actionSlugs.alquilar}
+            data-action-key="alquilar"
           >
             {language === 'en' ? 'RENT' : language === 'fr' ? 'LOUER' : 'ALQUILAR'}
           </button>
         </div>
 
         <!-- 2. TIPO -->
-        <div class="relative flex-1 min-w-0">
+        <div class="relative flex-1 min-w-0 lg:max-w-[180px]">
           <select id="mini-tipo" class="mini-select-with-icon w-full pl-9 pr-7 text-sm appearance-none">
             <option value="">
               {language === 'en' ? 'Property Type' : language === 'fr' ? 'Type de Propriété' : 'Tipo de Inmueble'}
@@ -121,7 +154,7 @@ console.log('MiniSearchBar - Inicializando:', {
         </div>
 
         <!-- 3. UBICACIÓN -->
-        <div class="relative flex-1 min-w-0">
+        <div class="relative flex-[2] min-w-0">
           <select id="mini-ubicacion" class="mini-select-with-icon w-full pl-9 pr-7 text-sm appearance-none">
             <option value="">
               {language === 'en' ? 'Location' : language === 'fr' ? 'Localisation' : 'Ubicación'}
@@ -136,7 +169,7 @@ console.log('MiniSearchBar - Inicializando:', {
       <div class="flex flex-wrap gap-2 lg:flex-nowrap lg:flex-shrink-0">
         
         <!-- 4. SECTOR -->
-        <div class="relative min-w-0 flex-1 lg:w-32">
+        <div class="relative min-w-0 flex-1 lg:w-44">
           <select id="mini-sector" class="mini-select-with-icon w-full pl-3 pr-7 text-sm appearance-none" disabled>
             <option value="">
               {language === 'en' ? 'Sector' : language === 'fr' ? 'Secteur' : 'Sector'}
@@ -146,7 +179,7 @@ console.log('MiniSearchBar - Inicializando:', {
         </div>
 
         <!-- 5. PRECIO con toggle moneda -->
-        <div id="price-container" class="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 min-w-0 flex-1 lg:w-48">
+        <div id="price-container" class="relative flex items-center bg-gray-50 rounded-lg border border-gray-200 min-w-0 flex-1 lg:max-w-[240px]">
           <div id="currency-toggle" class="flex bg-gray-100 rounded-l-lg" style="display: none;"></div>
           <select id="mini-precio" class="appearance-none bg-transparent border-none outline-none py-2 text-sm flex-1 min-w-0 px-3">
             <option value="">
@@ -182,69 +215,63 @@ console.log('MiniSearchBar - Inicializando:', {
         {language === 'en' ? 'Additional filters' : language === 'fr' ? 'Filtres supplémentaires' : 'Filtros adicionales'}
       </h3>
       
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">
-            {language === 'en' ? 'Bedrooms' : language === 'fr' ? 'Chambres' : 'Habitaciones'}
-          </label>
-          <select id="modal-habitaciones" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="relative">
+          <i class="fas fa-bed absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+          <select id="modal-habitaciones" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
             <option value="">
-              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+              {language === 'en' ? 'Bedrooms' : language === 'fr' ? 'Chambres' : 'Habitaciones'}
             </option>
           </select>
         </div>
         
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">
-            {language === 'en' ? 'Bathrooms' : language === 'fr' ? 'Salles de bain' : 'Baños'}
-          </label>
-          <select id="modal-banos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+        <div class="relative">
+          <i class="fas fa-bath absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+          <select id="modal-banos" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
             <option value="">
-              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+              {language === 'en' ? 'Bathrooms' : language === 'fr' ? 'Salles de bain' : 'Baños'}
             </option>
           </select>
         </div>
         
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">
-            {language === 'en' ? 'Parking' : language === 'fr' ? 'Parking' : 'Parqueos'}
-          </label>
-          <select id="modal-parqueos" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+        <div class="relative">
+          <i class="fas fa-car absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+          <select id="modal-parqueos" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
             <option value="">
-              {language === 'en' ? 'Any' : language === 'fr' ? 'Tous' : 'Cualquiera'}
+              {language === 'en' ? 'Parking' : language === 'fr' ? 'Parking' : 'Parqueos'}
             </option>
           </select>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-gray-700">
-            {language === 'en' ? 'Area' : language === 'fr' ? 'Surface' : 'Área'}
-          </label>
-          <select id="modal-area" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+        <div class="relative">
+          <i class="fas fa-ruler-combined absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+          <select id="modal-area" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
             <option value="">
-              {language === 'en' ? 'Any' : language === 'fr' ? 'Toutes' : 'Cualquiera'}
+              {language === 'en' ? 'Area' : language === 'fr' ? 'Surface' : 'Área'}
             </option>
           </select>
         </div>
       </div>
       
       <div class="mb-6">
-        <h4 class="text-sm font-semibold text-gray-700 mb-3">
+        <h4 class="text-sm font-semibold text-gray-700 mb-4">
           {language === 'en' ? 'Features' : language === 'fr' ? 'Caractéristiques' : 'Características'}
         </h4>
-        <div id="caracteristicas-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        <div id="caracteristicas-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"></div>
       </div>
       
       <div class="flex justify-between items-center pt-4 border-t border-gray-200">
-        <button id="clear-secondary-filters" class="text-sm text-gray-600 hover:text-gray-800 font-medium">
-          {language === 'en' ? 'Clear secondary filters' : language === 'fr' ? 'Effacer filtres secondaires' : 'Limpiar filtros secundarios'}
+        <button id="clear-secondary-filters" class="text-sm text-gray-600 hover:text-[#f04e00] font-medium transition-colors flex items-center gap-1">
+          <i class="fas fa-times-circle"></i>
+          {language === 'en' ? 'Clear filters' : language === 'fr' ? 'Effacer' : 'Limpiar'}
         </button>
         <div class="flex gap-3">
-          <button id="close-advanced" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button id="close-advanced" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors">
             {language === 'en' ? 'Close' : language === 'fr' ? 'Fermer' : 'Cerrar'}
           </button>
-          <button id="apply-secondary-filters" class="px-4 py-2 text-sm bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors">
-            {language === 'en' ? 'Apply filters' : language === 'fr' ? 'Appliquer filtres' : 'Aplicar filtros'}
+          <button id="apply-secondary-filters" class="px-5 py-2 text-sm bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold flex items-center gap-2">
+            <i class="fas fa-check"></i>
+            {language === 'en' ? 'Done' : language === 'fr' ? 'Terminé' : 'Listo'}
           </button>
         </div>
       </div>
@@ -252,10 +279,14 @@ console.log('MiniSearchBar - Inicializando:', {
   </div>
 </div>
 
-<script define:vars={{ mergedFilters, searchTags, locationHierarchy, language, trackingString, availableCurrencies, defaultCurrency }}>
+<script define:vars={{ mergedFilters, searchTags, locationHierarchy, language, trackingString, availableCurrencies, defaultCurrency, actionSlugs, isSticky }}>
   document.addEventListener('DOMContentLoaded', function() {
     console.log('MiniSearchBar - Iniciando con estructura de precios:', {
-      precio: searchTags?.precio
+      precio: searchTags?.precio,
+      availableCurrencies,
+      defaultCurrency,
+      actionSlugs,
+      isSticky
     });
     
     let currentState = {
@@ -280,6 +311,13 @@ console.log('MiniSearchBar - Inicializando:', {
     let isUpdatingFromCode = false;
     let searchTimeout = null;
     let currencyBtns = [];
+    let initialSecondaryFilters = {
+      habitaciones: '',
+      banos: '',
+      parqueos: '',
+      area: '',
+      caracteristicas: []
+    };
 
     const actionBtns = document.querySelectorAll('.mini-action-btn');
     const currencyToggle = document.getElementById('currency-toggle');
@@ -299,11 +337,116 @@ console.log('MiniSearchBar - Inicializando:', {
     console.log('Estado inicial:', currentState);
 
     initializeUI();
+    
+    // Implementar funcionalidad sticky si está habilitada
+    if (isSticky) {
+      setupStickyBehavior();
+    }
+
+    function setupStickyBehavior() {
+      const searchContainer = document.getElementById('mini-search-container');
+      
+      if (!searchContainer) return;
+      
+      // Obtener la altura real del header dinámicamente
+      const header = document.querySelector('header') || document.querySelector('nav');
+      const headerHeight = header ? header.offsetHeight : 72;
+      
+      console.log('Header height detectado:', headerHeight);
+      
+      // Obtener la posición inicial del searchbox
+      let initialTop = searchContainer.getBoundingClientRect().top + window.scrollY;
+      
+      let isCurrentlySticky = false;
+      let spacer = null;
+      
+      // Recalcular posición inicial en resize
+      window.addEventListener('resize', () => {
+        if (!isCurrentlySticky) {
+          initialTop = searchContainer.getBoundingClientRect().top + window.scrollY;
+        }
+      });
+      
+      function handleScroll() {
+        const scrollPosition = window.scrollY;
+        const triggerPoint = initialTop - headerHeight;
+        
+        if (scrollPosition > triggerPoint && !isCurrentlySticky) {
+          // Activar sticky
+          isCurrentlySticky = true;
+          
+          // Crear spacer ANTES de cambiar position
+          spacer = document.createElement('div');
+          spacer.id = 'sticky-spacer';
+          spacer.style.height = `${searchContainer.offsetHeight}px`;
+          searchContainer.parentNode.insertBefore(spacer, searchContainer);
+          
+          // Aplicar estilos sticky pegado inmediatamente al header
+          searchContainer.style.position = 'fixed';
+          searchContainer.style.top = `${headerHeight}px`;
+          searchContainer.style.left = '0';
+          searchContainer.style.right = '0';
+          searchContainer.style.width = '100%';
+          searchContainer.style.maxWidth = '100%';
+          searchContainer.style.zIndex = '9999';
+          searchContainer.style.backgroundColor = 'white';
+          searchContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+          searchContainer.style.paddingTop = '0.75rem';
+          searchContainer.style.paddingBottom = '0.75rem';
+          searchContainer.style.paddingLeft = '1rem';
+          searchContainer.style.paddingRight = '1rem';
+          searchContainer.style.transition = 'box-shadow 0.3s ease, padding 0.3s ease';
+          searchContainer.style.borderTop = '1px solid rgba(0, 0, 0, 0.05)';
+          searchContainer.style.isolation = 'isolate';
+          searchContainer.style.willChange = 'transform';
+          
+          console.log('Sticky activado - top:', headerHeight);
+        } else if (scrollPosition <= triggerPoint && isCurrentlySticky) {
+          // Desactivar sticky
+          isCurrentlySticky = false;
+          
+          // Restaurar estilos
+          searchContainer.style.position = '';
+          searchContainer.style.top = '';
+          searchContainer.style.left = '';
+          searchContainer.style.right = '';
+          searchContainer.style.width = '';
+          searchContainer.style.maxWidth = '';
+          searchContainer.style.zIndex = '';
+          searchContainer.style.backgroundColor = '';
+          searchContainer.style.boxShadow = '';
+          searchContainer.style.paddingTop = '';
+          searchContainer.style.paddingBottom = '';
+          searchContainer.style.paddingLeft = '';
+          searchContainer.style.paddingRight = '';
+          searchContainer.style.transition = '';
+          searchContainer.style.borderTop = '';
+          
+          // Remover spacer
+          if (spacer && spacer.parentNode) {
+            spacer.remove();
+            spacer = null;
+          }
+          
+          console.log('Sticky desactivado');
+        }
+      }
+      
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      
+      // Initial check
+      handleScroll();
+    }
 
     function initializeUI() {
       console.log('Inicializando UI...');
       setupCurrencyToggle();
-      updateActionToggle(currentState.accion);
+      
+      // Determinar qué botón debe estar activo según currentState.accion
+      const actionKey = currentState.accion === actionSlugs.comprar ? 'comprar' : 
+                        currentState.accion === actionSlugs.alquilar ? 'alquilar' : 'comprar';
+      
+      updateActionToggle(actionKey);
       updateCurrencyToggle(currentState.moneda);
       populateSelectsWithData();
       setupEventListeners();
@@ -402,7 +545,7 @@ console.log('MiniSearchBar - Inicializando:', {
         if (currentState.ubicacion) ubicacionSelect.value = currentState.ubicacion;
       }
       
-      // PRECIOS - Nueva estructura
+      // PRECIOS
       if (precioSelect && searchTags?.precio) {
         updatePrecioOptions();
         if (currentState.precio) {
@@ -430,7 +573,6 @@ console.log('MiniSearchBar - Inicializando:', {
         updateSelectWithData(modalHabitaciones, searchTags.habitaciones, getEmptyLabel('habitaciones'));
         if (currentState.habitaciones) {
           modalHabitaciones.value = currentState.habitaciones;
-          console.log('Habitaciones preseleccionadas:', currentState.habitaciones);
         }
       }
       
@@ -439,7 +581,6 @@ console.log('MiniSearchBar - Inicializando:', {
         updateSelectWithData(modalBanos, searchTags.banos, getEmptyLabel('banos'));
         if (currentState.banos) {
           modalBanos.value = currentState.banos;
-          console.log('Baños preseleccionados:', currentState.banos);
         }
       }
       
@@ -448,7 +589,6 @@ console.log('MiniSearchBar - Inicializando:', {
         updateSelectWithData(modalParqueos, searchTags.parqueos, getEmptyLabel('parqueos'));
         if (currentState.parqueos) {
           modalParqueos.value = currentState.parqueos;
-          console.log('Parqueos preseleccionados:', currentState.parqueos);
         }
       }
 
@@ -457,7 +597,6 @@ console.log('MiniSearchBar - Inicializando:', {
         updateSelectWithData(modalArea, searchTags.area, getEmptyLabel('area'));
         if (currentState.area) {
           modalArea.value = currentState.area;
-          console.log('Área preseleccionada:', currentState.area);
         }
       }
     }
@@ -485,20 +624,17 @@ console.log('MiniSearchBar - Inicializando:', {
       setTimeout(() => { isUpdatingFromCode = false; }, 0);
     }
 
-    // NUEVA FUNCIÓN: Actualizar precios desde estructura anidada
     function updatePrecioOptions() {
       if (!precioSelect || !searchTags?.precio) {
         console.log('No se puede actualizar precios');
         return;
       }
       
-      const operation = currentState.accion === 'comprar' ? 'sale' : 'rent';
+      const operation = currentState.accion === actionSlugs.comprar || currentState.accion === 'comprar' ? 'sale' : 'rent';
       const currency = currentState.moneda;
       
-      console.log('Actualizando precios:', { operation, currency });
-      console.log('Estructura de precios:', searchTags.precio);
+      console.log('Actualizando precios:', { operation, currency, accion: currentState.accion });
       
-      // Acceso directo a la estructura anidada
       const preciosDisponibles = searchTags.precio?.[operation]?.[currency] || [];
       
       console.log(`Precios disponibles: ${preciosDisponibles.length}`);
@@ -542,11 +678,14 @@ console.log('MiniSearchBar - Inicializando:', {
       
       allCaracteristicas.forEach(carac => {
         const label = document.createElement('label');
-        label.className = 'flex items-center space-x-2 cursor-pointer';
+        label.className = 'flex items-center space-x-2 cursor-pointer group';
         
         const isChecked = currentState.caracteristicas && 
                           Array.isArray(currentState.caracteristicas) && 
                           currentState.caracteristicas.includes(carac.slug);
+        
+        const icon = carac.icon || 'fas fa-check-circle';
+        const featuredClass = carac.is_featured ? 'font-medium' : '';
         
         label.innerHTML = `
           <input 
@@ -556,8 +695,10 @@ console.log('MiniSearchBar - Inicializando:', {
             class="modal-checkbox rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]"
             ${isChecked ? 'checked' : ''}
           />
-          <span class="text-sm text-gray-700 ${carac.is_featured ? 'font-medium' : ''}">${carac.display_name}</span>
-          ${carac.is_featured ? '<span class="text-xs text-blue-600">★</span>' : ''}
+          <span class="text-sm text-gray-700 ${featuredClass} flex items-center gap-1.5">
+            <i class="${icon} text-[#f04e00] text-xs"></i>
+            ${carac.display_name}
+          </span>
         `;
         caracteristicasGrid.appendChild(label);
       });
@@ -631,10 +772,14 @@ console.log('MiniSearchBar - Inicializando:', {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           const action = btn.dataset.action;
+          const actionKey = btn.dataset.actionKey;
+          
           if (action !== currentState.accion) {
             currentState.accion = action;
-            updateActionToggle(action);
-            updatePrecioOptions();  // Actualizar precios según acción
+            currentState.precio = '';
+            if (precioSelect) precioSelect.value = '';
+            updateActionToggle(actionKey);
+            updatePrecioOptions();
             updateSearchButtonState();
           }
         });
@@ -674,6 +819,16 @@ console.log('MiniSearchBar - Inicializando:', {
 
       moreFiltersToggle?.addEventListener('click', (e) => {
         e.preventDefault();
+        
+        // Guardar estado inicial al abrir el modal
+        initialSecondaryFilters = {
+          habitaciones: currentState.habitaciones,
+          banos: currentState.banos,
+          parqueos: currentState.parqueos,
+          area: currentState.area,
+          caracteristicas: [...(currentState.caracteristicas || [])]
+        };
+        
         advancedPanel?.classList.toggle('hidden');
       });
 
@@ -682,6 +837,7 @@ console.log('MiniSearchBar - Inicializando:', {
       });
 
       document.getElementById('apply-secondary-filters')?.addEventListener('click', () => {
+        // Aplicar cambios al estado
         currentState.habitaciones = modalHabitaciones?.value || '';
         currentState.banos = modalBanos?.value || '';
         currentState.parqueos = modalParqueos?.value || '';
@@ -692,8 +848,22 @@ console.log('MiniSearchBar - Inicializando:', {
           currentState.caracteristicas.push(checkbox.value);
         });
         
+        // Detectar si hubo cambios
+        const hasChanges = 
+          initialSecondaryFilters.habitaciones !== currentState.habitaciones ||
+          initialSecondaryFilters.banos !== currentState.banos ||
+          initialSecondaryFilters.parqueos !== currentState.parqueos ||
+          initialSecondaryFilters.area !== currentState.area ||
+          JSON.stringify(initialSecondaryFilters.caracteristicas.sort()) !== JSON.stringify(currentState.caracteristicas.sort());
+        
         advancedPanel?.classList.add('hidden');
         updateSearchButtonState();
+        
+        // Si hubo cambios, ejecutar búsqueda automáticamente
+        if (hasChanges) {
+          console.log('Cambios detectados en filtros secundarios, ejecutando búsqueda...');
+          executeSearch();
+        }
       });
 
       document.getElementById('clear-secondary-filters')?.addEventListener('click', () => {
@@ -725,18 +895,19 @@ console.log('MiniSearchBar - Inicializando:', {
           const currency = btn.dataset.currency;
           if (currency !== currentState.moneda) {
             currentState.moneda = currency;
-            currentState.precio = '';  // Limpiar precio al cambiar moneda
+            currentState.precio = '';
+            if (precioSelect) precioSelect.value = '';
             updateCurrencyToggle(currency);
-            updatePrecioOptions();  // Actualizar precios según moneda
+            updatePrecioOptions();
             updateSearchButtonState();
           }
         });
       });
     }
 
-    function updateActionToggle(action) {
+    function updateActionToggle(actionKey) {
       actionBtns.forEach(btn => {
-        if (btn.dataset.action === action) {
+        if (btn.dataset.actionKey === actionKey) {
           btn.classList.add('bg-[#f04e00]', 'text-white', 'shadow-sm');
           btn.classList.remove('text-gray-600');
         } else {

@@ -18,14 +18,13 @@ export interface Props {
     is_active?: boolean;
     current?: boolean;
   }>;
-  // PROPS PARA INVENTARIO Y HERO IMAGE
   aggregatedStats?: any;
   heroImage?: string;
-  // NUEVAS PROPS PARA SEARCH TAGS
   searchTags?: any;
   locationHierarchy?: any;
   preselectedFilters?: any;
   trackingString?: string;
+  currencies?: any;
 }
 
 const { 
@@ -45,7 +44,8 @@ const {
   searchTags,
   locationHierarchy,
   preselectedFilters,
-  trackingString = ''
+  trackingString = '',
+  currencies
 } = Astro.props;
 
 // Traducciones para stats de inventario
@@ -93,7 +93,6 @@ const translations = {
 
 const t = translations[language] || translations.es;
 
-// FUNCIÓN: Formatear precios según moneda
 function formatPrice(price, currency) {
   const currencySymbol = currency === 'USD' ? '$' : currency === 'DOP' ? 'RD$' : currency;
   
@@ -106,7 +105,6 @@ function formatPrice(price, currency) {
   }
 }
 
-// FUNCIÓN: Extraer stats de NUESTRO INVENTARIO desde aggregatedStats
 function extractInventoryStats(aggregatedStats: any) {
   if (!aggregatedStats) return [];
   
@@ -120,7 +118,6 @@ function extractInventoryStats(aggregatedStats: any) {
   const operationData = aggregatedStats[operationKey]?.[predominantCurrency];
   
   if (operationData) {
-    // 1. Precio promedio de la operación predominante
     if (operationData.avgPrice > 0) {
       const avgPriceFormatted = formatPrice(operationData.avgPrice, predominantCurrency);
       const operationText = operationKey === 'sale' ? t.forSale : t.forRent;
@@ -131,7 +128,6 @@ function extractInventoryStats(aggregatedStats: any) {
       });
     }
 
-    // 2. Precio por m² (MUY IMPORTANTE)
     if (operationData.pricePerSqm > 0) {
       const pricePerSqmFormatted = formatPrice(operationData.pricePerSqm, predominantCurrency);
       
@@ -141,7 +137,6 @@ function extractInventoryStats(aggregatedStats: any) {
       });
     }
 
-    // 3. Rango de precios disponible
     if (operationData.minPrice && operationData.maxPrice && operationData.minPrice !== operationData.maxPrice) {
       const minFormatted = formatPrice(operationData.minPrice, predominantCurrency);
       const maxFormatted = formatPrice(operationData.maxPrice, predominantCurrency);
@@ -152,7 +147,6 @@ function extractInventoryStats(aggregatedStats: any) {
       });
     }
 
-    // 4. Composición del mercado o cantidad total (solo si hay espacio)
     if (stats.length < 3) {
       if (marketMix?.salePercentage && marketMix?.rentalPercentage) {
         const predominantPercentage = operationKey === 'sale' ? marketMix.salePercentage : marketMix.rentalPercentage;
@@ -171,7 +165,6 @@ function extractInventoryStats(aggregatedStats: any) {
     }
   }
 
-  // FALLBACK: Si no hay datos predominantes, mostrar total general
   if (stats.length === 0 && aggregatedStats.totalCount > 0) {
     stats.push({
       value: `${aggregatedStats.totalCount}+`,
@@ -182,7 +175,6 @@ function extractInventoryStats(aggregatedStats: any) {
   return stats.slice(0, 3);
 }
 
-// FUNCIÓN FALLBACK: Extraer stats del mercado general desde seoContent (solo si no hay aggregatedStats)
 function extractMarketStats(seoContent: any) {
   if (!seoContent) return [];
   
@@ -231,14 +223,10 @@ function extractMarketStats(seoContent: any) {
   return stats.slice(0, 3);
 }
 
-// Priorizar datos de inventario sobre datos generales del mercado
 const displayStats = aggregatedStats ? extractInventoryStats(aggregatedStats) : extractMarketStats(seoContent);
 
-// IMAGEN HERO - CONFIAR COMPLETAMENTE EN LA EDGE FUNCTION
-// La edge function ya hizo toda la validación y jerarquía (sector > ciudad > categoría > país)
 const defaultHeroImage = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80';
 
-// Usar directamente la imagen que viene de la edge function SIN validación adicional
 const finalHeroImage = heroImage && typeof heroImage === 'string' && heroImage.trim() !== '' 
   ? heroImage 
   : defaultHeroImage;
@@ -252,7 +240,8 @@ console.log('PropertyListHeader - Data received:', {
   searchTagsReceived: !!searchTags,
   locationHierarchyReceived: !!locationHierarchy,
   preselectedFiltersReceived: !!preselectedFilters,
-  trackingStringReceived: !!trackingString
+  trackingStringReceived: !!trackingString,
+  currenciesReceived: !!currencies
 });
 ---
 
@@ -284,16 +273,18 @@ console.log('PropertyListHeader - Data received:', {
         </h2>
       </div>
 
-      <!-- Barra de búsqueda con datos del handler -->
-      <div class="w-full max-w-6xl mx-auto px-2 mb-6">
-        <div class="bg-white rounded-lg shadow-lg p-4 overflow-hidden">
+      <!-- Barra de búsqueda con datos del handler - CONTENEDOR MÁS ANCHO -->
+      <div class="w-full max-w-7xl mx-auto px-2 mb-8">
+        <div class="bg-white rounded-lg shadow-lg py-4 px-3 overflow-hidden">
           <MiniSearchBar 
             searchTags={searchTags}
             locationHierarchy={locationHierarchy}
             preselectedFilters={preselectedFilters}
+            currencies={currencies}
             language={language}
             country={country}
             trackingString={trackingString}
+            isSticky={true}
           />
         </div>
       </div>
@@ -313,7 +304,7 @@ console.log('PropertyListHeader - Data received:', {
       <!-- Breadcrumb SEO completo -->
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Breadcrumb" class="mt-2">
-          <ol class="flex items-center justify-center flex-wrap gap-1 text-xs">
+          <ol class="flex items-center justify-center flex-wrap gap-1 text-xs opacity-80">
             {breadcrumbs.map((crumb, index) => (
               <li class="flex items-center">
                 {index > 0 && (
@@ -356,7 +347,6 @@ console.log('PropertyListHeader - Data received:', {
 </section>
 
 <style>
-  /* Animación sutil para el breadcrumb */
   nav ol li a {
     position: relative;
   }
@@ -376,7 +366,6 @@ console.log('PropertyListHeader - Data received:', {
     width: 100%;
   }
   
-  /* Para móviles, hacer el breadcrumb más compacto */
   @media (max-width: 640px) {
     nav ol {
       font-size: 0.625rem;
