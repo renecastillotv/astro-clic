@@ -427,75 +427,7 @@ console.log('Layout procesado con nueva estructura:', {
             </section>
           )}
 
-          <!-- Cocaptadores Section - NUEVA FUNCIONALIDAD -->
-          {hasCocaptors && (
-            <section class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-              <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 mb-6 inline-block">
-                Cocaptadores de esta Propiedad
-              </h2>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {cocaptors.map((cocaptor) => (
-                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div class="flex items-center gap-3 mb-3">
-                      {cocaptor.profile_photo_url ? (
-                        <img 
-                          src={cocaptor.profile_photo_url} 
-                          alt={cocaptor.full_name}
-                          class="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-sm">
-                          {cocaptor.first_name?.charAt(0) || 'C'}{cocaptor.last_name?.charAt(0) || 'C'}
-                        </div>
-                      )}
-                      <div>
-                        <h3 class="font-semibold text-gray-900">
-                          {cocaptor.url ? (
-                            <a href={cocaptor.url} class="hover:text-[#f04e00] transition-colors">
-                              {cocaptor.full_name}
-                            </a>
-                          ) : (
-                            cocaptor.full_name
-                          )}
-                        </h3>
-                        <p class="text-sm text-gray-600">{cocaptor.position_display}</p>
-                      </div>
-                    </div>
-                    <div class="space-y-2">
-                      <div class="flex items-center gap-2 text-sm">
-                        <span class="bg-[#f04e00] text-white px-2 py-1 rounded text-xs font-medium">
-                          {cocaptor.role}
-                        </span>
-                        <span class="text-gray-500">#{cocaptor.order_priority}</span>
-                      </div>
-                      <div class="flex items-center gap-3">
-                        {cocaptor.phone && (
-                          <a 
-                            href={`tel:${cocaptor.phone}`}
-                            class="flex items-center gap-1 text-[#f04e00] hover:text-[#d94400] text-sm"
-                          >
-                            <i class="fas fa-phone text-xs"></i>
-                            <span>Llamar</span>
-                          </a>
-                        )}
-                        {cocaptor.phone && (
-                          <a 
-                            href={`https://wa.me/${cocaptor.phone.replace(/[^\d]/g, '')}`}
-                            target="_blank"
-                            class="flex items-center gap-1 text-green-600 hover:text-green-700 text-sm"
-                          >
-                            <i class="fab fa-whatsapp text-xs"></i>
-                            <span>WhatsApp</span>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
+      
         </main>
 
         <!-- Sidebar (Right Column) -->
