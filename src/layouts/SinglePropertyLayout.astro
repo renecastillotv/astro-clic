@@ -340,6 +340,8 @@ const locationDataForMap = {
 const contentData = {
   ...data,
   language: language,
+   agent: agent,  // 👈 AGREGAR ESTO
+  globalConfig: data.globalConfig,  // 👈 AGREGAR ESTO
   content: {
     // Los datos ya vienen procesados con *_display fields y URLs
     articles: data.related_content?.articles || [],

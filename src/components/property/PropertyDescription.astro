@@ -137,8 +137,8 @@ const rawDescription = getLocalizedDescription(property, currentLanguage);
 const formattedDescription = formatDescription(rawDescription);
 
 // Determine if "read more" is needed
-const needsReadMore = formattedDescription.length > 800;
-const previewLength = 600;
+const needsReadMore = formattedDescription.length > 1500;
+const previewLength = 1200;
 
 console.log('📝 PropertyDescription loaded:', {
   language: currentLanguage,
@@ -150,37 +150,39 @@ console.log('📝 PropertyDescription loaded:', {
 ---
 
 <!-- Description Section -->
-<div class="space-y-4">
+<div class="space-y-4" id="property-description-section">
   <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
     {t.title}
   </h2>
   
   {formattedDescription ? (
     <div class="prose prose-lg max-w-none text-gray-700 text-justify">
-      <div id="description-preview">
-        <div set:html={needsReadMore ? 
-          formattedDescription.substring(0, previewLength) + '...' : 
-          formattedDescription
-        }></div>
+      <div id="description-content-wrapper">
+        <div id="description-preview" class="description-text">
+          <div set:html={needsReadMore ? 
+            formattedDescription.substring(0, previewLength) + '...' : 
+            formattedDescription
+          }></div>
+        </div>
+        
+        {needsReadMore && (
+          <div id="description-full" class="hidden description-text">
+            <div set:html={formattedDescription}></div>
+          </div>
+        )}
       </div>
       
       {needsReadMore && (
-        <div>
-          <div id="description-full" class="hidden">
-            <div set:html={formattedDescription}></div>
-          </div>
-          
-          <button 
-            id="read-more-btn" 
-            onclick="toggleDescription()"
-            class="text-[#f04e00] font-semibold hover:text-[#d94400] transition-colors mt-4 inline-flex items-center gap-2 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-lg"
-          >
-            <span id="read-more-text">{t.readMore}</span>
-            <svg id="read-more-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </button>
-        </div>
+        <button 
+          id="read-more-btn" 
+          onclick="toggleDescription()"
+          class="text-[#f04e00] font-semibold hover:text-[#d94400] transition-colors mt-4 inline-flex items-center gap-2 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-lg"
+        >
+          <span id="read-more-text">{t.readMore}</span>
+          <svg id="read-more-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
       )}
     </div>
   ) : (
@@ -200,34 +202,44 @@ console.log('📝 PropertyDescription loaded:', {
 <script define:vars={{ t }}>
   // Toggle description functionality
   function toggleDescription() {
-    const preview = document.getElementById('description-preview');
-    const full = document.getElementById('description-full');
-    const btn = document.getElementById('read-more-btn');
-    const text = document.getElementById('read-more-text');
-    const icon = document.getElementById('read-more-icon');
-    
-    if (!full || !preview || !text || !icon) return;
-    
-    const isExpanded = !full.classList.contains('hidden');
-    
-    if (isExpanded) {
-      // Collapse
-      preview.style.display = 'block';
-      full.classList.add('hidden');
-      text.textContent = t.readMore;
-      icon.style.transform = 'rotate(0deg)';
+    try {
+      const preview = document.getElementById('description-preview');
+      const full = document.getElementById('description-full');
+      const text = document.getElementById('read-more-text');
+      const icon = document.getElementById('read-more-icon');
       
-      // Smooth scroll back to description title
-      document.querySelector('h2').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    } else {
-      // Expand
-      preview.style.display = 'none';
-      full.classList.remove('hidden');
-      text.textContent = t.readLess;
-      icon.style.transform = 'rotate(180deg)';
+      // Validate all required elements exist
+      if (!full || !preview || !text || !icon) {
+        console.error('Missing required elements for toggle');
+        return;
+      }
+      
+      const isExpanded = !full.classList.contains('hidden');
+      
+      if (isExpanded) {
+        // Collapse - show preview, hide full
+        full.classList.add('hidden');
+        preview.classList.remove('hidden');
+        text.textContent = t.readMore;
+        icon.style.transform = 'rotate(0deg)';
+        
+        // Smooth scroll back to description section
+        const section = document.getElementById('property-description-section');
+        if (section) {
+          section.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      } else {
+        // Expand - hide preview, show full
+        preview.classList.add('hidden');
+        full.classList.remove('hidden');
+        text.textContent = t.readLess;
+        icon.style.transform = 'rotate(180deg)';
+      }
+    } catch (error) {
+      console.error('Error toggling description:', error);
     }
   }
   
@@ -282,5 +294,14 @@ console.log('📝 PropertyDescription loaded:', {
   /* Preserve emojis and special characters */
   .prose {
     font-feature-settings: "kern" 1, "liga" 1, "clig" 1;
+  }
+
+  /* Ensure description sections are properly displayed */
+  .description-text {
+    display: block;
+  }
+
+  .description-text.hidden {
+    display: none !important;
   }
 </style>

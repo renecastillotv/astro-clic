@@ -13,6 +13,13 @@ const currentLanguage = language ||
                        data.globalConfig?.language || 
                        'es';
 
+// Get WhatsApp number - prioritize agent number, fallback to global
+const property = data.property || {};
+const agent = data.agent?.main || {};
+const agentWhatsapp = agent.phone; // Agent phone is used for WhatsApp
+const globalWhatsapp = data.globalConfig?.whatsapp || data.globalConfig?.contact?.whatsapp;
+const whatsappNumber = agentWhatsapp || globalWhatsapp || '18095551234';
+
 // Multilingual translations for UI elements only
 const translations = {
   es: {
@@ -101,6 +108,13 @@ const allFaqs = selectedFaqs.map(faq => getLocalizedFAQContent(faq, currentLangu
 
 // Only show if there are actual FAQs
 const showFAQs = allFaqs.length > 0;
+
+console.log('📞 PropertyFAQs loaded:', {
+  language: currentLanguage,
+  faqCount: allFaqs.length,
+  whatsappNumber: whatsappNumber,
+  source: agentWhatsapp ? 'agent' : (globalWhatsapp ? 'global' : 'fallback')
+});
 ---
 
 <!-- FAQs Section - Only show if FAQs exist -->
@@ -159,7 +173,7 @@ const showFAQs = allFaqs.length > 0;
   </div>
 )}
 
-<script define:vars={{ currentLanguage, t }}>
+<script define:vars={{ currentLanguage, t, whatsappNumber }}>
   // Function for FAQ toggle
   window.toggleFAQ = function(index) {
     const content = document.getElementById(`faq-content-${index}`);
@@ -202,8 +216,8 @@ const showFAQs = allFaqs.length > 0;
     const propertyTitle = document.querySelector('h1')?.textContent || (currentLanguage === 'en' ? 'Property of interest' : currentLanguage === 'fr' ? 'Propriété d\'intérêt' : 'Propiedad de interés');
     const message = t.whatsappMessage.replace('{propertyTitle}', propertyTitle);
     
-    // WhatsApp integration
-    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    // WhatsApp integration - use the number from data (agent or global)
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
     // Show feedback
