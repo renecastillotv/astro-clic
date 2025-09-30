@@ -1,5 +1,5 @@
 ---
-// src/components/property/PropertyLocation.astro - GOOGLE MAPS VERSION (Reemplaza Mapbox)
+// src/components/property/PropertyLocation.astro - GOOGLE MAPS VERSION MEJORADA
 export interface Props {
   data: any;
   language?: 'es' | 'en' | 'fr';
@@ -506,11 +506,12 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
     )}
   </h2>
   
-  <!-- Google Maps Container - ESTE ES EL ELEMENTO QUE BUSCA EL SCRIPT DEL LAYOUT -->
+  <!-- Google Maps Container -->
   <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
     <div 
       id="google-map" 
       class="w-full h-64"
+      data-map-initialized="false"
     >
       <!-- Fallback mientras carga Google Maps -->
       <div class="w-full h-full flex items-center justify-center bg-gray-100">
@@ -630,7 +631,7 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
           </div>
           
           <!-- Servicios adicionales (ocultos inicialmente) -->
-          {Object.keys(locationContext.nearby_places.conteos_por_categoria).length > 15 && (
+          {Object.keys(locationContext.nearby_places.conteos_por_categoria).length > 10 && (
             <div class="hidden grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" id="services-grid-extra">
               {Object.entries(locationContext.nearby_places.conteos_por_categoria)
                 .sort(([,a], [,b]) => b - a)
@@ -702,7 +703,7 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
   )}
 </div>
 
-<!-- Script para pasar datos a Google Maps del layout -->
+<!-- Script MEJORADO con manejo robusto -->
 <script define:vars={{ 
   coordinates: displayCoordinates, 
   propertyTitle: property.title_display || property.title || property.name || 'Propiedad',
@@ -712,7 +713,16 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
   translations: translations,
   nearbyPlaces: lugares
 }}>
-  // Hacer las traducciones globales para los botones
+  // Estado global del mapa
+  window.mapState = window.mapState || {
+    map: null,
+    markers: [],
+    initialized: false,
+    retryCount: 0,
+    maxRetries: 3
+  };
+
+  // Hacer las traducciones globales
   window.translations = translations;
   window.language = language;
 
@@ -741,22 +751,245 @@ if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof 
     }
   };
 
-  // DATOS PARA GOOGLE MAPS DEL LAYOUT
+  // FUNCIÓN PRINCIPAL DE INICIALIZACIÓN DEL MAPA - MEJORADA
+  window.initPropertyMapRobust = function() {
+    const mapElement = document.getElementById('google-map');
+    
+    if (!mapElement) {
+      console.warn('🗺️ Elemento del mapa no encontrado');
+      return false;
+    }
+
+    // Si ya está inicializado y el mapa existe, no reinicializar
+    if (window.mapState.initialized && window.mapState.map) {
+      console.log('🗺️ Mapa ya inicializado, skipping...');
+      return true;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.warn('🗺️ Google Maps API no disponible aún');
+      
+      // Retry con backoff
+      if (window.mapState.retryCount < window.mapState.maxRetries) {
+        window.mapState.retryCount++;
+        const delay = window.mapState.retryCount * 1000; // 1s, 2s, 3s
+        console.log(`🗺️ Reintentando en ${delay}ms (intento ${window.mapState.retryCount}/${window.mapState.maxRetries})`);
+        setTimeout(() => window.initPropertyMapRobust(), delay);
+      } else {
+        console.error('🗺️ Máximo de reintentos alcanzado');
+        showMapError();
+      }
+      return false;
+    }
+
+    try {
+      console.log('🗺️ Inicializando mapa con coordenadas:', coordinates);
+
+      const propertyLocation = {
+        lat: coordinates?.lat || 18.4682,
+        lng: coordinates?.lng || -69.9279
+      };
+
+      // Crear el mapa
+      window.mapState.map = new google.maps.Map(mapElement, {
+        zoom: mapConfig.zoom || 15,
+        center: propertyLocation,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{"visibility": "simplified"}]
+          }
+        ],
+        gestureHandling: 'cooperative' // Mejor UX en mobile
+      });
+
+      // Marker principal de la propiedad
+      if (mapConfig.showMarker !== false) {
+        const propertyMarker = new google.maps.Marker({
+          position: propertyLocation,
+          map: window.mapState.map,
+          title: propertyTitle,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#f04e00',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          },
+          zIndex: 999
+        });
+        
+        window.mapState.markers.push(propertyMarker);
+      }
+
+      // Agregar lugares cercanos si existen
+      if (nearbyPlaces && nearbyPlaces.length > 0) {
+        const geocoder = new google.maps.Geocoder();
+        
+        nearbyPlaces.slice(0, 5).forEach((place, index) => {
+          if (place.direccion) {
+            geocoder.geocode({ address: place.direccion }, (results, status) => {
+              if (status === 'OK' && results && results.length > 0 && window.mapState.map) {
+                const placeMarker = new google.maps.Marker({
+                  position: results[0].geometry.location,
+                  map: window.mapState.map,
+                  title: place.nombre,
+                  icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 6,
+                    fillColor: getCategoryColorForMarker(place.categoria),
+                    fillOpacity: 0.8,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                  }
+                });
+
+                window.mapState.markers.push(placeMarker);
+
+                const infoWindow = new google.maps.InfoWindow({
+                  content: `
+                    <div class="p-2">
+                      <h4 class="font-semibold text-sm">${place.nombre}</h4>
+                      <p class="text-xs text-gray-600 capitalize">${place.categoria.replace('_', ' ')}</p>
+                      <p class="text-xs text-gray-500 mt-1">${place.direccion}</p>
+                    </div>
+                  `
+                });
+
+                placeMarker.addListener('click', () => {
+                  infoWindow.open(window.mapState.map, placeMarker);
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Marcar como inicializado
+      window.mapState.initialized = true;
+      mapElement.setAttribute('data-map-initialized', 'true');
+      console.log('✅ Mapa cargado exitosamente');
+      
+      return true;
+
+    } catch (error) {
+      console.error('❌ Error inicializando el mapa:', error);
+      showMapError();
+      return false;
+    }
+  };
+
+  // Función helper para colores de markers
+  function getCategoryColorForMarker(categoria) {
+    const colors = {
+      'supermercado': '#f59e0b',
+      'hospital': '#dc2626',
+      'banco': '#3b82f6',
+      'colegio': '#10b981',
+      'centro_comercial': '#f04e00',
+      'farmacia': '#059669',
+      'gasolinera': '#f97316',
+      'gimnasio': '#8b5cf6',
+      'cine': '#ec4899',
+      'restaurante': '#ef4444',
+      'bar': '#a855f7',
+      'hotel': '#06b6d4',
+      'policia': '#1e40af',
+      'veterinaria': '#16a34a',
+      'instituto': '#0ea5e9',
+      'bomberos': '#dc2626',
+      'parque': '#22c55e',
+      'iglesia': '#7c3aed',
+      'biblioteca': '#0891b2'
+    };
+    return colors[categoria] || '#6b7280';
+  }
+
+  // Función para mostrar error
+  function showMapError() {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-orange-50 via-gray-50 to-orange-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+            <p class="text-gray-800 font-semibold mb-1">Mapa no disponible</p>
+            <p class="text-sm text-gray-600">${propertyTitle}</p>
+            <button 
+              onclick="window.mapState.retryCount = 0; window.initPropertyMapRobust();"
+              class="mt-3 text-xs text-[#f04e00] hover:underline"
+            >
+              Reintentar carga
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // DATOS PARA COMPATIBILIDAD CON LAYOUT
   if (typeof window !== 'undefined') {
     window.propertyData = {
       coordinates: coordinates,
       title: propertyTitle,
       showMarker: mapConfig.showMarker,
       zoom: mapConfig.zoom,
-      // Convertir lugares cercanos para Google Maps
       nearbyPoints: nearbyPlaces.slice(0, 5).map(place => ({
         name: place.nombre,
         description: place.categoria,
         address: `${place.direccion} - ${place.distancia_display || '500m'}`
       }))
     };
-    
-    console.log('🗺️ Datos pasados a Google Maps del layout:', window.propertyData);
+  }
+
+  // INICIALIZACIÓN AUTOMÁTICA CON MÚLTIPLES TRIGGERS
+  
+  // 1. DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => window.initPropertyMapRobust(), 500);
+    });
+  } else {
+    // DOM ya cargado
+    setTimeout(() => window.initPropertyMapRobust(), 500);
+  }
+
+  // 2. Visibility Change - Reinicializar si la página vuelve a ser visible
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !window.mapState.initialized) {
+      console.log('🗺️ Página visible de nuevo, reinicializando mapa...');
+      window.mapState.retryCount = 0;
+      setTimeout(() => window.initPropertyMapRobust(), 300);
+    }
+  });
+
+  // 3. Page Show - Para casos de back/forward cache (bfcache)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted && !window.mapState.initialized) {
+      console.log('🗺️ Página restaurada desde cache, reinicializando mapa...');
+      window.mapState.retryCount = 0;
+      setTimeout(() => window.initPropertyMapRobust(), 300);
+    }
+  });
+
+  // 4. Intersection Observer - Inicializar cuando el mapa sea visible
+  if ('IntersectionObserver' in window) {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !window.mapState.initialized) {
+            console.log('🗺️ Mapa visible en viewport, inicializando...');
+            window.initPropertyMapRobust();
+            observer.disconnect(); // Solo observar una vez
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      observer.observe(mapElement);
+    }
   }
 </script>
 

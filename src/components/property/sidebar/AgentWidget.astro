@@ -79,20 +79,6 @@ const t = texts[language] || texts.es;
 // Build terms and privacy URLs based on language
 const termsUrl = language === 'en' ? '/en/terms' : language === 'fr' ? '/fr/termes' : '/terminos';
 const privacyUrl = language === 'en' ? '/en/privacy' : language === 'fr' ? '/fr/confidentialite' : '/privacidad';
-
-console.log('AgentWidget ACTUALIZADO:', {
-  language: language,
-  hasMainAgent: !!agent?.id,
-  agentSource: data.agent?.source,
-  agentName: agent?.first_name && agent?.last_name ? `${agent.first_name} ${agent.last_name}` : 'Agente',
-  hasCocaptors: hasCocaptors,
-  cocaptorsCount: cocaptors.length,
-  cocaptorsData: cocaptors.map(c => ({ 
-    name: c.full_name, 
-    role: c.role, 
-    priority: c.order_priority 
-  }))
-});
 ---
 
 <!-- Agent Widget -->
@@ -147,17 +133,6 @@ console.log('AgentWidget ACTUALIZADO:', {
                   (agent.first_name.charAt(0) + agent.last_name.charAt(0)).toUpperCase() : 
                   'CI'}
               </div>
-            </div>
-          )}
-
-          <!-- Agent Source Badge -->
-          {data.agent?.source && data.agent.source !== 'original' && (
-            <div class="absolute -bottom-2 -right-2">
-              <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded-full font-medium">
-                {data.agent.source === 'referral' ? 'Referido' : 
-                 data.agent.source === 'default' ? 'Por Defecto' : 
-                 data.agent.source}
-              </span>
             </div>
           )}
         </div>
@@ -461,31 +436,6 @@ console.log('AgentWidget ACTUALIZADO:', {
     </div>
   </div>
 )}
-
-<!-- Debug script for agent data -->
-<script define:vars={{ agentDebug: agent, language, cocaptorsDebug: cocaptors, agentSource: data.agent?.source }}>
-  console.log(`🔍 DEBUG AGENT WIDGET [${language}] - Nueva estructura:`, {
-    mainAgent: {
-      name: `${agentDebug?.first_name || ''} ${agentDebug?.last_name || ''}`,
-      position: agentDebug?.position,
-      years_experience: agentDebug?.years_experience,
-      specialty_description: agentDebug?.specialty_description,
-      languages: agentDebug?.languages,
-      url: agentDebug?.url,
-      source: agentSource
-    },
-    cocaptors: {
-      count: cocaptorsDebug?.length || 0,
-      data: cocaptorsDebug?.map(c => ({
-        name: c.full_name,
-        role: c.role,
-        priority: c.order_priority,
-        phone: c.phone
-      })) || []
-    },
-    dataStructure: 'enhanced_handler_v2'
-  });
-</script>
 
 <script>
   // Toggle para mostrar todos los cocaptadores

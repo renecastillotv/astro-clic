@@ -1,7 +1,7 @@
 ---
-// src/layouts/HomepageLayout.astro - OPTIMIZADO PARA RENDIMIENTO
+// src/layouts/HomepageLayout.astro - OPTIMIZADO CON MINISEARCHBAR
 import Layout from './Layout.astro';
-import SearchComponent from '../components/SearchComponent.astro';
+import MiniSearchBar from '../components/MiniSearchBar.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
 import VideoGallery from '../components/VideoGallery.astro';
 import RelatedArticles from '../components/RelatedArticles.astro';
@@ -28,6 +28,25 @@ const countryName = country?.name || countryConfig?.name || 'República Dominica
 const isDefaultCountry = countryConfig?.isDefault === true || 
                         countryConfig?.showReneBranding === true ||
                         globalConfig?.country === 'DOM';
+
+// ✅ NUEVO: Extraer searchTags de la data
+const searchTags = pageData.searchTags || null;
+const locationHierarchy = searchTags?.locationHierarchy || null;
+const preselectedFilters = searchTags?.preselected || null;
+const currencies = searchTags?.currencies || null;
+
+console.log('HomepageLayout - SearchTags disponibles:', {
+  hasSearchTags: !!searchTags,
+  hasTags: !!searchTags?.tags,
+  hasLocationHierarchy: !!locationHierarchy,
+  hasPreselected: !!preselectedFilters,
+  hasCurrencies: !!currencies,
+  provincias: searchTags?.tags?.provincia?.length || 0,
+  ciudades: searchTags?.tags?.ciudad?.length || 0,
+  sectores: searchTags?.tags?.sector?.length || 0,
+  tipos: searchTags?.tags?.tipo?.length || 0,
+  currencies: currencies?.available || []
+});
 
 // Extraer y pre-procesar secciones
 const homepageSections = pageData.sections || [];
@@ -353,18 +372,29 @@ const t = {
           </p>
         </div>
 
-        <!-- Search Component - Critical -->
+        <!-- ✅ MiniSearchBar con searchTags -->
         <div class="mb-8">
-          <SearchComponent 
-            showTitle={false}
-            searchFilters={searchFilters}
-            language={language}
-            countryContext={{
-              code: countryCode,
-              name: countryName,
-              hasContent: countryConfig.hasContent
-            }}
-          />
+          {searchTags ? (
+            <MiniSearchBar 
+              searchTags={searchTags.tags}
+              locationHierarchy={locationHierarchy}
+              preselectedFilters={preselectedFilters}
+              currencies={currencies}
+              language={language}
+              country={country}
+              trackingString={pageData.trackingString || ''}
+              isSticky={false}
+               variant="hero"
+            />
+          ) : (
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white">
+              <p class="text-sm">
+                {language === 'es' ? 'Cargando buscador...' : 
+                 language === 'en' ? 'Loading search...' : 
+                 'Chargement de la recherche...'}
+              </p>
+            </div>
+          )}
         </div>
 
         <!-- Value Propositions - Optimized -->
