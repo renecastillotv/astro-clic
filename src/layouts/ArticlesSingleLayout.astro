@@ -1,5 +1,5 @@
 ---
-// src/layouts/ArticlesSingleLayout.astro - Layout para artículo individual limpio
+// src/layouts/ArticlesSingleLayout.astro - Layout para artículo individual optimizado con SEO del backend
 import Layout from './Layout.astro';
 
 // ===================================================================
@@ -44,7 +44,7 @@ const language = safeString(data?.language, 'es');
 
 const articleData = safeObject(data?.article, {});
 const categoryData = safeObject(data?.category, {});
-const seoData = safeObject(data?.seo, {});
+const rawSeo = safeObject(data?.seo, {});
 
 // Datos seguros del artículo
 const safeArticle = {
@@ -53,8 +53,12 @@ const safeArticle = {
   subtitle: safeString(articleData.subtitle),
   excerpt: safeString(articleData.excerpt, 'Extracto no disponible'),
   content: safeString(articleData.content, ''),
-  featuredImage: safeString(articleData.featuredImage, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=600&fit=crop'),
+  featuredImage: safeString(
+    articleData.featuredImage, 
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=600&fit=crop'
+  ),
   publishedAt: safeString(articleData.publishedAt, new Date().toISOString()),
+  updatedAt: safeString(articleData.updatedAt),
   views: safeNumber(articleData.views, 0),
   readTime: safeString(articleData.readTime, '5 min'),
   readTimeMinutes: safeNumber(articleData.readTimeMinutes, 5),
@@ -62,7 +66,7 @@ const safeArticle = {
   url: safeString(articleData.url, '#'),
   slug: safeString(articleData.slug),
   category: safeString(articleData.category || categoryData.name, 'General'),
-  categorySlug: safeString(categoryData.slug || 'general'),
+  categorySlug: safeString(categoryData.slug || 'general').split('/').pop(), // Limpiar si viene con prefijo
   tags: safeArray(articleData.tags, []),
   author: safeObject(articleData.author, {
     name: 'Equipo CLIC',
@@ -70,9 +74,9 @@ const safeArticle = {
     position: language === 'es' ? 'Especialista Inmobiliario' :
               language === 'en' ? 'Real Estate Specialist' :
               'Spécialiste Immobilier',
-    bio: language === 'es' ? 'Experto en bienes raíces con años de experiencia ayudando a clientes a encontrar su hogar perfecto.' :
-         language === 'en' ? 'Real estate expert with years of experience helping clients find their perfect home.' :
-         'Expert en immobilier avec des années d\'expérience aidant les clients à trouver leur maison parfaite.',
+    bio: language === 'es' ? 'Experto en bienes raíces ayudando a clientes a encontrar su hogar perfecto.' :
+         language === 'en' ? 'Real estate expert helping clients find their perfect home.' :
+         'Expert en immobilier aidant les clients à trouver leur maison parfaite.',
     phone: '+1 809 487 2542',
     whatsapp: '18094872542',
     email: 'info@clicinmobiliaria.com'
@@ -85,83 +89,173 @@ const safeRelatedArticles = safeArray(data?.relatedArticles, []).map((article, i
   id: safeString(article.id, `related-${index}`),
   title: safeString(article.title, 'Artículo relacionado'),
   excerpt: safeString(article.excerpt, 'Extracto no disponible'),
-  featuredImage: safeString(article.featuredImage, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'),
+  featuredImage: safeString(
+    article.featuredImage, 
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'
+  ),
   url: safeString(article.url, '#'),
   publishedAt: safeString(article.publishedAt, new Date().toISOString()),
   readTime: safeString(article.readTime, '5 min'),
-  views: safeString(article.views, '0'),
+  views: safeNumber(article.views, 0),
   category: safeString(article.category, 'General'),
-  categorySlug: safeString(article.categorySlug, 'general'),
+  categorySlug: safeString(article.categorySlug, 'general').split('/').pop(),
   author: safeObject(article.author, {
     name: 'Equipo CLIC',
     avatar: 'https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/avatars/profile_photos/6e9575f8-d8ef-4671-aa7f-e7193a2d3f21_1751833067618.jpg'
   })
 }));
 
-// SEO seguro
-const safeSeo = {
-  title: safeString(seoData.title, `${safeArticle.title} - Blog CLIC`),
-  description: safeString(seoData.description, safeArticle.excerpt),
-  breadcrumbs: safeArray(seoData.breadcrumbs, [
-    {
-      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
-      url: language === 'es' ? '/' : `/${language}/`
-    },
-    {
-      name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
-      url: language === 'es' ? '/articulos' : `/${language}/articles`
-    },
-    {
-      name: safeArticle.category,
-      url: language === 'es' ? `/articulos/${safeArticle.categorySlug}` : `/${language}/articles/${safeArticle.categorySlug}`
-    },
-    {
-      name: safeArticle.title,
-      url: safeArticle.url
-    }
-  ])
-};
+// ===================================================================
+// PROCESAMIENTO DE SEO COMPLETO DEL BACKEND
+// ===================================================================
+
+// Breadcrumbs: priorizar backend, luego construir manualmente
+const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0 
+  ? safeArray(rawSeo.breadcrumbs)
+  : [
+      {
+        name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+        url: language === 'es' ? '/' : `/${language}/`
+      },
+      {
+        name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
+        url: language === 'es' ? '/articulos' : `/${language}/articles`
+      },
+      {
+        name: safeArticle.category,
+        url: language === 'es' ? `/articulos/${safeArticle.categorySlug}` : `/${language}/articles/${safeArticle.categorySlug}`
+      },
+      {
+        name: safeArticle.title,
+        url: safeArticle.url
+      }
+    ];
+
+// Canonical URL: priorizar backend
+const canonicalUrl = safeString(
+  rawSeo.canonical_url,
+  safeArticle.url
+);
+
+// Título y descripción SEO del backend
+const seoTitle = safeString(
+  rawSeo.title || rawSeo.h1,
+  `${safeArticle.title} | CLIC Inmobiliaria`
+);
+
+const seoDescription = safeString(
+  rawSeo.description || rawSeo.h2,
+  safeArticle.excerpt
+);
+
+// Open Graph: usar datos del backend o construir
+const safeOpenGraph = safeObject(rawSeo.open_graph).title 
+  ? safeObject(rawSeo.open_graph)
+  : {
+      title: seoTitle,
+      description: seoDescription,
+      url: `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
+      type: 'article',
+      site_name: 'CLIC Inmobiliaria',
+      locale: language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR',
+      image: rawSeo.ogImage || safeArticle.featuredImage,
+      article: {
+        published_time: safeArticle.publishedAt,
+        modified_time: safeArticle.updatedAt,
+        author: safeArticle.author.name,
+        section: safeArticle.category,
+        tag: safeArticle.tags.map(t => safeString(t.name || t, '')).filter(Boolean)
+      }
+    };
+
+// Twitter Card: usar datos del backend o construir
+const safeTwitterCard = safeObject(rawSeo.twitter_card).title
+  ? safeObject(rawSeo.twitter_card)
+  : {
+      card: 'summary_large_image',
+      site: '@clic.do',
+      creator: safeArticle.author.twitter || '@renecastillotv',
+      title: seoTitle,
+      description: seoDescription,
+      image: rawSeo.ogImage || safeArticle.featuredImage
+    };
+
+// Structured Data: priorizar backend o construir Article schema
+const safeStructuredData = safeObject(rawSeo.structured_data)['@context']
+  ? safeObject(rawSeo.structured_data)
+  : {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": safeArticle.title,
+      "description": safeArticle.excerpt,
+      "image": {
+        "@type": "ImageObject",
+        "url": safeArticle.featuredImage,
+        "width": 1200,
+        "height": 630
+      },
+      "datePublished": safeArticle.publishedAt,
+      "dateModified": safeArticle.updatedAt || safeArticle.publishedAt,
+      "author": {
+        "@type": "Person",
+        "name": safeArticle.author.name,
+        "jobTitle": safeArticle.author.position
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "CLIC Inmobiliaria",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`
+      },
+      "wordCount": safeArticle.content ? safeArticle.content.split(/\s+/).length : 0,
+      "timeRequired": `PT${safeArticle.readTimeMinutes}M`,
+      "articleSection": safeArticle.category,
+      "keywords": safeArticle.tags.map(t => safeString(t.name || t, '')).filter(Boolean).join(', ')
+    };
 
 // ===================================================================
-// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
+// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS DEL BACKEND
 // ===================================================================
 
 const layoutProps = {
-  title: safeSeo.title,
-  description: safeSeo.description,
-  ogImage: safeGet(seoData, 'ogImage') || safeArticle.featuredImage,
-  canonical: safeGet(seoData, 'canonical_url') || safeArticle.url,
-  keywords: safeGet(seoData, 'keywords') || `${safeArticle.title}, ${safeArticle.category}, artículos inmobiliarios, República Dominicana`,
-  hreflangData: safeGet(seoData, 'hreflang') || {},
+  // Títulos y descripciones del backend
+  title: seoTitle,
+  description: seoDescription,
+  
+  // Imágenes
+  ogImage: safeString(rawSeo.ogImage || safeOpenGraph.image, safeArticle.featuredImage),
+  
+  // URLs
+  canonical: canonicalUrl,
+  
+  // Keywords y hreflang
+  keywords: safeString(
+    rawSeo.keywords, 
+    `${safeArticle.title}, ${safeArticle.category}, artículos inmobiliarios, bienes raíces`
+  ),
+  hreflangData: safeObject(rawSeo.hreflang),
+  
+  // Configuración global
   globalConfig: data?.globalConfig || {},
   language: language,
   trackingString: data?.trackingString || '',
   hotItems: data?.hotItems || {},
   country: data?.country || {},
-  breadcrumbs: safeSeo.breadcrumbs,
-  structuredData: safeGet(seoData, 'structured_data') || {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": safeArticle.title,
-    "description": safeArticle.excerpt,
-    "image": safeArticle.featuredImage,
-    "datePublished": safeArticle.publishedAt,
-    "author": {
-      "@type": "Person",
-      "name": safeArticle.author.name
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "CLIC Inmobiliaria"
-    }
-  },
-  openGraph: safeGet(seoData, 'open_graph') || {
-    title: safeSeo.title,
-    description: safeSeo.description,
-    image: safeArticle.featuredImage,
-    type: 'article'
-  },
-  twitterCard: safeGet(seoData, 'twitter_card') || {}
+  
+  // SEO estructurado del backend
+  breadcrumbs: safeBreadcrumbs,
+  structuredData: safeStructuredData,
+  openGraph: safeOpenGraph,
+  twitterCard: safeTwitterCard,
+  
+  // Meta tags adicionales del backend
+  additionalMetaTags: safeObject(rawSeo.additional_meta_tags || rawSeo.meta_tags)
 };
 
 // ===================================================================
@@ -180,7 +274,7 @@ const TEXTS = {
     views: 'lecturas',
     author: 'Por',
     facebook: 'Facebook',
-    twitter: 'Twitter', 
+    twitter: 'Twitter',
     linkedin: 'LinkedIn',
     share: 'Compartir',
     publishedOn: 'Publicado el',
@@ -198,7 +292,7 @@ const TEXTS = {
     author: 'By',
     facebook: 'Facebook',
     twitter: 'Twitter',
-    linkedin: 'LinkedIn', 
+    linkedin: 'LinkedIn',
     share: 'Share',
     publishedOn: 'Published on',
     noRelatedArticles: 'No related articles available'
@@ -226,15 +320,9 @@ const text = TEXTS[language] || TEXTS.es;
 
 // URLs según idioma
 const routes = {
-  es: {
-    articlesBase: '/articulos'
-  },
-  en: {
-    articlesBase: '/en/articles'  
-  },
-  fr: {
-    articlesBase: '/fr/articles'
-  }
+  es: { articlesBase: '/articulos' },
+  en: { articlesBase: '/en/articles' },
+  fr: { articlesBase: '/fr/articles' }
 };
 
 const currentRoutes = routes[language] || routes.es;
@@ -265,7 +353,15 @@ console.log('✅ ArticlesSingleLayout preparado:', {
   title: safeArticle.title,
   author: safeArticle.author?.name,
   relatedArticlesCount: safeRelatedArticles.length,
-  category: safeArticle.category
+  category: safeArticle.category,
+  seoFromBackend: {
+    hasTitle: !!rawSeo.title,
+    hasDescription: !!rawSeo.description,
+    hasBreadcrumbs: safeBreadcrumbs.length > 0,
+    hasStructuredData: !!safeStructuredData['@context'],
+    hasOpenGraph: !!safeOpenGraph.title,
+    hasTwitterCard: !!safeTwitterCard.title
+  }
 });
 ---
 
@@ -275,26 +371,24 @@ console.log('✅ ArticlesSingleLayout preparado:', {
     <!-- Breadcrumbs -->
     <section class="bg-white shadow-sm">
       <div class="container mx-auto px-4 py-3">
-        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
-          <div aria-label="Breadcrumb">
-            <ol class="flex items-center space-x-2 text-sm text-gray-600">
-              {safeSeo.breadcrumbs.map((breadcrumb, index) => (
-                <li class="flex items-center">
-                  {index > 0 && (
-                    <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
-                  )}
-                  {index === safeSeo.breadcrumbs.length - 1 ? (
-                    <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
-                  ) : (
-                    <a href={breadcrumb.url} class="hover:text-[#f04e00] transition-colors">
-                      {breadcrumb.name}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+        <nav aria-label="Breadcrumb">
+          <ol class="flex items-center flex-wrap space-x-2 text-sm text-gray-600">
+            {safeBreadcrumbs.map((breadcrumb, index) => (
+              <li class="flex items-center" key={index}>
+                {index > 0 && (
+                  <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+                )}
+                {index === safeBreadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="hover:text-[#f04e00] transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
       </div>
     </section>
 
@@ -305,9 +399,12 @@ console.log('✅ ArticlesSingleLayout preparado:', {
           
           <!-- Category and tags -->
           <div class="flex flex-wrap items-center gap-3 mb-6">
-            <span class="bg-[#f04e00] text-white px-4 py-2 rounded-full text-sm font-medium">
+            <a 
+              href={`${currentRoutes.articlesBase}/${safeArticle.categorySlug}`}
+              class="bg-[#f04e00] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#d94400] transition-colors"
+            >
               {safeArticle.category}
-            </span>
+            </a>
             {safeArticle.tags.map((tag, index) => (
               <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm" key={index}>
                 {safeString(tag.name || tag, 'Tag')}
@@ -340,7 +437,7 @@ console.log('✅ ArticlesSingleLayout preparado:', {
               </div>
             </div>
             
-            <div class="flex items-center gap-6">
+            <div class="flex flex-wrap items-center gap-6">
               <span class="flex items-center gap-2">
                 <i class="far fa-calendar text-gray-400"></i>
                 {formatDate(safeArticle.publishedAt)}
@@ -381,6 +478,7 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                       src={safeArticle.featuredImage} 
                       alt={safeArticle.title}
                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="eager"
                     />
                   </div>
                 </figure>
@@ -404,8 +502,9 @@ console.log('✅ ArticlesSingleLayout preparado:', {
               <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.shareArticle}</h3>
               <div class="flex flex-wrap gap-3">
                 <a 
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://clicinmobiliaria.com${safeArticle.url}`)}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${safeArticle.url}`)}`}
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
                   <i class="fab fa-facebook-f"></i>
@@ -413,8 +512,9 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                 </a>
                 
                 <a 
-                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://clicinmobiliaria.com${safeArticle.url}`)}&text=${encodeURIComponent(safeArticle.title)}`}
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${safeArticle.url}`)}&text=${encodeURIComponent(safeArticle.title)}`}
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="inline-flex items-center gap-2 px-4 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm"
                 >
                   <i class="fab fa-twitter"></i>
@@ -422,8 +522,9 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                 </a>
                 
                 <a 
-                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://clicinmobiliaria.com${safeArticle.url}`)}`}
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${safeArticle.url}`)}`}
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm"
                 >
                   <i class="fab fa-linkedin-in"></i>
@@ -431,7 +532,7 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                 </a>
                 
                 <button 
-                  onclick={`if(navigator.share){navigator.share({title:'${safeArticle.title}',url:window.location.href})}`}
+                  onclick={`if(navigator.share){navigator.share({title:'${safeArticle.title.replace(/'/g, "\\'")}',url:window.location.href})}`}
                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
                 >
                   <i class="fas fa-share-alt"></i>
@@ -460,6 +561,7 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                     <a 
                       href={`https://wa.me/${safeArticle.author.whatsapp}?text=${encodeURIComponent(`Hola, leí tu artículo "${safeArticle.title}" y me gustaría más información`)}`}
                       target="_blank"
+                      rel="noopener noreferrer"
                       class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                     >
                       <i class="fab fa-whatsapp"></i>
@@ -502,14 +604,15 @@ console.log('✅ ArticlesSingleLayout preparado:', {
             </h2>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {safeRelatedArticles.map((article, index) => (
-                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id || index}>
+              {safeRelatedArticles.map((article) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id}>
                   <a href={article.url} class="block">
                     <div class="aspect-[16/10] relative overflow-hidden">
                       <img 
                         src={article.featuredImage} 
                         alt={article.title}
                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
                       <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
                         <i class="far fa-clock mr-1"></i>
@@ -535,7 +638,10 @@ console.log('✅ ArticlesSingleLayout preparado:', {
                           />
                           <span class="truncate font-medium">{article.author.name}</span>
                         </div>
-                        <span>{article.views} {text.views}</span>
+                        <span class="flex items-center gap-1">
+                          <i class="far fa-eye"></i>
+                          {article.views.toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   </a>
@@ -565,7 +671,6 @@ console.log('✅ ArticlesSingleLayout preparado:', {
     overflow: hidden;
   }
 
-  /* Magazine-style text formatting */
   .magazine-text {
     text-align: justify;
     hyphens: auto;
@@ -575,13 +680,11 @@ console.log('✅ ArticlesSingleLayout preparado:', {
     line-height: 1.7;
   }
 
-  /* Better floating image behavior */
   figure.float-left {
     shape-outside: margin-box;
     margin-bottom: 1.5rem;
   }
 
-  /* Article content styling */
   .article-content p {
     margin-bottom: 1.25rem;
     text-align: justify;
@@ -633,7 +736,14 @@ console.log('✅ ArticlesSingleLayout preparado:', {
     margin-bottom: 0.5rem;
   }
 
-  /* Better responsive behavior */
+  .article-content blockquote {
+    border-left: 4px solid #f04e00;
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: #4b5563;
+  }
+
   @media (max-width: 1024px) {
     figure.float-left {
       width: 320px !important;
@@ -655,7 +765,6 @@ console.log('✅ ArticlesSingleLayout preparado:', {
     }
   }
 
-  /* Smooth transitions */
   .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
   }

@@ -1,5 +1,5 @@
 ---
-// src/layouts/ArticlesCategoryLayout.astro - Layout para categorías de artículos con estilo magazine
+// src/layouts/ArticlesCategoryLayout.astro - Layout para categorías de artículos optimizado con SEO del backend
 import Layout from './Layout.astro';
 
 // ===================================================================
@@ -37,7 +37,10 @@ function safeNumber(num, defaultValue = 0) {
 
 const { data } = Astro.props;
 const language = safeString(data?.language, 'es');
-const categorySlug = safeString(data?.category?.slug || data?.categorySlug || data?.slug, 'general');
+
+// Limpiar slug si viene con prefijos como "articulos/inversion"
+const rawCategorySlug = safeString(data?.category?.slug || data?.categorySlug || data?.slug, 'general');
+const categorySlug = rawCategorySlug.split('/').pop();
 
 // ===================================================================
 // PROCESAMIENTO DEFENSIVO DE DATOS
@@ -45,77 +48,39 @@ const categorySlug = safeString(data?.category?.slug || data?.categorySlug || da
 
 let categoryData = safeObject(data);
 
-// Configuraciones por defecto de categorías
-const categoryConfigs = {
-  'guias-de-compra': {
-    title: language === 'es' ? 'Guías de Compra' :
-           language === 'en' ? 'Buying Guides' :
-           'Guides d\'Achat',
-    description: language === 'es' ? 'Todo lo que necesitas saber para comprar tu propiedad ideal en República Dominicana. Desde el proceso legal hasta consejos prácticos de negociación.' :
-                 language === 'en' ? 'Everything you need to know to buy your ideal property in Dominican Republic. From legal process to practical negotiation tips.' :
-                 'Tout ce que vous devez savoir pour acheter votre propriété idéale en République dominicaine.',
-    icon: 'fa-book'
-  },
-  'inversion': {
-    title: language === 'es' ? 'Inversión Inmobiliaria' :
-           language === 'en' ? 'Real Estate Investment' :
-           'Investissement Immobilier',
-    description: language === 'es' ? 'Estrategias, análisis y casos de éxito para maximizar tu retorno de inversión en el mercado inmobiliario dominicano.' :
-                 language === 'en' ? 'Strategies, analysis and success cases to maximize your return on investment in the Dominican real estate market.' :
-                 'Stratégies, analyses et cas de succès pour maximiser votre retour sur investissement.',
-    icon: 'fa-chart-line'
-  },
-  'analisis-de-mercado': {
-    title: language === 'es' ? 'Análisis de Mercado' :
-           language === 'en' ? 'Market Analysis' :
-           'Analyse de Marché',
-    description: language === 'es' ? 'Análisis de tendencias, precios y oportunidades en el mercado dominicano' :
-                 language === 'en' ? 'Analysis of trends, prices and opportunities in the Dominican market' :
-                 'Analyse des tendances, prix et opportunités sur le marché dominicain',
-    icon: 'fa-chart-bar'
-  },
-  'tips': {
-    title: language === 'es' ? 'Tips y Consejos' :
-           language === 'en' ? 'Tips & Advice' :
-           'Conseils et Astuces',
-    description: language === 'es' ? 'Consejos prácticos y tips expertos para navegar el mercado inmobiliario con éxito' :
-                 language === 'en' ? 'Practical advice and expert tips to successfully navigate the real estate market' :
-                 'Conseils pratiques et astuces d\'experts pour naviguer avec succès sur le marché immobilier',
-    icon: 'fa-lightbulb'
-  },
-  'comparativas': {
-    title: language === 'es' ? 'Comparativas' :
-           language === 'en' ? 'Comparisons' :
-           'Comparaisons',
-    description: language === 'es' ? 'Comparaciones detalladas para ayudarte a tomar la mejor decisión inmobiliaria' :
-                 language === 'en' ? 'Detailed comparisons to help you make the best real estate decision' :
-                 'Comparaisons détaillées pour vous aider à prendre la meilleure décision immobilière',
-    icon: 'fa-balance-scale'
-  },
-  'ubicacion': {
-    title: language === 'es' ? 'Ubicaciones' :
-           language === 'en' ? 'Locations' :
-           'Emplacements',
-    description: language === 'es' ? 'Guías de ubicaciones y análisis de los mejores sectores para vivir e invertir' :
-                 language === 'en' ? 'Location guides and analysis of the best areas to live and invest' :
-                 'Guides d\'emplacement et analyse des meilleurs secteurs pour vivre et investir',
-    icon: 'fa-map-marker-alt'
-  }
+// Solo mapeo de iconos (el backend no los envía)
+const categoryIcons = {
+  'guias-de-compra': 'fa-book',
+  'inversion': 'fa-chart-line',
+  'analisis-de-mercado': 'fa-chart-bar',
+  'tips': 'fa-lightbulb',
+  'comparativas': 'fa-balance-scale',
+  'ubicacion': 'fa-map-marker-alt'
 };
 
-// Obtener configuración de categoría o usar fallback
-const currentConfig = categoryConfigs[categorySlug] || categoryConfigs['guias-de-compra'];
-
-// Crear datos seguros de categoría
+// Crear datos seguros de categoría usando principalmente el SEO del backend
 const safeCategoryData = {
   language: language,
   category: categorySlug,
   categorySlug: categorySlug,
-  title: safeString(safeGet(categoryData, 'category.name') || categoryData.title || currentConfig.title),
-  description: safeString(safeGet(categoryData, 'category.description') || categoryData.description || currentConfig.description),
-  icon: safeString(currentConfig.icon),
-  slug: safeString(safeGet(categoryData, 'category.slug') || categoryData.slug || categorySlug),
-  url: safeString(safeGet(categoryData, 'category.url') || categoryData.url || `#${categorySlug}`)
+  // Priorizar seo.h1 del backend, luego category.name, luego fallback genérico
+  title: safeString(
+    data?.seo?.h1 || 
+    data?.category?.name || 
+    (language === 'es' ? 'Artículos' : language === 'en' ? 'Articles' : 'Articles')
+  ),
+  // Priorizar seo.h2 del backend, luego seo.description, luego fallback genérico
+  description: safeString(
+    data?.seo?.h2 || 
+    data?.seo?.description || 
+    (language === 'es' ? 'Explora nuestra colección de artículos sobre el mercado inmobiliario.' :
+     language === 'en' ? 'Explore our collection of articles about the real estate market.' :
+     'Explorez notre collection d\'articles sur le marché immobilier.')
+  ),
+  // Solo fallback de icono (backend no lo envía)
+  icon: categoryIcons[categorySlug] || 'fa-newspaper',
+  slug: categorySlug,
+  url: safeString(data?.category?.url || `#${categorySlug}`)
 };
 
 // Procesar artículos de forma defensiva
@@ -127,7 +92,10 @@ const safeArticles = rawArticles.map((article, index) => ({
   excerpt: safeString(article.excerpt, 'Extracto no disponible'),
   subtitle: safeString(article.subtitle),
   content: safeString(article.content, ''),
-  featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
+  featuredImage: safeString(
+    article.featuredImage || article.featured_image, 
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'
+  ),
   publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
   readTime: safeString(article.readTime || article.read_time, '5 min'),
   readTimeMinutes: safeNumber(article.readTimeMinutes, 5),
@@ -168,61 +136,133 @@ function extractParagraphs(htmlContent, maxParagraphs = 3) {
   return paragraphs;
 }
 
-// SEO seguro
-const safeSeo = {
-  title: safeString(safeGet(categoryData, 'seo.title'), `${safeCategoryData.title} - Blog CLIC`),
-  description: safeString(safeGet(categoryData, 'seo.description'), safeCategoryData.description),
-  breadcrumbs: safeArray(safeGet(categoryData, 'seo.breadcrumbs'), [
-    {
-      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
-      url: language === 'es' ? '/' : `/${language}/`
-    },
-    {
-      name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
-      url: language === 'es' ? '/articulos' : `/${language}/articles`
-    },
-    {
-      name: safeCategoryData.title,
-      url: language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
-    }
-  ])
-};
+// ===================================================================
+// PROCESAMIENTO DE SEO COMPLETO DEL BACKEND
+// ===================================================================
+
+const rawSeo = safeObject(categoryData.seo);
+
+// Breadcrumbs: priorizar backend, luego construir manualmente
+const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0 
+  ? safeArray(rawSeo.breadcrumbs)
+  : [
+      {
+        name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+        url: language === 'es' ? '/' : `/${language}/`
+      },
+      {
+        name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
+        url: language === 'es' ? '/articulos' : `/${language}/articles`
+      },
+      {
+        name: safeCategoryData.title,
+        url: language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
+      }
+    ];
+
+// Canonical URL: priorizar backend
+const canonicalUrl = safeString(
+  rawSeo.canonical_url,
+  language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
+);
+
+// Open Graph: usar datos del backend o construir
+const safeOpenGraph = safeObject(rawSeo.open_graph).title 
+  ? safeObject(rawSeo.open_graph)
+  : {
+      title: rawSeo.title || safeCategoryData.title,
+      description: rawSeo.description || safeCategoryData.description,
+      url: `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
+      type: 'website',
+      site_name: 'CLIC Inmobiliaria',
+      locale: language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR',
+      image: rawSeo.ogImage || '/og-articles.jpg'
+    };
+
+// Twitter Card: usar datos del backend o construir
+const safeTwitterCard = safeObject(rawSeo.twitter_card).title
+  ? safeObject(rawSeo.twitter_card)
+  : {
+      card: 'summary_large_image',
+      site: '@clic.do',
+      creator: '@renecastillotv',
+      title: rawSeo.title || safeCategoryData.title,
+      description: rawSeo.description || safeCategoryData.description,
+      image: rawSeo.ogImage || '/og-articles.jpg'
+    };
+
+// Structured Data: priorizar backend o construir
+const safeStructuredData = safeObject(rawSeo.structured_data)['@context']
+  ? safeObject(rawSeo.structured_data)
+  : {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": rawSeo.title || safeCategoryData.title,
+      "description": rawSeo.description || safeCategoryData.description,
+      "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
+      "isPartOf": {
+        "@type": "Blog",
+        "name": "CLIC Inmobiliaria Blog",
+        "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${language === 'es' ? '/articulos' : `/${language}/articles`}`
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "CLIC Inmobiliaria",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
+        }
+      },
+      "mainEntity": {
+        "@type": "ItemList",
+        "numberOfItems": safeArticles.length,
+        "itemListElement": safeArticles.map((article, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "item": {
+            "@type": "BlogPosting",
+            "headline": article.title,
+            "description": article.excerpt,
+            "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${article.url}`
+          }
+        }))
+      }
+    };
 
 // ===================================================================
-// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
+// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS DEL BACKEND
 // ===================================================================
 
 const layoutProps = {
-  title: safeSeo.title,
-  description: safeSeo.description,
-  ogImage: safeGet(categoryData, 'seo.ogImage') || '/og-articles.jpg',
-  canonical: safeGet(categoryData, 'seo.canonical_url') || (language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`),
-  keywords: safeGet(categoryData, 'seo.keywords') || `${safeCategoryData.title}, artículos inmobiliarios, República Dominicana`,
-  hreflangData: safeGet(categoryData, 'seo.hreflang') || {},
+  // Títulos y descripciones del backend
+  title: safeString(rawSeo.title, safeCategoryData.title),
+  description: safeString(rawSeo.description, safeCategoryData.description),
+  
+  // Imágenes
+  ogImage: safeString(rawSeo.ogImage || safeOpenGraph.image, '/og-articles.jpg'),
+  
+  // URLs
+  canonical: canonicalUrl,
+  
+  // Keywords y hreflang
+  keywords: safeString(rawSeo.keywords, `${safeCategoryData.title}, artículos inmobiliarios`),
+  hreflangData: safeObject(rawSeo.hreflang),
+  
+  // Configuración global
   globalConfig: data?.globalConfig || categoryData?.globalConfig || {},
   language: language,
   trackingString: categoryData?.trackingString || '',
   hotItems: categoryData?.hotItems || {},
   country: categoryData?.country || {},
-  breadcrumbs: safeSeo.breadcrumbs,
-  structuredData: safeGet(categoryData, 'seo.structured_data') || {
-    "@context": "https://schema.org",
-    "@type": "Blog",
-    "name": safeSeo.title,
-    "description": safeSeo.description,
-    "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`}`,
-    "publisher": {
-      "@type": "Organization", 
-      "name": "CLIC Inmobiliaria"
-    }
-  },
-  openGraph: safeGet(categoryData, 'seo.open_graph') || {
-    title: safeSeo.title,
-    description: safeSeo.description,
-    type: 'website',
-    site_name: 'CLIC Inmobiliaria'
-  },
-  twitterCard: safeGet(categoryData, 'seo.twitter_card') || {}
+  
+  // SEO estructurado del backend
+  breadcrumbs: safeBreadcrumbs,
+  structuredData: safeStructuredData,
+  openGraph: safeOpenGraph,
+  twitterCard: safeTwitterCard,
+  
+  // Meta tags adicionales del backend
+  additionalMetaTags: safeObject(rawSeo.additional_meta_tags || rawSeo.meta_tags)
 };
 
 // ===================================================================
@@ -231,48 +271,36 @@ const layoutProps = {
 
 const TEXTS = {
   es: {
-    breadcrumbArticles: 'Artículos',
     readMore: 'Leer más',
     readFull: 'Leer artículo completo',
-    showMore: 'Leer contenido completo',
-    showLess: 'Mostrar menos',
     moreArticles: 'Más artículos de',
     readingTime: 'min de lectura',
     views: 'lecturas',
     author: 'Por',
-    publishedOn: 'Publicado el',
     articles: 'artículos',
     noArticles: 'Aún no hay artículos',
     noArticlesDesc: 'Vuelve pronto para encontrar nuevo contenido en esta categoría.',
     backToArticles: 'Ver todos los artículos'
   },
   en: {
-    breadcrumbArticles: 'Articles',
     readMore: 'Read more',
     readFull: 'Read full article',
-    showMore: 'Read full content',
-    showLess: 'Show less',
     moreArticles: 'More articles in',
     readingTime: 'min read',
     views: 'views',
     author: 'By',
-    publishedOn: 'Published on',
     articles: 'articles',
     noArticles: 'No articles yet',
     noArticlesDesc: 'Check back soon for new content in this category.',
     backToArticles: 'View all articles'
   },
   fr: {
-    breadcrumbArticles: 'Articles',
     readMore: 'Lire plus',
     readFull: 'Lire l\'article complet',
-    showMore: 'Lire le contenu complet',
-    showLess: 'Afficher moins',
     moreArticles: 'Plus d\'articles dans',
     readingTime: 'min de lecture',
     views: 'vues',
     author: 'Par',
-    publishedOn: 'Publié le',
     articles: 'articles',
     noArticles: 'Pas encore d\'articles',
     noArticlesDesc: 'Revenez bientôt pour du nouveau contenu dans cette catégorie.',
@@ -284,15 +312,9 @@ const text = TEXTS[language] || TEXTS.es;
 
 // URLs según idioma
 const routes = {
-  es: {
-    articlesBase: '/articulos'
-  },
-  en: {
-    articlesBase: '/en/articles'
-  },
-  fr: {
-    articlesBase: '/fr/articles'
-  }
+  es: { articlesBase: '/articulos' },
+  en: { articlesBase: '/en/articles' },
+  fr: { articlesBase: '/fr/articles' }
 };
 
 const currentRoutes = routes[language] || routes.es;
@@ -324,7 +346,15 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
   title: safeCategoryData.title,
   articlesCount: safeArticles.length,
   mostPopular: mostPopularArticle?.title,
-  gridCount: gridArticles.length
+  gridCount: gridArticles.length,
+  seoFromBackend: {
+    hasTitle: !!rawSeo.title,
+    hasDescription: !!rawSeo.description,
+    hasBreadcrumbs: safeBreadcrumbs.length > 0,
+    hasStructuredData: !!safeStructuredData['@context'],
+    hasOpenGraph: !!safeOpenGraph.title,
+    hasTwitterCard: !!safeTwitterCard.title
+  }
 });
 ---
 
@@ -340,11 +370,11 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
         <div class="text-center text-white max-w-4xl mx-auto">
           
           <!-- Breadcrumbs -->
-          <nav class="text-sm mb-8">
-            {safeSeo.breadcrumbs && safeSeo.breadcrumbs.map((breadcrumb, index) => (
+          <nav class="text-sm mb-8" aria-label="Breadcrumb">
+            {safeBreadcrumbs.map((breadcrumb, index) => (
               <span key={index}>
                 {index > 0 && <span class="mx-2 text-white/60">•</span>}
-                {index === safeSeo.breadcrumbs.length - 1 ? (
+                {index === safeBreadcrumbs.length - 1 ? (
                   <span class="text-white font-medium">{breadcrumb.name}</span>
                 ) : (
                   <a href={breadcrumb.url} class="text-white/80 hover:text-white transition-colors">
@@ -379,15 +409,12 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     <main class="py-12 bg-white">
       <div class="container mx-auto px-4">
 
-        {/* Si hay artículos */}
         {safeArticles.length > 0 ? (
           <div>
-            {/* Featured Article con Magazine Style (solo si hay más de 1) */}
+            {/* Featured Article (solo si hay más de 1) */}
             {mostPopularArticle && safeArticles.length > 1 && (
               <article class="mb-16 max-w-6xl mx-auto">
-                <!-- Article header - Full Width -->
                 <header class="mb-8">
-                  <!-- Author info -->
                   <div class="flex items-center gap-4 mb-6">
                     <img 
                       src={mostPopularArticle.author.avatar} 
@@ -413,7 +440,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                     </div>
                   </div>
 
-                  <!-- Title and excerpt - Full Width -->
                   <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
                     {mostPopularArticle.title}
                   </h2>
@@ -423,57 +449,49 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                   </p>
                 </header>
 
-                <!-- Magazine-style content with floating image -->
                 <div class="editorial-content">
-                  <div id="article-preview">
-                    <!-- Content with floating image -->
-                    <div class="relative">
-                      <!-- Floating image with elegant overlay -->
-                      <figure class="float-left mr-8 mb-6 w-96 group">
-                        <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
-                          <img 
-                            src={mostPopularArticle.featuredImage} 
-                            alt={mostPopularArticle.title}
-                            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <!-- Elegant overlay button -->
-                          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div class="absolute bottom-4 left-4 right-4">
-                              <a 
-                                href={mostPopularArticle.url}
-                                class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
-                              >
-                                {text.readFull}
-                              </a>
-                            </div>
+                  <div class="relative">
+                    <figure class="float-left mr-8 mb-6 w-96 group">
+                      <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
+                        <img 
+                          src={mostPopularArticle.featuredImage} 
+                          alt={mostPopularArticle.title}
+                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div class="absolute bottom-4 left-4 right-4">
+                            <a 
+                              href={mostPopularArticle.url}
+                              class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
+                            >
+                              {text.readFull}
+                            </a>
                           </div>
                         </div>
-                      </figure>
+                      </div>
+                    </figure>
 
-                      <!-- Justified text that wraps around the image -->
-                      <div class="text-gray-700 leading-7 text-base magazine-text">
-                        {mostPopularArticle.content && extractParagraphs(mostPopularArticle.content, 4).map((paragraph, index) => (
-                          <p class="mb-5 text-justify hyphens-auto" key={index} set:html={paragraph} />
-                        ))}
-                      </div>
-                      
-                      <!-- Clear float for button -->
-                      <div class="clear-both mt-6">
-                        <a 
-                          href={mostPopularArticle.url}
-                          class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
-                        >
-                          <span>{text.readFull}</span>
-                          <i class="fas fa-arrow-right transition-all duration-200 group-hover:translate-x-1"></i>
-                        </a>
-                      </div>
+                    <div class="text-gray-700 leading-7 text-base magazine-text">
+                      {mostPopularArticle.content && extractParagraphs(mostPopularArticle.content, 4).map((paragraph, index) => (
+                        <p class="mb-5 text-justify hyphens-auto" key={index} set:html={paragraph} />
+                      ))}
+                    </div>
+                    
+                    <div class="clear-both mt-6">
+                      <a 
+                        href={mostPopularArticle.url}
+                        class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
+                      >
+                        <span>{text.readFull}</span>
+                        <i class="fas fa-arrow-right transition-all duration-200 group-hover:translate-x-1"></i>
+                      </a>
                     </div>
                   </div>
                 </div>
               </article>
             )}
 
-            {/* Grid de artículos adicionales o único artículo */}
+            {/* Grid de artículos */}
             {(gridArticles.length > 0 || (safeArticles.length === 1 && mostPopularArticle)) && (
               <section class="max-w-6xl mx-auto">
                 {safeArticles.length > 1 && (
@@ -483,10 +501,9 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                 )}
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {(gridArticles.length > 0 ? gridArticles : [mostPopularArticle]).map((article, index) => (
+                  {(gridArticles.length > 0 ? gridArticles : [mostPopularArticle]).map((article) => (
                     <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id}>
                       <a href={article.url} class="block">
-                        <!-- Image -->
                         <div class="aspect-[16/10] relative overflow-hidden">
                           <img 
                             src={article.featuredImage} 
@@ -499,7 +516,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                           </div>
                         </div>
                         
-                        <!-- Content -->
                         <div class="p-6">
                           <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
                             {article.title}
@@ -515,7 +531,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                             {article.excerpt}
                           </p>
                           
-                          <!-- Meta -->
                           <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
                             <div class="flex items-center gap-2">
                               <img 
@@ -531,7 +546,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
                             </span>
                           </div>
                           
-                          <!-- Read more link -->
                           <div class="inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
                             <span>{text.readMore}</span>
                             <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1"></i>
@@ -545,9 +559,8 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
             )}
           </div>
         ) : (
-          /* Estado vacío */
           <div class="text-center py-16 max-w-2xl mx-auto">
-            <div class="text-8xl mb-6">📝</div>
+            <div class="text-8xl mb-6">📚</div>
             <h3 class="text-2xl font-bold text-gray-900 mb-4">
               {text.noArticles}
             </h3>
@@ -592,7 +605,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     overflow: hidden;
   }
 
-  /* Magazine-style text formatting */
   .magazine-text {
     text-align: justify;
     hyphens: auto;
@@ -601,7 +613,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     -ms-hyphens: auto;
   }
 
-  /* Float behavior for magazine layout */
   .magazine-text p:first-child,
   .magazine-text p:nth-child(2) {
     text-indent: 0;
@@ -611,13 +622,11 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     text-indent: 1.5em;
   }
 
-  /* Better floating image behavior */
   figure.float-left {
     shape-outside: margin-box;
     margin-bottom: 1.5rem;
   }
 
-  /* Better responsive behavior */
   @media (max-width: 1024px) {
     figure.float-left {
       width: 320px !important;
@@ -637,7 +646,6 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     }
   }
 
-  /* Smooth transitions */
   .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
   }

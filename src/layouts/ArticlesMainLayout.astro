@@ -120,7 +120,7 @@ const safeCategories = rawCategories.map((cat, index) => {
     id: safeString(cat.id, `category-${index}`),
     name: safeString(cat.name || cat.title || cat.display_name, 'Categoría sin nombre'),
     slug: safeString(cat.slug, `categoria-${index}`),
-    url: safeString(cat.url, `#categoria-${index}`),
+    url: safeString(cat.url, '#'),
     articleCount: safeNumber(cat.articleCount || cat.count, 0),
     description: safeString(cat.description, 'Explora artículos sobre este tema'),
     featured: Boolean(cat.featured),
@@ -130,40 +130,26 @@ const safeCategories = rawCategories.map((cat, index) => {
 });
 
 // Procesar estadísticas - Priorizar datos del backend
-const rawStats = safeObject(articlesData.stats);
-const safeStats = {
-  totalArticles: rawStats.totalArticles || rawStats.total_articles || allArticles.length,
-  totalReads: rawStats.totalReads || rawStats.total_reads || rawStats.totalViews || rawStats.total_views || '6.9K+',
-  avgRating: rawStats.avgRating || rawStats.avg_rating || rawStats.rating || 4.8,
-  publishedThisMonth: rawStats.publishedThisMonth || rawStats.published_this_month || rawStats.thisMonth || rawStats.this_month || 3,
-  totalCategories: rawStats.totalCategories || rawStats.total_categories || safeCategories.length,
-  totalViews: rawStats.totalViews || rawStats.total_views || '6921'
+// Función helper para formatear números grandes
+const formatNumber = (num) => {
+  if (!num || num === 0) return '0';
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K+`;
+  return num.toString();
 };
 
-// Procesar SEO - Priorizar datos del backend
-const rawSeo = safeObject(articlesData.seo);
-const safeSeo = {
-  title: safeString(rawSeo.title) || text.title,
-  description: safeString(rawSeo.description) || text.subtitle,
-  h1: safeString(rawSeo.h1) || text.title,
-  h2: safeString(rawSeo.h2) || text.subtitle,
-  canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/articulos' : `/${language}/articles`),
-  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-articles.jpg'),
-  keywords: safeString(rawSeo.keywords),
-  hreflang: safeObject(rawSeo.hreflang),
-  breadcrumbs: safeArray(rawSeo.breadcrumbs, [
-    {
-      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
-      url: language === 'es' ? '/' : `/${language}/`
-    },
-    {
-      name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
-      url: language === 'es' ? '/articulos' : `/${language}/articles`
-    }
-  ]),
-  structured_data: safeObject(rawSeo.structured_data),
-  open_graph: safeObject(rawSeo.open_graph),
-  twitter_card: safeObject(rawSeo.twitter_card)
+// Procesar estadísticas - Usar SOLO datos del backend
+const rawStats = safeObject(articlesData.stats);
+const safeStats = {
+  totalArticles: rawStats.totalArticles || allArticles.length || 0,
+  totalReads: formatNumber(rawStats.totalViews || 0),
+  avgRating: rawStats.avgRating || 4.8,
+  publishedThisMonth: rawStats.publishedThisMonth || 0,
+  totalCategories: rawStats.totalCategories || safeCategories.length || 0,
+  totalViews: rawStats.totalViews || 0,
+  averageReadTime: rawStats.averageReadTime || 0,
+  featuredCount: rawStats.featuredCount || 0,
+  categoriesWithContent: rawStats.categoriesWithContent || 0
 };
 
 // ===================================================================
@@ -215,7 +201,7 @@ const TEXTS = {
   },
   fr: {
     title: 'Blog Immobilier CLIC',
-    subtitle: 'Guides, conseils et analyses d\'experts pour prendre les meilleures décisions immobilières en République dominicaine',
+    subtitle: 'Guides d\'experts, conseils et analyses pour prendre les meilleures décisions immobilières en République dominicaine',
     readMore: 'Lire plus',
     readFull: 'Lire l\'article complet',
     showMore: 'Lire le contenu complet',
@@ -292,6 +278,23 @@ function extractParagraphs(htmlContent, maxParagraphs = 3) {
     
   return paragraphs;
 }
+
+// Procesar SEO - Usar URLs tal como vienen del backend sin duplicar
+const rawSeo = safeObject(articlesData.seo);
+const safeSeo = {
+  title: safeString(rawSeo.title) || text.title,
+  description: safeString(rawSeo.description) || text.subtitle,
+  h1: safeString(rawSeo.h1) || text.title,
+  h2: safeString(rawSeo.h2) || text.subtitle,
+  canonical_url: safeString(rawSeo.canonical_url, ''),
+  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-articles.jpg'),
+  keywords: safeString(rawSeo.keywords),
+  hreflang: safeObject(rawSeo.hreflang),
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, []),
+  structured_data: safeObject(rawSeo.structured_data),
+  open_graph: safeObject(rawSeo.open_graph),
+  twitter_card: safeObject(rawSeo.twitter_card)
+};
 
 // ===================================================================
 // PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
@@ -396,7 +399,7 @@ console.log('✅ ArticlesMainLayout preparado:', {
               <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 max-w-6xl mx-auto">
                 {safeCategories.map((category, index) => (
                   <a 
-                    href={`${currentRoutes.articlesBase}/${category.slug}`}
+                    href={category.url}
                     class="group flex flex-col items-center justify-center bg-white/10 hover:bg-white hover:text-gray-800 text-white p-4 rounded-lg text-sm font-medium transition-all duration-300 backdrop-blur-sm border border-white/20 hover:border-white min-h-[80px]"
                     key={category.id}
                   >
