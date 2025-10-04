@@ -1,321 +1,171 @@
 ---
-// src/layouts/AdvisorsLayout.astro - Layout para página de asesores
+// src/layouts/AdvisorsLayout.astro
 import Layout from './Layout.astro';
 import PropertyCarousel from '../components/PropertyCarousel.astro';
 
-// ===================================================================
-// EXTRACCIÓN DE DATOS DEL PROP
-// ===================================================================
+/* Utils */
+function safeArray(arr, def = []) { return Array.isArray(arr) ? arr : def; }
+function safeString(str, def = '') { return typeof str === 'string' ? str : def; }
+function safeObject(obj, def = {}) { return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : def; }
+function safeNumber(num, def = 0) { return typeof num === 'number' && !isNaN(num) ? num : def; }
+function asNullableUrl(v) { if (!v) return null; if (typeof v === 'string' && v.trim() === '') return null; return v; }
+function getInitials(name = '') { const p = name.trim().split(/\s+/).filter(Boolean); if (!p.length) return '—'; return (p[0][0] + (p[p.length-1]?.[0]||'')).toUpperCase(); }
 
+/* Props */
 const { data } = Astro.props;
-const language = data?.language || 'es';
+const language = safeString(data?.language, 'es');
 
-// ===================================================================
-// LLAMADA DIRECTA A LA EDGE FUNCTION SI NO HAY DATOS
-// ===================================================================
-
+/* Fallback a Edge Function */
 const BASE_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/backend';
 const AUTH_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
 
-let advisorsData = data;
-
-// Si no hay datos desde el router, hacer llamada directa
-if (!advisorsData || !advisorsData.advisors) {
-  console.log('📞 AdvisorsLayout: Haciendo llamada directa a edge function');
-  
-  const routeMap = {
-    'es': 'asesores',
-    'en': 'en/advisors',
-    'fr': 'fr/conseillers'
-  };
-  
+let advisorsData = safeObject(data);
+if (!advisorsData || (!advisorsData.advisors && !advisorsData.sections)) {
+  const routeMap = { es: 'asesores', en: 'en/advisors', fr: 'fr/conseillers' };
   const route = routeMap[language] || 'asesores';
-  const edgeFunctionURL = `${BASE_URL}/${route}`;
-  
   try {
-    const response = await fetch(edgeFunctionURL, {
+    const r = await fetch(`${BASE_URL}/${route}`, {
       method: 'GET',
-      headers: {
-        'Authorization': AUTH_TOKEN,
-        'Content-Type': 'application/json',
-        'User-Agent': `Mozilla/5.0 CLIC-AdvisorsLayout/${Astro.url.host}`,
-      },
+      headers: { 'Authorization': AUTH_TOKEN, 'Content-Type': 'application/json', 'User-Agent': `CLIC-AdvisorsLayout/${Astro.url.host}` }
     });
-
-    if (response.ok) {
-      advisorsData = await response.json();
-      advisorsData.language = language;
-    }
-  } catch (error) {
-    console.warn('⚠️ AdvisorsLayout: Error calling edge function:', error);
-  }
+    if (r.ok) { advisorsData = await r.json(); advisorsData.language = language; }
+  } catch (e) { console.warn('Edge function error', e); }
 }
 
-// ===================================================================
-// PROCESAR DATOS CON VALIDACIONES DEFENSIVAS - SIN DATOS DE FALLBACK
-// ===================================================================
+/* Normalización */
+const advisors = safeArray(advisorsData?.advisors).map(a => ({ ...a }));
+const stats = safeObject(advisorsData?.stats);
+const rawSeo = safeObject(advisorsData?.seo);
+const text = ({
+  es: { metaTitle:'Asesores Inmobiliarios Expertos | CLIC', metaDescription:'Nuestro equipo de asesores especializados te ayudará a encontrar la propiedad perfecta',
+        pageTitle:'Nuestro Equipo de Asesores', pageSubtitle:'Especialistas con profundo conocimiento del mercado',
+        featuredTitle:'Asesores Destacados', teamTitle:'Todos los Asesores', noAdvisors:'No se encontraron asesores disponibles.',
+        specialties:'Especialidades', languages:'Idiomas', listings:'Prop. activas', sales:'Ventas', years:'Años', rating:'Satisfacción',
+        view:'Ver perfil' },
+  en: { metaTitle:'Expert Real Estate Advisors | CLIC', metaDescription:'Our specialized advisors will help you find the perfect property',
+        pageTitle:'Our Advisory Team', pageSubtitle:'Specialists with deep market knowledge',
+        featuredTitle:'Featured Advisors', teamTitle:'All Advisors', noAdvisors:'No advisors found.',
+        specialties:'Specialties', languages:'Languages', listings:'Active props', sales:'Sales', years:'Years', rating:'Rating',
+        view:'View profile' },
+  fr: { metaTitle:'Conseillers Immobiliers Experts | CLIC', metaDescription:'Nos conseillers spécialisés vous aideront à trouver la propriété parfaite',
+        pageTitle:'Notre Équipe de Conseillers', pageSubtitle:'Spécialistes avec une connaissance approfondie du marché',
+        featuredTitle:'Conseillers en Vedette', teamTitle:'Tous les Conseillers', noAdvisors:'Aucun conseiller trouvé.',
+        specialties:'Spécialités', languages:'Langues', listings:'Biens actifs', sales:'Ventes', years:'Ans', rating:'Satisfaction',
+        view:'Voir profil' }
+})[language];
 
-// Función helper para validar arrays
-const safeArray = (arr) => Array.isArray(arr) ? arr : [];
-
-// Procesar asesores solo si existen datos válidos
-const advisors = safeArray(advisorsData?.advisors).map(advisor => ({
-  ...advisor,
-  // No establecemos valores por defecto, solo mantenemos los datos reales
-}));
-
-// Filtrar asesores destacados solo si tienen la propiedad featured=true
-const featured = safeArray(advisorsData?.featured).length > 0 
-  ? safeArray(advisorsData?.featured)
-  : advisors.filter(advisor => advisor.featured === true);
-
-// Filtrar propiedades del equipo
-const teamProperties = safeArray(advisorsData?.teamProperties);
-
-// Datos de la página y SEO
-const seo = advisorsData?.seo || {};
-const stats = advisorsData?.stats || {};
-
-// ===================================================================
-// TEXTOS Y TRADUCCIONES SEGÚN IDIOMA
-// ===================================================================
-
-const texts = {
-  es: {
-    metaTitle: 'Asesores Inmobiliarios Expertos | CLIC',
-    metaDescription: 'Nuestro equipo de asesores especializados te ayudará a encontrar la propiedad perfecta',
-    pageTitle: 'Nuestro Equipo de Asesores',
-    pageSubtitle: 'Especialistas en bienes raíces con profundo conocimiento del mercado dominicano',
-    featuredTitle: 'Asesores Destacados',
-    featuredSubtitle: 'Conoce a nuestros asesores premium con récord comprobado de resultados',
-    teamTitle: 'Equipo Completo',
-    teamSubtitle: 'Cada uno de nuestros asesores está certificado y especializado en áreas específicas',
-    experience: 'Experiencia',
-    areas: 'Zonas:',
-    contact: 'Contactar',
-    viewProfile: 'Ver Perfil',
-    teamPropertiesTitle: 'Propiedades Destacadas de Nuestro Equipo',
-    teamPropertiesSubtitle: 'Propiedades exclusivas gestionadas por nuestros asesores',
-    whyChooseTitle: 'Por Qué Elegir Nuestro Equipo',
-    whyChooseSubtitle: 'Contamos con los asesores más calificados del mercado inmobiliario dominicano',
-    ctaTitle: '¿Buscas una Propiedad?',
-    ctaSubtitle: 'Nuestros asesores expertos te ayudarán a encontrar exactamente lo que necesitas',
-    ctaButton1: 'Contactar un Asesor',
-    ctaButton2: 'Ver Propiedades',
-    noFeatured: 'Próximamente asesores destacados',
-    noAdvisors: 'No se encontraron asesores disponibles en este momento. Por favor, intente más tarde.'
-  },
-  en: {
-    metaTitle: 'Expert Real Estate Advisors | CLIC',
-    metaDescription: 'Our team of specialized advisors will help you find the perfect property',
-    pageTitle: 'Our Advisory Team',
-    pageSubtitle: 'Real estate specialists with deep knowledge of the Dominican market',
-    featuredTitle: 'Featured Advisors',
-    featuredSubtitle: 'Meet our premium advisors with proven track record',
-    teamTitle: 'Complete Team',
-    teamSubtitle: 'Each of our advisors is certified and specialized in specific areas',
-    experience: 'Experience',
-    areas: 'Areas:',
-    contact: 'Contact',
-    viewProfile: 'View Profile',
-    teamPropertiesTitle: 'Featured Properties from Our Team',
-    teamPropertiesSubtitle: 'Exclusive properties managed by our advisors',
-    whyChooseTitle: 'Why Choose Our Team',
-    whyChooseSubtitle: 'We have the most qualified advisors in the Dominican real estate market',
-    ctaTitle: 'Looking for a Property?',
-    ctaSubtitle: 'Our expert advisors will help you find exactly what you need',
-    ctaButton1: 'Contact an Advisor',
-    ctaButton2: 'View Properties',
-    noFeatured: 'Featured advisors coming soon',
-    noAdvisors: 'No advisors found at this time. Please try again later.'
-  },
-  fr: {
-    metaTitle: 'Conseillers Immobiliers Experts | CLIC',
-    metaDescription: 'Notre équipe de conseillers spécialisés vous aidera à trouver la propriété parfaite',
-    pageTitle: 'Notre Équipe de Conseillers',
-    pageSubtitle: 'Spécialistes immobiliers avec une connaissance approfondie du marché dominicain',
-    featuredTitle: 'Conseillers en Vedette',
-    featuredSubtitle: 'Rencontrez nos conseillers premium avec des résultats prouvés',
-    teamTitle: 'Équipe Complète',
-    teamSubtitle: 'Chacun de nos conseillers est certifié et spécialisé dans des domaines spécifiques',
-    experience: 'Expérience',
-    areas: 'Zones:',
-    contact: 'Contacter',
-    viewProfile: 'Voir Profil',
-    teamPropertiesTitle: 'Propriétés en Vedette de Notre Équipe',
-    teamPropertiesSubtitle: 'Propriétés exclusives gérées par nos conseillers',
-    whyChooseTitle: 'Pourquoi Choisir Notre Équipe',
-    whyChooseSubtitle: 'Nous avons les conseillers les plus qualifiés du marché immobilier dominicain',
-    ctaTitle: 'Vous Cherchez une Propriété?',
-    ctaSubtitle: 'Nos conseillers experts vous aideront à trouver exactement ce dont vous avez besoin',
-    ctaButton1: 'Contacter un Conseiller',
-    ctaButton2: 'Voir les Propriétés',
-    noFeatured: 'Conseillers en vedette à venir',
-    noAdvisors: 'Aucun conseiller trouvé pour le moment. Veuillez réessayer plus tard.'
-  }
+/* SEO */
+const safeSeo = {
+  title: safeString(rawSeo.title) || text.metaTitle,
+  description: safeString(rawSeo.description) || text.metaDescription,
+  h1: safeString(rawSeo.h1) || text.pageTitle,
+  h2: safeString(rawSeo.h2) || text.pageSubtitle,
+  canonical_url: safeString(rawSeo.canonical_url, ''),
+  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-advisors.jpg'),
+  keywords: safeString(rawSeo.keywords),
+  hreflang: safeObject(rawSeo.hreflang),
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, []),
+  structured_data: safeObject(rawSeo.structured_data),
+  open_graph: safeObject(rawSeo.open_graph),
+  twitter_card: safeObject(rawSeo.twitter_card)
 };
 
-// Seleccionar los textos según el idioma
-const text = texts[language] || texts.es;
+/* Featured + listado general */
+const explicitFeatured = safeArray(advisorsData?.featuredAdvisors);
+const inferredFeatured = advisors.filter(a =>
+  a?.featured === true || safeNumber(a?.stats?.totalSales) > 10 || safeNumber(a?.stats?.yearsExperience) > 3
+);
+const featured = (explicitFeatured.length ? explicitFeatured : inferredFeatured).slice(0, 4);
 
-// ===================================================================
-// URLS Y RUTAS
-// ===================================================================
+const featuredIds = new Set(featured.map(a => a.id));
+const generalAdvisors = advisors
+  .filter(a => !featuredIds.has(a.id))
+  .sort((a,b)=>safeString(a.name).localeCompare(safeString(b.name), undefined, { sensitivity: 'base' }));
 
-const currentRoutes = {
-  home: language === 'es' ? '/' : language === 'en' ? '/en' : '/fr',
-  contact: language === 'es' ? '/contacto' : language === 'en' ? '/en/contact' : '/fr/contact',
-  properties: language === 'es' ? '/propiedades' : language === 'en' ? '/en/properties' : '/fr/proprietes',
-  advisors: language === 'es' ? '/asesores' : language === 'en' ? '/en/advisors' : '/fr/conseillers'
+/* Layout props */
+const layoutProps = {
+  title: safeSeo.title, description: safeSeo.description, ogImage: safeSeo.ogImage, canonical: safeSeo.canonical_url,
+  keywords: safeSeo.keywords, hreflangData: safeSeo.hreflang || {}, globalConfig: advisorsData?.globalConfig || {},
+  language, trackingString: advisorsData?.trackingString || '', hotItems: advisorsData?.hotItems || {},
+  country: advisorsData?.country || {}, breadcrumbs: safeSeo.breadcrumbs,
+  structuredData: safeSeo.structured_data, openGraph: safeSeo.open_graph, twitterCard: safeSeo.twitter_card
 };
-
-// Configurar el título y descripción de la página
-const pageTitle = seo?.title || text.metaTitle;
-const pageDescription = seo?.description || text.metaDescription;
-
-// ===================================================================
-// COMPONENTE LAYOUT
-// ===================================================================
 ---
 
-<Layout title={pageTitle} description={pageDescription}>
+<Layout {...layoutProps}>
   <div class="advisors-layout">
-    <!-- Hero Section -->
+
+    <!-- HERO (elegante + color de marca en stats) -->
     <section class="py-16 bg-gray-900 text-white">
       <div class="container mx-auto px-4 text-center">
-        <h1 class="text-4xl md:text-5xl font-bold mb-4">
-          {seo?.h1 || text.pageTitle}
-        </h1>
-        <p class="text-xl text-white/80 max-w-3xl mx-auto">
-          {seo?.h2 || text.pageSubtitle}
-        </p>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">{safeSeo.h1 || safeSeo.title}</h1>
+        <p class="text-xl text-white/80 max-w-3xl mx-auto">{safeSeo.h2 || safeSeo.description}</p>
 
-        <!-- Stats Display -->
         {stats && (
           <div class="flex flex-wrap justify-center gap-8 mt-12">
-            {stats.totalAdvisors > 0 && (
-              <div class="text-center">
-                <div class="text-3xl font-bold text-[#f04e00]">{stats.totalAdvisors}</div>
-                <div class="text-sm">Asesores</div>
-              </div>
-            )}
-            {stats.totalExperience > 0 && (
-              <div class="text-center">
-                <div class="text-3xl font-bold text-[#f04e00]">{stats.totalExperience}+</div>
-                <div class="text-sm">Años Experiencia</div>
-              </div>
-            )}
-            {stats.totalSales > 0 && (
-              <div class="text-center">
-                <div class="text-3xl font-bold text-[#f04e00]">{stats.totalSales}+</div>
-                <div class="text-sm">Ventas Realizadas</div>
-              </div>
-            )}
-            {stats.averageSatisfaction > 0 && (
-              <div class="text-center">
-                <div class="text-3xl font-bold text-[#f04e00]">{stats.averageSatisfaction}/5</div>
-                <div class="text-sm">Satisfacción Cliente</div>
-              </div>
-            )}
+            {safeNumber(stats.totalAdvisors,0)>0 && (<div class="tstat"><div class="tstatV">{stats.totalAdvisors}</div><div class="tstatL">Asesores</div></div>)}
+            {safeNumber(stats.totalExperience,0)>0 && (<div class="tstat"><div class="tstatV">{stats.totalExperience}+</div><div class="tstatL">Años Experiencia</div></div>)}
+            {safeNumber(stats.totalSales,0)>0 && (<div class="tstat"><div class="tstatV">{stats.totalSales}+</div><div class="tstatL">Ventas</div></div>)}
+            {safeNumber(stats.averageSatisfaction,0)>0 && (<div class="tstat"><div class="tstatV">{stats.averageSatisfaction}</div><div class="tstatL">Satisfacción</div></div>)}
           </div>
         )}
       </div>
     </section>
 
-    <!-- Featured Advisors Section - Solo se muestra si hay asesores destacados -->
+    <!-- DESTACADOS (foto grande centrada, tarjeta compacta, badges arriba) -->
     {featured.length > 0 && (
-      <section class="py-16 bg-gray-100">
+      <section class="py-12 bg-white">
         <div class="container mx-auto px-4">
-          <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold mb-4">{text.featuredTitle}</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">{text.featuredSubtitle}</p>
+          <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold mb-2">{text.featuredTitle}</h2>
+            <p class="text-gray-600">{language==='es'?'El mejor equipo del Caribe, seleccionado por desempeño': language==='en'?'The Caribbean’s top team, performance-selected':'La meilleure équipe des Caraïbes, sélectionnée par performance'}</p>
           </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featured.map(advisor => (
-              <a href={advisor.url} class="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full transform hover:scale-105">
-                <div class="relative">
-                  <img 
-                    src={advisor.avatar || '/images/team/default-advisor.jpg'} 
-                    alt={advisor.name} 
-                    class="w-full h-64 object-cover object-center group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent py-4 px-6">
-                    <h3 class="text-white text-xl font-bold">{advisor.name}</h3>
-                    <p class="text-white/80 text-sm">{advisor.position}</p>
-                  </div>
+
+          <div class="grid gap-7 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {featured.map((a) => (
+              <a href={a.url} class="fcard group">
+                <!-- Top badges (compacto) -->
+                <div class="fcard__top">
+                  {safeNumber(a?.stats?.clientSatisfaction,0)>0 && (
+                    <span class="fbadge fbadge--brand">★ {a.stats.clientSatisfaction}</span>
+                  )}
+                  {safeNumber(a?.stats?.yearsExperience,0)>0 && (
+                    <span class="fbadge">{a.stats.yearsExperience} {text.years}</span>
+                  )}
+                  {safeNumber(a?.stats?.totalSales,0)>0 && (
+                    <span class="fbadge">{a.stats.totalSales} {text.sales}</span>
+                  )}
                 </div>
-                
-                <div class="p-6">
-                  <!-- Rating & Experience -->
-                  <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center">
-                      <div class="flex">
-                        {[...Array(Math.floor(advisor.stats?.clientSatisfaction || 5))].map(() => (
-                          <svg class="w-4 h-4 text-yellow-500 fill-current" viewBox="0 0 24 24">
-                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                          </svg>
-                        ))}
-                      </div>
-                      <span class="text-sm text-gray-600 ml-1">
-                        {advisor.stats?.clientSatisfaction || 5}/5 
-                        {advisor.stats?.reviewCount ? ` (${advisor.stats.reviewCount})` : ''}
-                      </span>
-                    </div>
-                    
-                    <div class="text-right">
-                      <div class="text-sm font-bold text-[#f04e00]">{advisor.yearsExperience > 0 ? `${advisor.yearsExperience} años` : advisor.experience}</div>
-                      <div class="text-xs text-gray-600">{text.experience}</div>
-                    </div>
+
+                <!-- Avatar grande centrado -->
+                <div class="fcard__avatar">
+                  {asNullableUrl(a.avatar)
+                    ? <img src={a.avatar} alt={a.name} class="favatar" loading="lazy" />
+                    : <div class="favatar favatar--initials">{getInitials(a.name)}</div>}
+                </div>
+
+                <!-- Nombre + posición -->
+                <div class="fcard__title">
+                  <h3 class="fname">{a.name}</h3>
+                  <p class="fpos">{a.position}</p>
+                </div>
+
+                <!-- Chips (especialidades / idiomas) -->
+                {safeArray(a.specialties).length>0 && (
+                  <div class="fchips">
+                    {a.specialties.slice(0,2).map((s)=>(<span class="fchip">{s}</span>))}
+                    {a.specialties.length>2 && (<span class="fchip fchip--more">+{a.specialties.length-2}</span>)}
                   </div>
-                  
-                  <!-- Specialties -->
-                  {advisor.specialties && advisor.specialties.length > 0 && (
-                    <div class="mb-4">
-                      <div class="flex flex-wrap gap-1">
-                        {advisor.specialties.slice(0, 2).map(specialty => (
-                          <span class="bg-[#f04e00]/10 text-[#f04e00] px-2 py-1 rounded text-xs">
-                            {specialty}
-                          </span>
-                        ))}
-                        {advisor.specialties.length > 2 && (
-                          <span class="text-xs text-gray-500">+{advisor.specialties.length - 2} más</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <!-- Areas -->
-                  {advisor.areas && advisor.areas.length > 0 && (
-                    <div class="mb-4">
-                      <p class="text-xs text-gray-600">
-                        <span class="font-medium">{text.areas}</span> {advisor.areas.slice(0, 2).join(', ')}
-                        {advisor.areas.length > 2 && ` +${advisor.areas.length - 2} más`}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <!-- Contact -->
-                  <div class="flex gap-2">
-                    <span class="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-[#f04e00] text-white rounded text-xs font-medium group-hover:bg-[#d94400] transition-colors">
-                      {text.contact}
-                      <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </span>
-                    {advisor.whatsapp && (
-                      <a 
-                        href={`https://wa.me/${advisor.whatsapp}`}
-                        target="_blank"
-                        onclick="event.stopPropagation()"
-                        class="inline-flex items-center justify-center w-10 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                      >
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                        </svg>
-                      </a>
-                    )}
-                  </div>
+                )}
+                {safeArray(a.languagesSpoken).length>0 && (
+                  <div class="flangs"><span class="flangs__l">{text.languages}:</span> {a.languagesSpoken.slice(0,3).join(', ')}</div>
+                )}
+
+                <!-- CTA a la derecha -->
+                <div class="fcard__cta">
+                  <span class="cta cta--brand">{text.view}
+                    <svg class="cta__i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </span>
                 </div>
               </a>
             ))}
@@ -324,209 +174,117 @@ const pageDescription = seo?.description || text.metaDescription;
       </section>
     )}
 
-    <!-- All Advisors Section -->
-    <section class="py-16">
+    <!-- LISTADO GENERAL (alfabético, bonito, incluye idiomas y ventas si > 0) -->
+    <section class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold mb-4">{text.teamTitle}</h2>
-          <p class="text-gray-600 max-w-2xl mx-auto">{text.teamSubtitle}</p>
-        </div>
+        <h2 class="text-2xl md:text-3xl font-bold mb-6">{text.teamTitle}</h2>
 
-        {advisors.length > 0 ? (
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {advisors.map(advisor => (
-              <a 
-                href={advisor.url} 
-                class="group bg-white rounded shadow hover:shadow-lg transition-all duration-300"
-              >
-                <div class="p-4">
-                  <div class="flex items-start space-x-4">
-                    <img 
-                      src={advisor.avatar || '/images/team/default-advisor.jpg'} 
-                      alt={advisor.name} 
-                      class="w-20 h-20 rounded-full object-cover border-2 border-[#f04e00]/20 group-hover:border-[#f04e00] transition-colors"
-                    />
-                    <div>
-                      <h3 class="font-bold text-lg group-hover:text-[#f04e00] transition-colors">{advisor.name}</h3>
-                      <p class="text-sm text-gray-600">{advisor.position}</p>
-                      
-                      {/* Solo mostrar años de experiencia si existen */}
-                      {advisor.yearsExperience > 0 && (
-                        <div class="mt-1 flex items-center text-xs text-gray-500">
-                          <span class="font-medium">{advisor.yearsExperience} años</span> 
-                          <span class="mx-1">·</span>
-                          <div class="flex">
-                            {[...Array(Math.floor(advisor.stats?.clientSatisfaction || 5))].map(() => (
-                              <svg class="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 24 24">
-                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
-                              </svg>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+        {generalAdvisors.length>0 ? (
+          <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {generalAdvisors.map((a)=>(
+              <a href={a.url} class="gcard group">
+                <div class="gcard__head">
+                  {asNullableUrl(a.avatar)
+                    ? <img src={a.avatar} alt={a.name} class="gavatar" loading="lazy" />
+                    : <div class="gavatar gavatar--initials">{getInitials(a.name)}</div>}
+                  <div class="gtitle">
+                    <h3 class="gname">{a.name}</h3>
+                    <p class="gpos">{a.position}</p>
                   </div>
-
-                  {/* Especialidades (sólo si existen) */}
-                  {advisor.specialties && advisor.specialties.length > 0 && (
-                    <div class="mt-3">
-                      <div class="flex flex-wrap gap-1">
-                        {advisor.specialties.slice(0, 2).map(specialty => (
-                          <span class="bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-xs">
-                            {specialty}
-                          </span>
-                        ))}
-                        {advisor.specialties.length > 2 && (
-                          <span class="text-xs text-gray-500">+{advisor.specialties.length - 2} más</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Botón Ver Perfil */}
-                  <div class="mt-4 text-xs text-[#f04e00] font-medium inline-flex items-center group-hover:underline">
-                    {text.viewProfile}
-                    <svg class="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </div>
+                  <span class="cta cta--ghost ml-auto">{text.view}
+                    <svg class="cta__i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </span>
                 </div>
+
+                <div class="gmeta">
+                  {safeNumber(a?.stats?.yearsExperience,0)>0 && (
+                    <span class="gmeta__pill">{a.stats.yearsExperience} {text.years}</span>
+                  )}
+                  {safeNumber(a?.stats?.clientSatisfaction,0)>0 && (
+                    <span class="gmeta__pill gmeta__pill--brand">★ {a.stats.clientSatisfaction}</span>
+                  )}
+                  {safeNumber(a?.stats?.totalSales,0)>0 && (
+                    <span class="gmeta__pill">{a.stats.totalSales} {text.sales}</span>
+                  )}
+                </div>
+
+                {safeArray(a.languagesSpoken).length>0 && (
+                  <div class="glangs"><span class="glangs__l">{text.languages}:</span> {a.languagesSpoken.slice(0,3).join(', ')}</div>
+                )}
+
+                {safeArray(a.specialties).length>0 && (
+                  <div class="gchips">
+                    {a.specialties.slice(0,2).map((s)=>(<span class="gchip">{s}</span>))}
+                    {a.specialties.length>2 && (<span class="gchip gchip--more">+{a.specialties.length-2}</span>)}
+                  </div>
+                )}
               </a>
             ))}
           </div>
         ) : (
-          <div class="text-center py-10 text-gray-500">
-            <p>{text.noAdvisors}</p>
-          </div>
+          <div class="text-center text-gray-500 py-10">{text.noAdvisors}</div>
         )}
       </div>
     </section>
 
-    <!-- Team Properties -->
-    {teamProperties.length > 0 && (
-      <PropertyCarousel 
-        title={text.teamPropertiesTitle}
-        subtitle={text.teamPropertiesSubtitle}
-        properties={teamProperties}
-        viewAllLink={`${currentRoutes.properties}?equipo=destacados`}
+    {safeArray(advisorsData?.teamProperties).length>0 && (
+      <PropertyCarousel
+        title={language==='es'?'Propiedades del Equipo':language==='en'?'Team Properties':'Biens de l’équipe'}
+        subtitle={language==='es'?'Gestionadas por nuestros asesores':language==='en'?'Managed by our advisors':'Gérées par nos conseillers'}
+        properties={advisorsData.teamProperties}
+        viewAllLink={`${language==='es'?'/comprar':language==='en'?'/en/buy':'/fr/acheter'}?equipo=destacados`}
         language={language}
       />
     )}
-
-    <!-- Why Choose Our Team -->
-    <section class="py-16 bg-gradient-to-r from-gray-900 to-gray-800">
-      <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-          {text.whyChooseTitle}
-        </h2>
-        <p class="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
-          {text.whyChooseSubtitle}
-        </p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Especialización</h3>
-            <p class="text-sm text-white/70">Cada asesor domina mercados específicos</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Resultados Rápidos</h3>
-            <p class="text-sm text-white/70">Promedio de 30 días para cerrar ventas</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Experiencia Comprobada</h3>
-            <p class="text-sm text-white/70">Más de 100 años de experiencia combinada</p>
-          </div>
-          
-          <div class="text-center">
-            <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Atención Personalizada</h3>
-            <p class="text-sm text-white/70">Seguimiento personalizado en todo el proceso</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-16 bg-[#f04e00]">
-      <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-          {text.ctaTitle}
-        </h2>
-        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-          {text.ctaSubtitle}
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a 
-            href={currentRoutes.contact}
-            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
-          >
-            {text.ctaButton1}
-          </a>
-          <a 
-            href={currentRoutes.properties}
-            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
-          >
-            {text.ctaButton2}
-          </a>
-        </div>
-      </div>
-    </section>
-
   </div>
 </Layout>
 
 <style>
-  .transform {
-    transition: transform 0.3s ease;
-  }
-  
-  .bg-gradient-to-r {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
-  }
-  
-  .hover\:scale-105:hover {
-    transform: scale(1.05);
-  }
-  
-  .group:hover .group-hover\:scale-110 {
-    transform: scale(1.1);
-  }
-  
-  .group:hover .group-hover\:text-\[\#f04e00\] {
-    color: #f04e00;
-  }
-  
-  .group:hover .group-hover\:bg-\[\#d94400\] {
-    background-color: #d94400;
-  }
-  
-  .group:hover .group-hover\:translate-x-1 {
-    transform: translateX(0.25rem);
-  }
+  /* Hero stats */
+  .tstat{text-align:center}
+  .tstatV{font-weight:800;font-size:1.6rem;color:#f04e00}
+  .tstatL{font-size:.85rem;color:rgba(255,255,255,.8)}
 
-  /* Estilo para texto justificado en bios */
-  .bio-content {
-    text-align: justify;
-  }
+  /* Featured card */
+  .fcard{border:1px solid #e5e7eb;border-radius:1.25rem;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.04);
+    padding:0.9rem 0.9rem 0.8rem;display:flex;flex-direction:column;gap:.55rem;transition:transform .2s,border-color .2s,box-shadow .2s}
+  .fcard:hover{transform:translateY(-4px);border-color:#f04e00;box-shadow:0 10px 26px rgba(240,78,0,.12)}
+  .fcard__top{display:flex;gap:.35rem;justify-content:center}
+  .fbadge{font-size:.72rem;padding:.3rem .5rem;border-radius:.6rem;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151}
+  .fbadge--brand{background:rgba(240,78,0,.08);border-color:rgba(240,78,0,.25);color:#f04e00;font-weight:700}
+  .fcard__avatar{display:flex;justify-content:center}
+  .favatar{width:112px;height:112px;border-radius:9999px;object-fit:cover;box-shadow:0 0 0 4px rgba(240,78,0,.14)}
+  .favatar--initials{display:flex;align-items:center;justify-content:center;background:#f04e00;color:#fff;font-weight:800;font-size:2rem}
+  .fcard__title{text-align:center;margin-top:.15rem}
+  .fname{font-weight:900;font-size:1.05rem}
+  .fpos{font-size:.85rem;color:#6b7280;margin-top:.1rem}
+  .fchips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+  .fchip{font-size:.72rem;padding:.25rem .55rem;border-radius:.6rem;background:rgba(240,78,0,.08);border:1px solid rgba(240,78,0,.25);color:#f04e00}
+  .fchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
+  .flangs{text-align:center;font-size:.78rem;color:#6b7280}
+  .flangs__l{font-weight:600;color:#374151}
+  .fcard__cta{display:flex;justify-content:flex-end;margin-top:.25rem}
+  .cta{display:inline-flex;align-items:center;gap:.35rem;font-weight:700;font-size:.84rem}
+  .cta--brand{color:#f04e00}
+  .cta--ghost{color:#f04e00;border:1px dashed rgba(240,78,0,.35);padding:.25rem .45rem;border-radius:.5rem}
+  .cta__i{width:15px;height:15px}
+
+  /* General list */
+  .gcard{background:#fff;border:1px solid #e5e7eb;border-radius:1rem;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.55rem;
+    transition:transform .2s,border-color .2s,box-shadow .2s}
+  .gcard:hover{transform:translateY(-3px);border-color:#f04e00;box-shadow:0 10px 24px rgba(240,78,0,.08)}
+  .gcard__head{display:flex;align-items:center;gap:.7rem}
+  .gavatar{width:56px;height:56px;border-radius:.9rem;object-fit:cover;border:1px solid rgba(240,78,0,.22)}
+  .gavatar--initials{display:flex;align-items:center;justify-content:center;background:#f04e00;color:#fff;font-weight:800}
+  .gtitle{min-width:0}
+  .gname{font-weight:900;line-height:1.1}
+  .gpos{font-size:.82rem;color:#6b7280}
+  .gmeta{display:flex;flex-wrap:wrap;gap:.35rem}
+  .gmeta__pill{font-size:.72rem;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:.5rem;padding:.2rem .45rem}
+  .gmeta__pill--brand{background:rgba(240,78,0,.08);color:#f04e00;border-color:rgba(240,78,0,.3);font-weight:700}
+  .glangs{font-size:.78rem;color:#6b7280}
+  .glangs__l{font-weight:600;color:#374151}
+  .gchips{display:flex;flex-wrap:wrap;gap:.35rem}
+  .gchip{font-size:.72rem;padding:.2rem .5rem;border-radius:.6rem;background:rgba(240,78,0,.08);border:1px solid rgba(240,78,0,.25);color:#f04e00}
+  .gchip.gchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
 </style>

@@ -1,3 +1,9 @@
 git add .
 git commit -m "Actualización de contenido"
 git push
+
+
+curl -L -X POST 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/algolia?tabla=properties' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs' \
+  -H 'Content-Type: application/json' \
+  --data '{"name":"Functions"}'

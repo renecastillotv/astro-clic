@@ -30,12 +30,22 @@ import VacationRentalsMainLayout from '../layouts/VacationRentalsMainLayout.astr
 import VacationRentalsDynamicLayout from '../layouts/VacationRentalsDynamicLayout.astro';
 import CuratedListingsLayout from '../layouts/CuratedListingsLayout.astro';
 import CuratedListingsSingleLayout from '../layouts/CuratedListingsSingleLayout.astro';
-
+import * as sitemapHandler from './sitemap.xml.js';
+import * as robotsHandler from './robots.txt.js';
 export const prerender = false;
 
 // 1) Early-exit para assets (en prod lo debe cortar el middleware; aquí es "cinturón y tirantes")
 const p = Astro.url.pathname;
-const ASSET_RE = /\.(?:png|jpe?g|webp|gif|svg|ico|css|js|map|woff2?|ttf|txt|xml|pdf|mp4|mp3)$/i;
+if (p === '/sitemap.xml') {
+  const res = await sitemapHandler.GET({ request: Astro.request });
+  return res;
+}
+if (p === '/robots.txt') {
+  const res = await robotsHandler.GET({ request: Astro.request });
+  return res;
+}
+
+const ASSET_RE = /\.(?:png|jpe?g|webp|gif|svg|ico|css|js|map|woff2?|ttf|txt|pdf|mp4|mp3)$/i;
 const ASSET_DIR_RE = /^\/(?:images|img|assets|static|_astro)\//i;
 
 if (ASSET_RE.test(p) || ASSET_DIR_RE.test(p)) {
