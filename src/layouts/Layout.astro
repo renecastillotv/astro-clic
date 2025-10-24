@@ -19,6 +19,28 @@ const {
     trackingString = ''  // Agregar
 } = Astro.props;
 
+// FUNCIÓN HELPER: Agregar trackingString a URL de forma inteligente (sin duplicar)
+function addTrackingToUrl(url, tracking = '') {
+  if (!tracking || !url) return url;
+
+  // Si la URL ya tiene parámetros de tracking, no agregar de nuevo
+  if (url.includes('?ref=') || url.includes('&ref=') ||
+      url.includes('?utm_') || url.includes('&utm_') ||
+      url.includes('?fbclid') || url.includes('&fbclid') ||
+      url.includes('?gclid') || url.includes('&gclid')) {
+    return url;
+  }
+
+  // Si el tracking ya está presente de alguna forma (URL encoded), no agregar
+  const urlDecoded = decodeURIComponent(url);
+  if (urlDecoded.includes('ref=') || urlDecoded.includes('utm_')) {
+    return url;
+  }
+
+  // Agregar el tracking
+  return `${url}${tracking}`;
+}
+
 // CORRECCIÓN: Función para generar URLs considerando el idioma
 function getUrlByLanguage(path, lang) {
   if (lang === 'es') return `/${path}`;
@@ -31,18 +53,18 @@ function getHomeUrl(lang) {
   return `/${lang}`;
 }
 
-// CORRECCIÓN: Función para URL de favoritos según idioma
-function getFavoritesUrl(lang) {
-  if (lang === 'es') return '/favoritos';
-  if (lang === 'en') return '/en/favorites';
-  if (lang === 'fr') return '/fr/favoris';
-  return '/favoritos'; // fallback
+// CORRECCIÓN: Función para URL de favoritos según idioma (ahora incluye trackingString)
+function getFavoritesUrl(lang, tracking = '') {
+  let url = '/favoritos'; // fallback
+  if (lang === 'es') url = '/favoritos';
+  else if (lang === 'en') url = '/en/favorites';
+  else if (lang === 'fr') url = '/fr/favoris';
+
+  return addTrackingToUrl(url, tracking);
 }
 
-// CORRECCIÓN: Ahora homeUrl considera el idioma
-const homeUrl = trackingString 
-  ? `${getHomeUrl(language)}?utm_source=${trackingString}` 
-  : getHomeUrl(language);
+// CORRECCIÓN: Ahora homeUrl considera el idioma (usa addTrackingToUrl)
+const homeUrl = addTrackingToUrl(getHomeUrl(language), trackingString);
 
 // Extraer la configuración del header desde globalConfig
 const headerSections = globalConfig?.features?.header?.sections || {};
@@ -85,11 +107,12 @@ function getMenuLabel(section, key, language) {
   return key;
 }
 
-// Obtener el texto y URL del botón de contacto
+// Obtener el texto y URL del botón de contacto (ahora usa addTrackingToUrl)
 const contactSection = headerSections.contact || {};
-const contactUrl = contactSection.urls?.[language] || '/contacto';
-const contactButtonText = language === 'es' ? 'Contáctanos' : 
-                         language === 'en' ? 'Contact Us' : 
+const baseContactUrl = contactSection.urls?.[language] || '/contacto';
+const contactUrl = addTrackingToUrl(baseContactUrl, trackingString);
+const contactButtonText = language === 'es' ? 'Contáctanos' :
+                         language === 'en' ? 'Contact Us' :
                          'Contactez-nous';
 ---
 
@@ -191,7 +214,13 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
       window.hreflangData = hreflangData;
       window.currentLanguage = currentLanguage;
       window.globalConfigData = globalConfigData;
-      
+
+      // DEBUG: Ver qué datos de hreflang tenemos
+      console.log('🔍 DEBUG hreflangData:', hreflangData);
+      console.log('🔍 DEBUG currentLanguage:', currentLanguage);
+      console.log('🔍 DEBUG hreflangData type:', typeof hreflangData);
+      console.log('🔍 DEBUG hreflangData keys:', Object.keys(hreflangData || {}));
+
       // FORZAR el idioma globalmente para TODOS los componentes
       window.FORCED_LANGUAGE = currentLanguage;
       console.log('🌍 FORCED_LANGUAGE set to:', window.FORCED_LANGUAGE);
@@ -593,7 +622,7 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
           <nav class="hidden md:flex items-center gap-8" translate="no">
             {sortedSections.map(([key, section]) => {
               const label = getMenuLabel(section, key, language);
-              
+
               let url = section.urls?.[language];
               if (!url) {
                 if (language === 'es') {
@@ -602,9 +631,50 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
                   url = `/${language}/${key}`;
                 }
               }
-              
+
+              // Agregar trackingString si existe (usando función helper para evitar duplicación)
+              const finalUrl = addTrackingToUrl(url, trackingString);
+
+              // Detectar si esta es la sección activa
+              const currentPath = Astro.url.pathname;
+              // Normalizar path removiendo trailing slash para comparación
+              const normalizedPath = currentPath.endsWith('/') && currentPath !== '/'
+                ? currentPath.slice(0, -1)
+                : currentPath;
+
+              // Lógica mejorada para detectar sección activa
+              let isActive = false;
+
+              // Para homepage/comprar (puede venir de PropertyListLayout)
+              if (key === 'comprar' || key === 'buy' || key === 'acheter') {
+                isActive = normalizedPath === '/' ||
+                          normalizedPath === '' ||
+                          normalizedPath.match(/^\/[a-z]{2}$/) || // /en, /fr
+                          normalizedPath.match(/^\/[a-z]{2}\/$/) ||
+                          normalizedPath.includes('/comprar') ||
+                          normalizedPath.includes('/buy') ||
+                          normalizedPath.includes('/acheter');
+              }
+              // Para alquilar/rent
+              else if (key === 'alquilar' || key === 'rent' || key === 'louer') {
+                isActive = normalizedPath.includes('/alquilar') ||
+                          normalizedPath.includes('/rent') ||
+                          normalizedPath.includes('/louer');
+              }
+              // Para otras secciones (videos, articulos, asesores, etc)
+              else {
+                isActive = normalizedPath === url ||
+                          normalizedPath.startsWith(url + '/') ||
+                          normalizedPath.includes(`/${key}`);
+              }
+
+              // Clases dinámicas para sección activa - MÁS SOFISTICADO Y SUTIL
+              const linkClasses = isActive
+                ? "relative text-[#f04e00] font-medium transition-all duration-300 after:content-[''] after:absolute after:bottom-[-8px] after:left-[10%] after:right-[10%] after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-[#f04e00] after:to-transparent after:opacity-70"
+                : "text-gray-700 hover:text-[#f04e00] transition-all duration-300";
+
               return (
-                <a href={url} class="text-gray-700 hover:text-[#f04e00] transition-colors" data-key={key} data-original-label={label} translate="no">
+                <a href={finalUrl} class={linkClasses} data-key={key} data-original-label={label} translate="no">
                   {label}
                 </a>
               );
@@ -641,10 +711,10 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
               </div>
             </div>
 
-            <!-- Favorites Button with Counter - CORREGIDO: Ahora usa getFavoritesUrl para considerar el idioma -->
+            <!-- Favorites Button with Counter - CORREGIDO: Ahora usa getFavoritesUrl para considerar el idioma y trackingString -->
             <div class="relative">
-              <a 
-                href={getFavoritesUrl(language)}
+              <a
+                href={getFavoritesUrl(language, trackingString)}
                 class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors relative flex items-center justify-center"
                 title={language === 'es' ? 'Mis favoritos' : language === 'en' ? 'My favorites' : 'Mes favoris'}
               >

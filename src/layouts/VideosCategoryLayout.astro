@@ -1,5 +1,5 @@
 ---
-// src/layouts/VideosCategoryLayout.astro - Layout para categorías de videos con estilo magazine
+// src/layouts/VideosCategoryLayout.astro - Layout moderno para categorías de videos con paginación
 import Layout from './Layout.astro';
 
 // ===================================================================
@@ -45,65 +45,53 @@ const categorySlug = safeString(data?.category?.slug || data?.categorySlug || da
 
 let categoryData = safeObject(data);
 
-// Configuraciones por defecto de categorías
+// Configuraciones de categorías de videos
 const categoryConfigs = {
   'lanzamientos': {
-    title: language === 'es' ? 'Lanzamientos' :
-           language === 'en' ? 'New Launches' :
-           'Nouveaux Lancements',
-    description: language === 'es' ? 'Los proyectos inmobiliarios más nuevos y exclusivos de República Dominicana. Descubre las oportunidades antes que nadie.' :
-                 language === 'en' ? 'The newest and most exclusive real estate projects in Dominican Republic. Discover opportunities before anyone else.' :
-                 'Les projets immobiliers les plus nouveaux et exclusifs de République dominicaine. Découvrez les opportunités avant tout le monde.',
+    title: language === 'es' ? 'Lanzamientos' : language === 'en' ? 'New Launches' : 'Nouveaux Lancements',
+    description: language === 'es' ? 'Los proyectos inmobiliarios más nuevos y exclusivos de República Dominicana.' :
+                 language === 'en' ? 'The newest and most exclusive real estate projects in Dominican Republic.' :
+                 'Les projets immobiliers les plus nouveaux et exclusifs de République dominicaine.',
     icon: 'fa-rocket'
   },
   'consejos': {
-    title: language === 'es' ? 'Consejos y Tips' :
-           language === 'en' ? 'Tips & Advice' :
-           'Conseils et Astuces',
-    description: language === 'es' ? 'Consejos expertos para comprar, vender, alquilar e invertir en propiedades. Aprende de los profesionales.' :
-                 language === 'en' ? 'Expert advice for buying, selling, renting and investing in properties. Learn from professionals.' :
-                 'Conseils d\'experts pour acheter, vendre, louer et investir dans l\'immobilier. Apprenez des professionnels.',
+    title: language === 'es' ? 'Consejos y Tips' : language === 'en' ? 'Tips & Advice' : 'Conseils et Astuces',
+    description: language === 'es' ? 'Consejos expertos para comprar, vender, alquilar e invertir en propiedades.' :
+                 language === 'en' ? 'Expert advice for buying, selling, renting and investing in properties.' :
+                 'Conseils d\'experts pour acheter, vendre, louer et investir dans l\'immobilier.',
     icon: 'fa-lightbulb'
   },
   'diseno-y-decoracion': {
-    title: language === 'es' ? 'Diseño y Decoración' :
-           language === 'en' ? 'Design & Decoration' :
-           'Design et Décoration',
-    description: language === 'es' ? 'Ideas, tendencias y consejos profesionales para transformar tu hogar en un espacio único y espectacular.' :
-                 language === 'en' ? 'Ideas, trends and professional advice to transform your home into a unique and spectacular space.' :
-                 'Idées, tendances et conseils professionnels pour transformer votre maison en un espace unique et spectaculaire.',
+    title: language === 'es' ? 'Diseño y Decoración' : language === 'en' ? 'Design & Decoration' : 'Design et Décoration',
+    description: language === 'es' ? 'Ideas, tendencias y consejos profesionales para transformar tu hogar.' :
+                 language === 'en' ? 'Ideas, trends and professional advice to transform your home.' :
+                 'Idées, tendances et conseils professionnels pour transformer votre maison.',
     icon: 'fa-palette'
   },
   'la-casa-de-los-famosos': {
-    title: language === 'es' ? 'La Casa de Los Famosos' :
-           language === 'en' ? 'Celebrity Homes' :
-           'Maisons des Célébrités',
-    description: language === 'es' ? 'Tours exclusivos por las propiedades más impresionantes de las celebridades dominicanas. Descubre cómo viven las estrellas.' :
-                 language === 'en' ? 'Exclusive tours of the most impressive properties of Dominican celebrities. Discover how the stars live.' :
-                 'Visites exclusives des propriétés les plus impressionnantes des célébrités dominicaines. Découvrez comment vivent les stars.',
+    title: language === 'es' ? 'La Casa de Los Famosos' : language === 'en' ? 'Celebrity Homes' : 'Maisons des Célébrités',
+    description: language === 'es' ? 'Tours exclusivos por las propiedades más impresionantes de las celebridades.' :
+                 language === 'en' ? 'Exclusive tours of the most impressive properties of Dominican celebrities.' :
+                 'Visites exclusives des propriétés les plus impressionnantes des célébrités.',
     icon: 'fa-star'
   },
   'entrevistas': {
-    title: language === 'es' ? 'Entrevistas Exclusivas' :
-           language === 'en' ? 'Exclusive Interviews' :
-           'Entretiens Exclusifs',
-    description: language === 'es' ? 'Conversaciones íntimas con personalidades sobre sus hogares, inversiones y estilo de vida inmobiliario.' :
-                 language === 'en' ? 'Intimate conversations with personalities about their homes, investments and real estate lifestyle.' :
-                 'Conversations intimes avec des personnalités sur leurs maisons, investissements et style de vie immobilier.',
+    title: language === 'es' ? 'Entrevistas Exclusivas' : language === 'en' ? 'Exclusive Interviews' : 'Entretiens Exclusifs',
+    description: language === 'es' ? 'Conversaciones íntimas con personalidades sobre sus hogares e inversiones.' :
+                 language === 'en' ? 'Intimate conversations with personalities about their homes and investments.' :
+                 'Conversations intimes avec des personnalités sur leurs maisons et investissements.',
     icon: 'fa-microphone'
   },
   'recorridos': {
-    title: language === 'es' ? 'Recorridos de Propiedades' :
-           language === 'en' ? 'Property Tours' :
-           'Visites de Propriétés',
-    description: language === 'es' ? 'Tours detallados por propiedades disponibles para venta y alquiler. Ve cada detalle antes de decidir.' :
-                 language === 'en' ? 'Detailed tours of properties available for sale and rent. See every detail before deciding.' :
-                 'Visites détaillées de propriétés disponibles à la vente et à la location. Voyez chaque détail avant de décider.',
+    title: language === 'es' ? 'Recorridos de Propiedades' : language === 'en' ? 'Property Tours' : 'Visites de Propriétés',
+    description: language === 'es' ? 'Tours detallados por propiedades disponibles para venta y alquiler.' :
+                 language === 'en' ? 'Detailed tours of properties available for sale and rent.' :
+                 'Visites détaillées de propriétés disponibles à la vente et à la location.',
     icon: 'fa-video'
   }
 };
 
-// Obtener configuración de categoría o usar fallback
+// Obtener configuración de categoría
 const currentConfig = categoryConfigs[categorySlug] || categoryConfigs['recorridos'];
 
 // Crear datos seguros de categoría
@@ -111,14 +99,14 @@ const safeCategoryData = {
   language: language,
   category: categorySlug,
   categorySlug: categorySlug,
-  title: safeString(safeGet(categoryData, 'category.name') || categoryData.title || currentConfig.title),
-  description: safeString(safeGet(categoryData, 'category.description') || categoryData.description || currentConfig.description),
+  title: safeString(data?.category?.name || data?.title || currentConfig.title),
+  description: safeString(data?.category?.description || data?.description || currentConfig.description),
   icon: safeString(currentConfig.icon),
-  slug: safeString(safeGet(categoryData, 'category.slug') || categoryData.slug || categorySlug),
-  url: safeString(safeGet(categoryData, 'category.url') || categoryData.url || `#${categorySlug}`)
+  slug: safeString(data?.category?.slug || categorySlug),
+  url: safeString(data?.category?.url || `#${categorySlug}`)
 };
 
-// Procesar videos de forma defensiva
+// Procesar videos
 const rawVideos = safeArray(categoryData.videos);
 const safeVideos = rawVideos.map((video, index) => ({
   id: safeString(video.id, `video-${index}`),
@@ -126,50 +114,24 @@ const safeVideos = rawVideos.map((video, index) => ({
   title: safeString(video.title, 'Video sin título'),
   description: safeString(video.description, 'Descripción no disponible'),
   thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
-  videoSlug: safeString(video.videoSlug || video.slug, '#'),
   duration: safeString(video.duration, '0:00'),
   publishedAt: safeString(video.publishedAt, new Date().toISOString()),
   views: safeNumber(video.views, 0),
   featured: Boolean(video.featured),
   author: safeObject(video.author, {
     name: 'Equipo CLIC',
-    avatar: 'https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/avatars/profile_photos/6e9575f8-d8ef-4671-aa7f-e7193a2d3f21_1751833067618.jpg',
-    slug: 'equipo-clic',
-    position: language === 'es' ? 'Especialista Inmobiliario' :
-              language === 'en' ? 'Real Estate Specialist' :
-              'Spécialiste Immobilier'
+    avatar: '/images/team/clic-experts.jpg',
+    position: language === 'es' ? 'Especialista Inmobiliario' : language === 'en' ? 'Real Estate Specialist' : 'Spécialiste Immobilier'
   }),
   url: safeString(video.url, '#')
 }));
 
-// Encontrar el video más popular (mayor views)
-const mostPopularVideo = safeVideos.length > 0 ? 
-  safeVideos.reduce((prev, current) => 
-    (current.views > prev.views) ? current : prev, 
-    safeVideos[0]
-  ) : null;
-
-// Videos para el grid (excluir el más popular si hay más de 1)
-const gridVideos = safeVideos.length > 1 ? 
-  safeVideos.filter(video => video.id !== mostPopularVideo?.id) : 
-  [];
-
-// Función para truncar descripción HTML
-function truncateDescription(htmlContent, maxLength = 150) {
-  if (!htmlContent) return '';
-  
-  // Remover tags HTML y truncar
-  const textContent = htmlContent.replace(/<[^>]*>/g, '').trim();
-  if (textContent.length <= maxLength) return textContent;
-  
-  return textContent.substring(0, maxLength).trim() + '...';
-}
-
-// SEO seguro
+// SEO Seguro
 const safeSeo = {
-  title: safeString(safeGet(categoryData, 'seo.title'), `${safeCategoryData.title} - Videos CLIC`),
-  description: safeString(safeGet(categoryData, 'seo.description'), safeCategoryData.description),
-  breadcrumbs: safeArray(safeGet(categoryData, 'seo.breadcrumbs'), [
+  title: safeString(data?.seo?.title, `${safeCategoryData.title} - Videos CLIC`),
+  description: safeString(data?.seo?.description, safeCategoryData.description),
+  hreflang: safeObject(data?.seo?.hreflang, {}),  // Agregar hreflang del backend
+  breadcrumbs: safeArray(data?.seo?.breadcrumbs, [
     {
       name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
       url: language === 'es' ? '/' : `/${language}/`
@@ -185,42 +147,27 @@ const safeSeo = {
   ])
 };
 
-// ===================================================================
-// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
-// ===================================================================
-
+// Layout Props
 const layoutProps = {
   title: safeSeo.title,
   description: safeSeo.description,
-  ogImage: safeGet(categoryData, 'seo.ogImage') || '/og-videos.jpg',
-  canonical: safeGet(categoryData, 'seo.canonical_url') || (language === 'es' ? `/videos/${categorySlug}` : `/${language}/videos/${categorySlug}`),
-  keywords: safeGet(categoryData, 'seo.keywords') || `${safeCategoryData.title}, videos inmobiliarios, República Dominicana`,
-  hreflangData: safeGet(categoryData, 'seo.hreflang') || {},
-  globalConfig: data?.globalConfig || categoryData?.globalConfig || {},
+  ogImage: safeGet(data, 'seo.ogImage') || '/og-videos.jpg',
+  canonical: safeGet(data, 'seo.canonical_url') || (language === 'es' ? `/videos/${categorySlug}` : `/${language}/videos/${categorySlug}`),
+  keywords: safeGet(data, 'seo.keywords') || `${safeCategoryData.title}, videos inmobiliarios`,
+  hreflangData: safeSeo.hreflang || {},
+  globalConfig: data?.globalConfig || {},
   language: language,
-  trackingString: categoryData?.trackingString || '',
-  hotItems: categoryData?.hotItems || {},
-  country: categoryData?.country || {},
-  breadcrumbs: safeSeo.breadcrumbs,
-  structuredData: safeGet(categoryData, 'seo.structured_data') || {
-    "@context": "https://schema.org",
-    "@type": "VideoGallery",
-    "name": safeSeo.title,
-    "description": safeSeo.description,
-    "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${language === 'es' ? `/videos/${categorySlug}` : `/${language}/videos/${categorySlug}`}`,
-    "publisher": {
-      "@type": "Organization", 
-      "name": "CLIC Inmobiliaria"
-    }
-  },
-  openGraph: safeGet(categoryData, 'seo.open_graph') || {
-    title: safeSeo.title,
-    description: safeSeo.description,
-    type: 'website',
-    site_name: 'CLIC Inmobiliaria'
-  },
-  twitterCard: safeGet(categoryData, 'seo.twitter_card') || {}
+  trackingString: data?.trackingString || '',
+  breadcrumbs: safeSeo.breadcrumbs
 };
+
+// ===================================================================
+// PAGINACIÓN CLIENT-SIDE
+// ===================================================================
+
+const ITEMS_PER_PAGE = 12;
+const totalVideos = safeVideos.length;
+const totalPages = Math.ceil(totalVideos / ITEMS_PER_PAGE);
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -228,55 +175,61 @@ const layoutProps = {
 
 const TEXTS = {
   es: {
-    breadcrumbVideos: 'Videos',
     watchVideo: 'Ver video',
-    watchFull: 'Ver video completo',
-    showMore: 'Ver descripción completa',
-    showLess: 'Mostrar menos',
-    moreVideos: 'Más videos de',
     duration: 'duración',
-    views: 'visualizaciones',
+    views: 'vistas',
     author: 'Por',
-    publishedOn: 'Publicado el',
     videos: 'videos',
-    noVideos: 'Aún no hay videos',
-    noVideosDesc: 'Vuelve pronto para encontrar nuevo contenido en esta categoría.',
+    noVideos: 'Aún no hay videos en esta categoría',
+    noVideosDesc: 'Vuelve pronto para encontrar nuevo contenido.',
     backToVideos: 'Ver todos los videos',
-    featuredVideo: 'Video destacado'
+    showing: 'Mostrando',
+    of: 'de',
+    sortBy: 'Ordenar por',
+    mostRecent: 'Más recientes',
+    mostViewed: 'Más vistos',
+    oldest: 'Más antiguos',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    page: 'Página'
   },
   en: {
-    breadcrumbVideos: 'Videos',
     watchVideo: 'Watch video',
-    watchFull: 'Watch full video',
-    showMore: 'Show full description',
-    showLess: 'Show less',
-    moreVideos: 'More videos in',
     duration: 'duration',
     views: 'views',
     author: 'By',
-    publishedOn: 'Published on',
     videos: 'videos',
-    noVideos: 'No videos yet',
-    noVideosDesc: 'Check back soon for new content in this category.',
+    noVideos: 'No videos in this category yet',
+    noVideosDesc: 'Check back soon for new content.',
     backToVideos: 'See all videos',
-    featuredVideo: 'Featured video'
+    showing: 'Showing',
+    of: 'of',
+    sortBy: 'Sort by',
+    mostRecent: 'Most recent',
+    mostViewed: 'Most viewed',
+    oldest: 'Oldest',
+    previous: 'Previous',
+    next: 'Next',
+    page: 'Page'
   },
   fr: {
-    breadcrumbVideos: 'Vidéos',
-    watchVideo: 'Regarder la vidéo',
-    watchFull: 'Regarder la vidéo complète',
-    showMore: 'Voir la description complète',
-    showLess: 'Afficher moins',
-    moreVideos: 'Plus de vidéos de',
+    watchVideo: 'Regarder',
     duration: 'durée',
     views: 'vues',
     author: 'Par',
-    publishedOn: 'Publié le',
     videos: 'vidéos',
-    noVideos: 'Pas encore de vidéos',
-    noVideosDesc: 'Revenez bientôt pour du nouveau contenu dans cette catégorie.',
+    noVideos: 'Pas encore de vidéos dans cette catégorie',
+    noVideosDesc: 'Revenez bientôt pour du nouveau contenu.',
     backToVideos: 'Voir toutes les vidéos',
-    featuredVideo: 'Vidéo à la une'
+    showing: 'Affichage',
+    of: 'de',
+    sortBy: 'Trier par',
+    mostRecent: 'Plus récents',
+    mostViewed: 'Plus vus',
+    oldest: 'Plus anciens',
+    previous: 'Précédent',
+    next: 'Suivant',
+    page: 'Page'
   }
 };
 
@@ -284,277 +237,351 @@ const text = TEXTS[language] || TEXTS.es;
 
 // URLs según idioma
 const routes = {
-  es: {
-    videosBase: '/videos'
-  },
-  en: {
-    videosBase: '/en/videos'
-  },
-  fr: {
-    videosBase: '/fr/videos'
-  }
+  es: { videosBase: '/videos' },
+  en: { videosBase: '/en/videos' },
+  fr: { videosBase: '/fr/videos' }
 };
 
 const currentRoutes = routes[language] || routes.es;
 
-// Función para formatear fecha
-function formatDate(dateString) {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
-    }
-    
-    const months = {
-      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
-      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-    };
-    
-    const monthNames = months[language] || months.es;
-    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
-  } catch (error) {
-    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
-  }
-}
+console.log('✅ VideosCategoryLayout preparado:', {
+  language,
+  category: categorySlug,
+  title: safeCategoryData.title,
+  videosCount: safeVideos.length,
+  totalPages
+});
 ---
 
 <Layout {...layoutProps}>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-  <div class="min-h-screen bg-gray-50">
-    
-    <!-- Hero Section - Diseño oscuro premium compacto como en MainLayout original -->
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Section -->
     <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
-      <!-- Efectos de fondo decorativos -->
-      <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
-        <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
-        <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
-      </div>
-      
-      <div class="container mx-auto px-4 relative z-10">
-        <!-- Breadcrumbs -->
-        <nav class="flex items-center text-sm space-x-2 text-gray-300 mb-6 overflow-x-auto whitespace-nowrap pb-2">
-          {safeSeo.breadcrumbs.map((crumb, i) => (
-            <span class="flex items-center space-x-2">
-              {i > 0 && <i class="fas fa-chevron-right text-xs"></i>}
-              <a 
-                href={crumb.url} 
-                class={`hover:text-white transition-colors ${i === safeSeo.breadcrumbs.length - 1 ? 'font-semibold text-white' : ''}`}
-              >
-                {crumb.name}
-              </a>
-            </span>
-          ))}
-        </nav>
-        
-        <!-- Hero Content -->
-        <div class="flex items-start gap-6">
-          <!-- Icono de categoría -->
-          <div class="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white text-3xl backdrop-blur-sm flex-shrink-0 hidden md:flex">
-            <i class={`fas ${safeCategoryData.icon}`}></i>
-          </div>
-          
-          <div>
-            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-              {text.title || safeCategoryData.title}
-            </h1>
-            <p class="text-base md:text-lg text-gray-300 max-w-3xl leading-relaxed">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Breadcrumbs -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeSeo.breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title -->
+          <div class="text-center">
+            <div class="flex items-center justify-center gap-4 mb-4">
+              <i class={`fas ${safeCategoryData.icon} text-4xl text-white`}></i>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {safeCategoryData.title}
+              </h1>
+            </div>
+
+            <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               {safeCategoryData.description}
             </p>
+
+            {/* Stats */}
+            <div class="mt-8">
+              <div class="text-3xl font-bold text-white mb-2">{totalVideos}</div>
+              <div class="text-sm text-gray-300">{text.videos}</div>
+            </div>
           </div>
+
         </div>
       </div>
     </section>
 
-    <main class="py-12 bg-gray-50">
+    <!-- Main Content -->
+    <main class="py-12 md:py-16 bg-gray-50">
       <div class="container mx-auto px-4">
-        
-        {safeVideos.length > 0 ? (
-          <div class="space-y-16">
-            {/* Video principal - mostrar solo si hay videos */}
-            {mostPopularVideo && (
-              <article class="bg-white rounded-xl shadow-lg overflow-hidden mb-16">
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-0">
-                  
-                  {/* Video Thumbnail Column (larger) */}
-                  <div class="lg:col-span-3 aspect-video lg:aspect-auto relative">
-                    <a href={mostPopularVideo.url} class="block w-full h-full">
-                      <img 
-                        src={mostPopularVideo.thumbnail} 
-                        alt={mostPopularVideo.title}
-                        class="w-full h-full object-cover"
-                      />
-                      <div class="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <i class="fas fa-play text-xl text-[#f04e00] ml-1"></i>
-                        </div>
-                      </div>
-                      {/* Duration badge */}
-                      <div class="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded text-sm font-medium">
-                        {mostPopularVideo.duration}
-                      </div>
-                      {/* Featured badge */}
-                      {mostPopularVideo.featured && (
-                        <div class="absolute top-4 left-4 bg-[#f04e00] text-white px-3 py-1.5 rounded text-sm font-medium">
-                          {text.featuredVideo}
-                        </div>
-                      )}
-                    </a>
-                  </div>
-                  
-                  {/* Content Column */}
-                  <div class="lg:col-span-2 p-6 lg:p-8 flex flex-col">
-                    <a href={mostPopularVideo.url}>
-                      <h2 class="text-2xl font-bold text-gray-900 mb-3 hover:text-[#f04e00] transition-colors line-clamp-2">
-                        {mostPopularVideo.title}
-                      </h2>
-                    </a>
-                    
-                    {/* Video meta info */}
-                    <div class="flex items-center justify-between text-sm text-gray-500 mb-6">
-                      <div class="flex items-center gap-2">
-                        <img 
-                          src={mostPopularVideo.author.avatar} 
-                          alt={mostPopularVideo.author.name}
-                          class="w-8 h-8 rounded-full"
+        <div class="max-w-7xl mx-auto">
+
+          {safeVideos.length > 0 ? (
+            <div>
+              <!-- Controls: Sort & Count -->
+              <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+                <div class="text-sm text-gray-600">
+                  <span id="showing-text">{text.showing} <span id="showing-count">1-{Math.min(ITEMS_PER_PAGE, totalVideos)}</span> {text.of} <span id="total-count">{totalVideos}</span> {text.videos}</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <label for="sort-select" class="text-sm text-gray-600">{text.sortBy}:</label>
+                  <select
+                    id="sort-select"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
+                  >
+                    <option value="recent">{text.mostRecent}</option>
+                    <option value="views">{text.mostViewed}</option>
+                    <option value="oldest">{text.oldest}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Videos Grid -->
+              <div id="videos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+                {safeVideos.map((video) => (
+                  <article
+                    class="video-card bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                    data-published={video.publishedAt}
+                    data-views={video.views}
+                    key={video.id}
+                  >
+                    <a href={video.url} class="block">
+                      <div class="aspect-video relative overflow-hidden">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
-                        <div>
-                          <span class="font-medium block">{mostPopularVideo.author.name}</span>
-                          <span class="text-xs">{mostPopularVideo.author.position}</span>
+
+                        <!-- Play button overlay -->
+                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                            <i class="fas fa-play text-xl text-[#f04e00] ml-1"></i>
+                          </div>
+                        </div>
+
+                        <!-- Duration badge -->
+                        <div class="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+                          {video.duration}
                         </div>
                       </div>
-                      <span class="flex items-center gap-1">
-                        <i class="far fa-eye"></i>
-                        {mostPopularVideo.views.toLocaleString()} {language === 'en' ? 'views' : language === 'fr' ? 'vues' : 'vistas'}
-                      </span>
-                    </div>
-                    
-                    {/* Video description */}
-                    <div class="mb-6 text-gray-600 text-sm leading-relaxed magazine-text">
-                      {truncateDescription(mostPopularVideo.description, 240)}
-                    </div>
-                    
-                    {/* Action buttons */}
-                    <div class="mt-auto">
-                      <a 
-                        href={mostPopularVideo.url}
-                        class="inline-flex items-center justify-center gap-2 bg-[#f04e00] text-white px-5 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
-                      >
-                        <i class="fas fa-play"></i>
-                        {text.watchFull}
-                      </a>
-                    </div>
+
+                      <div class="p-4">
+                        <h3 class="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight text-base">
+                          {video.title}
+                        </h3>
+
+                        <p class="text-gray-600 mb-3 line-clamp-2 text-sm leading-relaxed">
+                          {video.description.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                        </p>
+
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                          <div class="flex items-center gap-2">
+                            <img
+                              src={video.author.avatar}
+                              alt={video.author.name}
+                              class="w-6 h-6 rounded-full"
+                            />
+                            <span class="truncate font-medium">{video.author.name}</span>
+                          </div>
+                          <span class="flex items-center gap-1">
+                            <i class="far fa-eye"></i>
+                            {video.views.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+
+              <!-- Pagination -->
+              {totalPages > 1 && (
+                <div id="pagination" class="flex items-center justify-center gap-2">
+                  <button
+                    id="prev-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled
+                  >
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    {text.previous}
+                  </button>
+
+                  <div id="page-numbers" class="flex items-center gap-2">
+                    <!-- Page numbers will be rendered by JS -->
                   </div>
-                </div>
-              </article>
-            )}
 
-            {/* Grid de videos adicionales - solo mostrar si hay más de 1 video */}
-            {gridVideos.length > 0 && (
-              <section class="max-w-6xl mx-auto">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-                  {text.moreVideos} {safeCategoryData.title}
-                </h2>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {gridVideos.map((video, index) => (
-                    <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={video.id}>
-                      <a href={video.url} class="block">
-                        <!-- Video Thumbnail -->
-                        <div class="aspect-video relative overflow-hidden">
-                          <img 
-                            src={video.thumbnail} 
-                            alt={video.title}
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <!-- Play button overlay -->
-                          <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                              <i class="fas fa-play text-lg text-[#f04e00] ml-0.5"></i>
-                            </div>
-                          </div>
-                          <!-- Duration badge -->
-                          <div class="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                            {video.duration}
-                          </div>
-                        </div>
-                        
-                        <!-- Content -->
-                        <div class="p-6">
-                          <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
-                            {video.title}
-                          </h3>
-                          
-                          <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
-                            {truncateDescription(video.description, 120)}
-                          </p>
-                          
-                          <!-- Meta -->
-                          <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-                            <div class="flex items-center gap-2">
-                              <img 
-                                src={video.author.avatar} 
-                                alt={video.author.name}
-                                class="w-6 h-6 rounded-full"
-                              />
-                              <span class="truncate font-medium">{video.author.name}</span>
-                            </div>
-                            <span class="flex items-center gap-1">
-                              <i class="far fa-eye"></i>
-                              {video.views.toLocaleString()}
-                            </span>
-                          </div>
-                          
-                          <!-- Watch link -->
-                          <div class="inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
-                            <span>{text.watchVideo}</span>
-                            <i class="fas fa-play transition-transform group-hover:translate-x-1"></i>
-                          </div>
-                        </div>
-                      </a>
-                    </article>
-                  ))}
+                  <button
+                    id="next-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {text.next}
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </button>
                 </div>
-              </section>
-            )}
-          </div>
-        ) : (
-          /* Estado vacío */
-          <div class="text-center py-16 max-w-2xl mx-auto">
-            <div class="text-8xl mb-6">🎥</div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">
-              {text.noVideos}
-            </h3>
-            <p class="text-gray-600 mb-8 text-lg">
-              {text.noVideosDesc}
-            </p>
-            <a 
-              href={currentRoutes.videosBase}
-              class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
-            >
-              <i class="fas fa-arrow-left"></i>
-              {text.backToVideos}
-            </a>
-          </div>
-        )}
+              )}
+            </div>
+          ) : (
+            <!-- Empty State -->
+            <div class="text-center py-16 max-w-2xl mx-auto">
+              <div class="text-8xl mb-6">🎥</div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                {text.noVideos}
+              </h3>
+              <p class="text-gray-600 mb-8 text-lg">
+                {text.noVideosDesc}
+              </p>
+              <a
+                href={currentRoutes.videosBase}
+                class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
+              >
+                <i class="fas fa-arrow-left"></i>
+                {text.backToVideos}
+              </a>
+            </div>
+          )}
 
+        </div>
       </div>
     </main>
 
   </div>
 </Layout>
 
-<style>
-  .line-clamp-1 {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+<!-- Client-side pagination and sorting -->
+<script define:vars={{ ITEMS_PER_PAGE, totalVideos, totalPages, text }}>
+  let currentPage = 1;
+  let currentSort = 'recent';
+  let allVideos = [];
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    allVideos = Array.from(document.querySelectorAll('.video-card'));
+    renderPage();
+
+    document.getElementById('sort-select')?.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      currentPage = 1;
+      sortAndRender();
+    });
+
+    document.getElementById('prev-btn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+        scrollToTop();
+      }
+    });
+
+    document.getElementById('next-btn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+        scrollToTop();
+      }
+    });
+  });
+
+  function sortVideos() {
+    allVideos.sort((a, b) => {
+      if (currentSort === 'recent') {
+        return new Date(b.dataset.published) - new Date(a.dataset.published);
+      } else if (currentSort === 'views') {
+        return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+      } else if (currentSort === 'oldest') {
+        return new Date(a.dataset.published) - new Date(b.dataset.published);
+      }
+      return 0;
+    });
   }
-  
+
+  function sortAndRender() {
+    sortVideos();
+    renderPage();
+  }
+
+  function renderPage() {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    allVideos.forEach((video, index) => {
+      if (index >= start && index < end) {
+        video.style.display = 'block';
+      } else {
+        video.style.display = 'none';
+      }
+    });
+
+    const showingCount = document.getElementById('showing-count');
+    if (showingCount) {
+      const actualStart = start + 1;
+      const actualEnd = Math.min(end, totalVideos);
+      showingCount.textContent = `${actualStart}-${actualEnd}`;
+    }
+
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+    renderPageNumbers();
+  }
+
+  function renderPageNumbers() {
+    const pageNumbersContainer = document.getElementById('page-numbers');
+    if (!pageNumbersContainer) return;
+
+    pageNumbersContainer.innerHTML = '';
+
+    const maxVisible = 7;
+    let pages = [];
+
+    if (totalPages <= maxVisible) {
+      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, '...', totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+      }
+    }
+
+    pages.forEach(page => {
+      if (page === '...') {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.className = 'px-2 text-gray-500';
+        pageNumbersContainer.appendChild(ellipsis);
+      } else {
+        const button = document.createElement('button');
+        button.textContent = page;
+        button.className = `w-10 h-10 rounded-lg transition-colors ${
+          page === currentPage
+            ? 'bg-[#f04e00] text-white font-semibold'
+            : 'border border-gray-300 hover:bg-gray-100 text-gray-700'
+        }`;
+
+        if (page !== currentPage) {
+          button.addEventListener('click', () => {
+            currentPage = page;
+            renderPage();
+            scrollToTop();
+          });
+        }
+
+        pageNumbersContainer.appendChild(button);
+      }
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+<style>
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -562,77 +589,15 @@ function formatDate(dateString) {
     overflow: hidden;
   }
 
-  .line-clamp-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Magazine-style text formatting */
-  .magazine-text {
-    text-align: justify;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-  }
-
-  /* Float behavior for magazine layout */
-  .magazine-text p:first-child,
-  .magazine-text p:nth-child(2) {
-    text-indent: 0;
-  }
-
-  .magazine-text p:not(:first-child):not(:nth-child(2)) {
-    text-indent: 1.5em;
-  }
-
-  /* Better floating video behavior */
-  figure.float-left {
-    shape-outside: margin-box;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Video thumbnail specific styles */
   .aspect-video {
     aspect-ratio: 16 / 9;
   }
 
-  /* Better responsive behavior */
-  @media (max-width: 1024px) {
-    figure.float-left {
-      width: 320px !important;
-    }
-  }
-
-  @media (max-width: 768px) {
-    figure.float-left {
-      float: none !important;
-      width: 100% !important;
-      margin-right: 0 !important;
-      margin-bottom: 2rem;
-    }
-    
-    .magazine-text p {
-      text-indent: 0 !important;
-    }
-  }
-
-  /* Smooth transitions */
   .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
   }
-  
+
   .group:hover .group-hover\:text-[#f04e00] {
     color: #f04e00;
-  }
-  
-  .group:hover .group-hover\:gap-3 {
-    gap: 0.75rem;
-  }
-
-  .group:hover .group-hover\:translate-x-1 {
-    transform: translateX(0.25rem);
   }
 </style>

@@ -142,7 +142,7 @@ async function callBackendOnce(backendBase: string, path: string) {
         'Authorization': AUTH_TOKEN,
         'Content-Type': 'application/json',
         'User-Agent': `CLIC-Router/${Astro.url.host}`,
-        'X-Original-Host': Astro.url.hostname
+        'X-Original-Host': Astro.url.host  // Incluir puerto (localhost:4321)
       },
       signal: AbortSignal.timeout(timeoutMs)
     });

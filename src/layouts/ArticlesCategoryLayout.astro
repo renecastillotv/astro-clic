@@ -1,5 +1,5 @@
 ---
-// src/layouts/ArticlesCategoryLayout.astro - Layout para categorías de artículos optimizado con SEO del backend
+// src/layouts/ArticlesCategoryLayout.astro - Layout moderno para categorías de artículos con paginación
 import Layout from './Layout.astro';
 
 // ===================================================================
@@ -38,7 +38,7 @@ function safeNumber(num, defaultValue = 0) {
 const { data } = Astro.props;
 const language = safeString(data?.language, 'es');
 
-// Limpiar slug si viene con prefijos como "articulos/inversion"
+// Limpiar slug si viene con prefijos
 const rawCategorySlug = safeString(data?.category?.slug || data?.categorySlug || data?.slug, 'general');
 const categorySlug = rawCategorySlug.split('/').pop();
 
@@ -48,7 +48,7 @@ const categorySlug = rawCategorySlug.split('/').pop();
 
 let categoryData = safeObject(data);
 
-// Solo mapeo de iconos (el backend no los envía)
+// Iconos de categorías
 const categoryIcons = {
   'guias-de-compra': 'fa-book',
   'inversion': 'fa-chart-line',
@@ -58,32 +58,29 @@ const categoryIcons = {
   'ubicacion': 'fa-map-marker-alt'
 };
 
-// Crear datos seguros de categoría usando principalmente el SEO del backend
+// Crear datos seguros de categoría
 const safeCategoryData = {
   language: language,
   category: categorySlug,
   categorySlug: categorySlug,
-  // Priorizar seo.h1 del backend, luego category.name, luego fallback genérico
   title: safeString(
-    data?.seo?.h1 || 
-    data?.category?.name || 
+    data?.seo?.h1 ||
+    data?.category?.name ||
     (language === 'es' ? 'Artículos' : language === 'en' ? 'Articles' : 'Articles')
   ),
-  // Priorizar seo.h2 del backend, luego seo.description, luego fallback genérico
   description: safeString(
-    data?.seo?.h2 || 
-    data?.seo?.description || 
+    data?.seo?.h2 ||
+    data?.seo?.description ||
     (language === 'es' ? 'Explora nuestra colección de artículos sobre el mercado inmobiliario.' :
      language === 'en' ? 'Explore our collection of articles about the real estate market.' :
      'Explorez notre collection d\'articles sur le marché immobilier.')
   ),
-  // Solo fallback de icono (backend no lo envía)
   icon: categoryIcons[categorySlug] || 'fa-newspaper',
   slug: categorySlug,
   url: safeString(data?.category?.url || `#${categorySlug}`)
 };
 
-// Procesar artículos de forma defensiva
+// Procesar artículos
 const rawArticles = safeArray(categoryData.articles);
 const safeArticles = rawArticles.map((article, index) => ({
   id: safeString(article.id, `article-${index}`),
@@ -91,59 +88,25 @@ const safeArticles = rawArticles.map((article, index) => ({
   title: safeString(article.title, 'Artículo sin título'),
   excerpt: safeString(article.excerpt, 'Extracto no disponible'),
   subtitle: safeString(article.subtitle),
-  content: safeString(article.content, ''),
   featuredImage: safeString(
-    article.featuredImage || article.featured_image, 
+    article.featuredImage || article.featured_image,
     'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'
   ),
   publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
   readTime: safeString(article.readTime || article.read_time, '5 min'),
-  readTimeMinutes: safeNumber(article.readTimeMinutes, 5),
   views: safeNumber(article.views, 0),
   featured: Boolean(article.featured),
-  tags: safeArray(article.tags, []),
   author: safeObject(article.author, {
     name: 'Equipo CLIC',
-    avatar: 'https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/avatars/profile_photos/6e9575f8-d8ef-4671-aa7f-e7193a2d3f21_1751833067618.jpg',
-    position: language === 'es' ? 'Especialista Inmobiliario' :
-              language === 'en' ? 'Real Estate Specialist' :
-              'Spécialiste Immobilier'
+    avatar: '/images/team/clic-experts.jpg',
+    position: language === 'es' ? 'Especialista Inmobiliario' : language === 'en' ? 'Real Estate Specialist' : 'Spécialiste Immobilier'
   }),
   url: safeString(article.url, '#')
 }));
 
-// Encontrar el artículo más popular (mayor views)
-const mostPopularArticle = safeArticles.length > 0 ? 
-  safeArticles.reduce((prev, current) => 
-    (current.views > prev.views) ? current : prev, 
-    safeArticles[0]
-  ) : null;
-
-// Artículos para el grid (excluir el más popular si hay más de 1)
-const gridArticles = safeArticles.length > 1 ? 
-  safeArticles.filter(article => article.id !== mostPopularArticle?.id) : 
-  [];
-
-// Función para extraer párrafos del contenido HTML
-function extractParagraphs(htmlContent, maxParagraphs = 3) {
-  if (!htmlContent) return [];
-  
-  const paragraphs = htmlContent.split('</p>')
-    .slice(0, maxParagraphs)
-    .map(p => p.replace(/<p[^>]*>/g, '').trim())
-    .filter(p => p.length > 0);
-    
-  return paragraphs;
-}
-
-// ===================================================================
-// PROCESAMIENTO DE SEO COMPLETO DEL BACKEND
-// ===================================================================
-
+// SEO Seguro
 const rawSeo = safeObject(categoryData.seo);
-
-// Breadcrumbs: priorizar backend, luego construir manualmente
-const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0 
+const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0
   ? safeArray(rawSeo.breadcrumbs)
   : [
       {
@@ -160,110 +123,31 @@ const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0
       }
     ];
 
-// Canonical URL: priorizar backend
 const canonicalUrl = safeString(
   rawSeo.canonical_url,
   language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
 );
 
-// Open Graph: usar datos del backend o construir
-const safeOpenGraph = safeObject(rawSeo.open_graph).title 
-  ? safeObject(rawSeo.open_graph)
-  : {
-      title: rawSeo.title || safeCategoryData.title,
-      description: rawSeo.description || safeCategoryData.description,
-      url: `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
-      type: 'website',
-      site_name: 'CLIC Inmobiliaria',
-      locale: language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR',
-      image: rawSeo.ogImage || '/og-articles.jpg'
-    };
-
-// Twitter Card: usar datos del backend o construir
-const safeTwitterCard = safeObject(rawSeo.twitter_card).title
-  ? safeObject(rawSeo.twitter_card)
-  : {
-      card: 'summary_large_image',
-      site: '@clic.do',
-      creator: '@renecastillotv',
-      title: rawSeo.title || safeCategoryData.title,
-      description: rawSeo.description || safeCategoryData.description,
-      image: rawSeo.ogImage || '/og-articles.jpg'
-    };
-
-// Structured Data: priorizar backend o construir
-const safeStructuredData = safeObject(rawSeo.structured_data)['@context']
-  ? safeObject(rawSeo.structured_data)
-  : {
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      "name": rawSeo.title || safeCategoryData.title,
-      "description": rawSeo.description || safeCategoryData.description,
-      "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
-      "isPartOf": {
-        "@type": "Blog",
-        "name": "CLIC Inmobiliaria Blog",
-        "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${language === 'es' ? '/articulos' : `/${language}/articles`}`
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "CLIC Inmobiliaria",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
-        }
-      },
-      "mainEntity": {
-        "@type": "ItemList",
-        "numberOfItems": safeArticles.length,
-        "itemListElement": safeArticles.map((article, index) => ({
-          "@type": "ListItem",
-          "position": index + 1,
-          "item": {
-            "@type": "BlogPosting",
-            "headline": article.title,
-            "description": article.excerpt,
-            "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${article.url}`
-          }
-        }))
-      }
-    };
-
-// ===================================================================
-// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS DEL BACKEND
-// ===================================================================
-
+// Layout Props
 const layoutProps = {
-  // Títulos y descripciones del backend
   title: safeString(rawSeo.title, safeCategoryData.title),
   description: safeString(rawSeo.description, safeCategoryData.description),
-  
-  // Imágenes
-  ogImage: safeString(rawSeo.ogImage || safeOpenGraph.image, '/og-articles.jpg'),
-  
-  // URLs
+  ogImage: safeString(rawSeo.ogImage, '/og-articles.jpg'),
   canonical: canonicalUrl,
-  
-  // Keywords y hreflang
   keywords: safeString(rawSeo.keywords, `${safeCategoryData.title}, artículos inmobiliarios`),
   hreflangData: safeObject(rawSeo.hreflang),
-  
-  // Configuración global
-  globalConfig: data?.globalConfig || categoryData?.globalConfig || {},
+  globalConfig: data?.globalConfig || {},
   language: language,
-  trackingString: categoryData?.trackingString || '',
-  hotItems: categoryData?.hotItems || {},
-  country: categoryData?.country || {},
-  
-  // SEO estructurado del backend
-  breadcrumbs: safeBreadcrumbs,
-  structuredData: safeStructuredData,
-  openGraph: safeOpenGraph,
-  twitterCard: safeTwitterCard,
-  
-  // Meta tags adicionales del backend
-  additionalMetaTags: safeObject(rawSeo.additional_meta_tags || rawSeo.meta_tags)
+  breadcrumbs: safeBreadcrumbs
 };
+
+// ===================================================================
+// PAGINACIÓN CLIENT-SIDE
+// ===================================================================
+
+const ITEMS_PER_PAGE = 12;
+const totalArticles = safeArticles.length;
+const totalPages = Math.ceil(totalArticles / ITEMS_PER_PAGE);
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -272,39 +156,60 @@ const layoutProps = {
 const TEXTS = {
   es: {
     readMore: 'Leer más',
-    readFull: 'Leer artículo completo',
-    moreArticles: 'Más artículos de',
-    readingTime: 'min de lectura',
-    views: 'lecturas',
+    minRead: 'min de lectura',
+    views: 'vistas',
     author: 'Por',
     articles: 'artículos',
-    noArticles: 'Aún no hay artículos',
-    noArticlesDesc: 'Vuelve pronto para encontrar nuevo contenido en esta categoría.',
-    backToArticles: 'Ver todos los artículos'
+    noArticles: 'Aún no hay artículos en esta categoría',
+    noArticlesDesc: 'Vuelve pronto para encontrar nuevo contenido.',
+    backToArticles: 'Ver todos los artículos',
+    showing: 'Mostrando',
+    of: 'de',
+    sortBy: 'Ordenar por',
+    mostRecent: 'Más recientes',
+    mostViewed: 'Más vistos',
+    oldest: 'Más antiguos',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    page: 'Página'
   },
   en: {
     readMore: 'Read more',
-    readFull: 'Read full article',
-    moreArticles: 'More articles in',
-    readingTime: 'min read',
+    minRead: 'min read',
     views: 'views',
     author: 'By',
     articles: 'articles',
-    noArticles: 'No articles yet',
-    noArticlesDesc: 'Check back soon for new content in this category.',
-    backToArticles: 'View all articles'
+    noArticles: 'No articles in this category yet',
+    noArticlesDesc: 'Check back soon for new content.',
+    backToArticles: 'View all articles',
+    showing: 'Showing',
+    of: 'of',
+    sortBy: 'Sort by',
+    mostRecent: 'Most recent',
+    mostViewed: 'Most viewed',
+    oldest: 'Oldest',
+    previous: 'Previous',
+    next: 'Next',
+    page: 'Page'
   },
   fr: {
     readMore: 'Lire plus',
-    readFull: 'Lire l\'article complet',
-    moreArticles: 'Plus d\'articles dans',
-    readingTime: 'min de lecture',
+    minRead: 'min de lecture',
     views: 'vues',
     author: 'Par',
     articles: 'articles',
-    noArticles: 'Pas encore d\'articles',
-    noArticlesDesc: 'Revenez bientôt pour du nouveau contenu dans cette catégorie.',
-    backToArticles: 'Voir tous les articles'
+    noArticles: 'Pas encore d\'articles dans cette catégorie',
+    noArticlesDesc: 'Revenez bientôt pour du nouveau contenu.',
+    backToArticles: 'Voir tous les articles',
+    showing: 'Affichage',
+    of: 'de',
+    sortBy: 'Trier par',
+    mostRecent: 'Plus récents',
+    mostViewed: 'Plus vus',
+    oldest: 'Plus anciens',
+    previous: 'Précédent',
+    next: 'Suivant',
+    page: 'Page'
   }
 };
 
@@ -326,13 +231,13 @@ function formatDate(dateString) {
     if (isNaN(date.getTime())) {
       return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
     }
-    
+
     const months = {
       es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
       en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
       fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
     };
-    
+
     const monthNames = months[language] || months.es;
     return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
   } catch (error) {
@@ -345,16 +250,7 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
   category: categorySlug,
   title: safeCategoryData.title,
   articlesCount: safeArticles.length,
-  mostPopular: mostPopularArticle?.title,
-  gridCount: gridArticles.length,
-  seoFromBackend: {
-    hasTitle: !!rawSeo.title,
-    hasDescription: !!rawSeo.description,
-    hasBreadcrumbs: safeBreadcrumbs.length > 0,
-    hasStructuredData: !!safeStructuredData['@context'],
-    hasOpenGraph: !!safeOpenGraph.title,
-    hasTwitterCard: !!safeTwitterCard.title
-  }
+  totalPages
 });
 ---
 
@@ -362,22 +258,26 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-  <div class="min-h-screen bg-gray-50">
-    
-    <!-- Hero Section with Category Info -->
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Section -->
     <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
-      <div class="container mx-auto px-4">
-        <div class="text-center text-white max-w-4xl mx-auto">
-          
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+
           <!-- Breadcrumbs -->
-          <nav class="text-sm mb-8" aria-label="Breadcrumb">
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
             {safeBreadcrumbs.map((breadcrumb, index) => (
               <span key={index}>
-                {index > 0 && <span class="mx-2 text-white/60">•</span>}
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
                 {index === safeBreadcrumbs.length - 1 ? (
-                  <span class="text-white font-medium">{breadcrumb.name}</span>
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
                 ) : (
-                  <a href={breadcrumb.url} class="text-white/80 hover:text-white transition-colors">
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
                     {breadcrumb.name}
                   </a>
                 )}
@@ -385,203 +285,319 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
             ))}
           </nav>
 
-          <div class="flex items-center justify-center gap-4 mb-6">
-            <i class={`fas ${safeCategoryData.icon} text-5xl`}></i>
-            <h1 class="text-4xl md:text-5xl font-bold">
-              {safeCategoryData.title}
-            </h1>
+          <!-- Title -->
+          <div class="text-center">
+            <div class="flex items-center justify-center gap-4 mb-4">
+              <i class={`fas ${safeCategoryData.icon} text-4xl text-white`}></i>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {safeCategoryData.title}
+              </h1>
+            </div>
+
+            <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              {safeCategoryData.description}
+            </p>
+
+            {/* Stats */}
+            <div class="mt-8">
+              <div class="text-3xl font-bold text-white mb-2">{totalArticles}</div>
+              <div class="text-sm text-gray-300">{text.articles}</div>
+            </div>
           </div>
-          
-          <p class="text-xl max-w-3xl mx-auto text-white/90">
-            {safeCategoryData.description}
-          </p>
-          
-          <!-- Category Stats -->
-          <div class="mt-10">
-            <div class="text-3xl font-bold text-white mb-2">{safeArticles.length}</div>
-            <div class="text-sm text-white/80">{text.articles}</div>
-          </div>
+
         </div>
       </div>
     </section>
 
     <!-- Main Content -->
-    <main class="py-12 bg-white">
+    <main class="py-12 md:py-16 bg-gray-50">
       <div class="container mx-auto px-4">
+        <div class="max-w-7xl mx-auto">
 
-        {safeArticles.length > 0 ? (
-          <div>
-            {/* Featured Article (solo si hay más de 1) */}
-            {mostPopularArticle && safeArticles.length > 1 && (
-              <article class="mb-16 max-w-6xl mx-auto">
-                <header class="mb-8">
-                  <div class="flex items-center gap-4 mb-6">
-                    <img 
-                      src={mostPopularArticle.author.avatar} 
-                      alt={mostPopularArticle.author.name}
-                      class="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <div class="text-sm text-gray-600">
-                        <span class="font-medium text-gray-900">{text.author} {mostPopularArticle.author.name}</span>
-                        <span class="mx-2">•</span>
-                        <span>{formatDate(mostPopularArticle.publishedAt)}</span>
-                        <span class="mx-2">•</span>
-                        <span>
-                          <i class="far fa-eye mr-1"></i>
-                          {mostPopularArticle.views.toLocaleString()} {text.views}
-                        </span>
-                        <span class="mx-2">•</span>
-                        <span>
-                          <i class="far fa-clock mr-1"></i>
-                          {mostPopularArticle.readTime}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+          {safeArticles.length > 0 ? (
+            <div>
+              <!-- Controls: Sort & Count -->
+              <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+                <div class="text-sm text-gray-600">
+                  <span id="showing-text">{text.showing} <span id="showing-count">1-{Math.min(ITEMS_PER_PAGE, totalArticles)}</span> {text.of} <span id="total-count">{totalArticles}</span> {text.articles}</span>
+                </div>
 
-                  <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                    {mostPopularArticle.title}
-                  </h2>
-                  
-                  <p class="text-xl text-gray-700 mb-6 leading-relaxed font-medium">
-                    {mostPopularArticle.excerpt}
-                  </p>
-                </header>
+                <div class="flex items-center gap-2">
+                  <label for="sort-select" class="text-sm text-gray-600">{text.sortBy}:</label>
+                  <select
+                    id="sort-select"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
+                  >
+                    <option value="recent">{text.mostRecent}</option>
+                    <option value="views">{text.mostViewed}</option>
+                    <option value="oldest">{text.oldest}</option>
+                  </select>
+                </div>
+              </div>
 
-                <div class="editorial-content">
-                  <div class="relative">
-                    <figure class="float-left mr-8 mb-6 w-96 group">
-                      <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
-                        <img 
-                          src={mostPopularArticle.featuredImage} 
-                          alt={mostPopularArticle.title}
-                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              <!-- Articles Grid -->
+              <div id="articles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {safeArticles.map((article) => (
+                  <article
+                    class="article-card bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                    data-published={article.publishedAt}
+                    data-views={article.views}
+                    key={article.id}
+                  >
+                    <a href={article.url} class="block">
+                      <div class="aspect-[16/10] relative overflow-hidden">
+                        <img
+                          src={article.featuredImage}
+                          alt={article.title}
+                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <div class="absolute bottom-4 left-4 right-4">
-                            <a 
-                              href={mostPopularArticle.url}
-                              class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
-                            >
-                              {text.readFull}
-                            </a>
-                          </div>
+                        <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          <i class="far fa-clock mr-1"></i>
+                          {article.readTime}
                         </div>
                       </div>
-                    </figure>
 
-                    <div class="text-gray-700 leading-7 text-base magazine-text">
-                      {mostPopularArticle.content && extractParagraphs(mostPopularArticle.content, 4).map((paragraph, index) => (
-                        <p class="mb-5 text-justify hyphens-auto" key={index} set:html={paragraph} />
-                      ))}
-                    </div>
-                    
-                    <div class="clear-both mt-6">
-                      <a 
-                        href={mostPopularArticle.url}
-                        class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
-                      >
-                        <span>{text.readFull}</span>
-                        <i class="fas fa-arrow-right transition-all duration-200 group-hover:translate-x-1"></i>
-                      </a>
-                    </div>
+                      <div class="p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                          {article.title}
+                        </h3>
+
+                        {article.subtitle && (
+                          <h4 class="text-sm text-gray-600 mb-3 font-medium line-clamp-1">
+                            {article.subtitle}
+                          </h4>
+                        )}
+
+                        <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                          {article.excerpt}
+                        </p>
+
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                          <div class="flex items-center gap-2">
+                            <img
+                              src={article.author.avatar}
+                              alt={article.author.name}
+                              class="w-6 h-6 rounded-full"
+                            />
+                            <span class="truncate font-medium">{article.author.name}</span>
+                          </div>
+                          <span class="flex items-center gap-1">
+                            <i class="far fa-eye"></i>
+                            {article.views.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div class="inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
+                          <span>{text.readMore}</span>
+                          <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+
+              <!-- Pagination -->
+              {totalPages > 1 && (
+                <div id="pagination" class="flex items-center justify-center gap-2">
+                  <button
+                    id="prev-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled
+                  >
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    {text.previous}
+                  </button>
+
+                  <div id="page-numbers" class="flex items-center gap-2">
+                    <!-- Page numbers will be rendered by JS -->
                   </div>
-                </div>
-              </article>
-            )}
 
-            {/* Grid de artículos */}
-            {(gridArticles.length > 0 || (safeArticles.length === 1 && mostPopularArticle)) && (
-              <section class="max-w-6xl mx-auto">
-                {safeArticles.length > 1 && (
-                  <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-                    {text.moreArticles} {safeCategoryData.title}
-                  </h2>
-                )}
-                
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {(gridArticles.length > 0 ? gridArticles : [mostPopularArticle]).map((article) => (
-                    <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id}>
-                      <a href={article.url} class="block">
-                        <div class="aspect-[16/10] relative overflow-hidden">
-                          <img 
-                            src={article.featuredImage} 
-                            alt={article.title}
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
-                            <i class="far fa-clock mr-1"></i>
-                            {article.readTime}
-                          </div>
-                        </div>
-                        
-                        <div class="p-6">
-                          <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
-                            {article.title}
-                          </h3>
-                          
-                          {article.subtitle && (
-                            <h4 class="text-sm text-gray-600 mb-3 font-medium line-clamp-1">
-                              {article.subtitle}
-                            </h4>
-                          )}
-                          
-                          <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
-                            {article.excerpt}
-                          </p>
-                          
-                          <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-                            <div class="flex items-center gap-2">
-                              <img 
-                                src={article.author.avatar} 
-                                alt={article.author.name}
-                                class="w-6 h-6 rounded-full"
-                              />
-                              <span class="truncate font-medium">{article.author.name}</span>
-                            </div>
-                            <span class="flex items-center gap-1">
-                              <i class="far fa-eye"></i>
-                              {article.views.toLocaleString()}
-                            </span>
-                          </div>
-                          
-                          <div class="inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
-                            <span>{text.readMore}</span>
-                            <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1"></i>
-                          </div>
-                        </div>
-                      </a>
-                    </article>
-                  ))}
+                  <button
+                    id="next-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {text.next}
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </button>
                 </div>
-              </section>
-            )}
-          </div>
-        ) : (
-          <div class="text-center py-16 max-w-2xl mx-auto">
-            <div class="text-8xl mb-6">📚</div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">
-              {text.noArticles}
-            </h3>
-            <p class="text-gray-600 mb-8 text-lg">
-              {text.noArticlesDesc}
-            </p>
-            <a 
-              href={currentRoutes.articlesBase}
-              class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
-            >
-              <i class="fas fa-arrow-left"></i>
-              {text.backToArticles}
-            </a>
-          </div>
-        )}
+              )}
+            </div>
+          ) : (
+            <!-- Empty State -->
+            <div class="text-center py-16 max-w-2xl mx-auto">
+              <div class="text-8xl mb-6">📚</div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                {text.noArticles}
+              </h3>
+              <p class="text-gray-600 mb-8 text-lg">
+                {text.noArticlesDesc}
+              </p>
+              <a
+                href={currentRoutes.articlesBase}
+                class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
+              >
+                <i class="fas fa-arrow-left"></i>
+                {text.backToArticles}
+              </a>
+            </div>
+          )}
 
+        </div>
       </div>
     </main>
 
   </div>
 </Layout>
+
+<!-- Client-side pagination and sorting -->
+<script define:vars={{ ITEMS_PER_PAGE, totalArticles, totalPages, text }}>
+  let currentPage = 1;
+  let currentSort = 'recent';
+  let allArticles = [];
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    // Store all articles
+    allArticles = Array.from(document.querySelectorAll('.article-card'));
+
+    // Initial render
+    renderPage();
+
+    // Event listeners
+    document.getElementById('sort-select')?.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      currentPage = 1;
+      sortAndRender();
+    });
+
+    document.getElementById('prev-btn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+        scrollToTop();
+      }
+    });
+
+    document.getElementById('next-btn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+        scrollToTop();
+      }
+    });
+  });
+
+  function sortArticles() {
+    allArticles.sort((a, b) => {
+      if (currentSort === 'recent') {
+        return new Date(b.dataset.published) - new Date(a.dataset.published);
+      } else if (currentSort === 'views') {
+        return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+      } else if (currentSort === 'oldest') {
+        return new Date(a.dataset.published) - new Date(b.dataset.published);
+      }
+      return 0;
+    });
+  }
+
+  function sortAndRender() {
+    sortArticles();
+    renderPage();
+  }
+
+  function renderPage() {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    // Hide all articles
+    allArticles.forEach((article, index) => {
+      if (index >= start && index < end) {
+        article.style.display = 'block';
+      } else {
+        article.style.display = 'none';
+      }
+    });
+
+    // Update showing text
+    const showingCount = document.getElementById('showing-count');
+    if (showingCount) {
+      const actualStart = start + 1;
+      const actualEnd = Math.min(end, totalArticles);
+      showingCount.textContent = `${actualStart}-${actualEnd}`;
+    }
+
+    // Update pagination buttons
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    if (prevBtn) {
+      prevBtn.disabled = currentPage === 1;
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = currentPage === totalPages;
+    }
+
+    // Render page numbers
+    renderPageNumbers();
+  }
+
+  function renderPageNumbers() {
+    const pageNumbersContainer = document.getElementById('page-numbers');
+    if (!pageNumbersContainer) return;
+
+    pageNumbersContainer.innerHTML = '';
+
+    // Show max 7 page numbers with ellipsis
+    const maxVisible = 7;
+    let pages = [];
+
+    if (totalPages <= maxVisible) {
+      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, '...', totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+      }
+    }
+
+    pages.forEach(page => {
+      if (page === '...') {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.className = 'px-2 text-gray-500';
+        pageNumbersContainer.appendChild(ellipsis);
+      } else {
+        const button = document.createElement('button');
+        button.textContent = page;
+        button.className = `w-10 h-10 rounded-lg transition-colors ${
+          page === currentPage
+            ? 'bg-[#f04e00] text-white font-semibold'
+            : 'border border-gray-300 hover:bg-gray-100 text-gray-700'
+        }`;
+
+        if (page !== currentPage) {
+          button.addEventListener('click', () => {
+            currentPage = page;
+            renderPage();
+            scrollToTop();
+          });
+        }
+
+        pageNumbersContainer.appendChild(button);
+      }
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
 
 <style>
   .line-clamp-1 {
@@ -590,7 +606,7 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  
+
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -605,55 +621,14 @@ console.log('✅ ArticlesCategoryLayout preparado:', {
     overflow: hidden;
   }
 
-  .magazine-text {
-    text-align: justify;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-  }
-
-  .magazine-text p:first-child,
-  .magazine-text p:nth-child(2) {
-    text-indent: 0;
-  }
-
-  .magazine-text p:not(:first-child):not(:nth-child(2)) {
-    text-indent: 1.5em;
-  }
-
-  figure.float-left {
-    shape-outside: margin-box;
-    margin-bottom: 1.5rem;
-  }
-
-  @media (max-width: 1024px) {
-    figure.float-left {
-      width: 320px !important;
-    }
-  }
-
-  @media (max-width: 768px) {
-    figure.float-left {
-      float: none !important;
-      width: 100% !important;
-      margin-right: 0 !important;
-      margin-bottom: 2rem;
-    }
-    
-    .magazine-text p {
-      text-indent: 0 !important;
-    }
-  }
-
   .group:hover .group-hover\:scale-105 {
     transform: scale(1.05);
   }
-  
+
   .group:hover .group-hover\:text-[#f04e00] {
     color: #f04e00;
   }
-  
+
   .group:hover .group-hover\:gap-3 {
     gap: 0.75rem;
   }

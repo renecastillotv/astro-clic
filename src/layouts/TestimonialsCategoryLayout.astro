@@ -1,365 +1,158 @@
 ---
-// src/layouts/TestimonialsCategoryLayout.astro - Layout para categoría de testimonios
+// src/layouts/TestimonialsCategoryLayout.astro - Layout moderno para categorías de testimonios con paginación
 import Layout from './Layout.astro';
-import PropertyCarousel from '../components/PropertyCarousel.astro';
 
 // ===================================================================
-// EXTRACCIÓN DE DATOS DEL PROP
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
 // ===================================================================
 
 const { data } = Astro.props;
-const language = data?.language || 'es';
-const category = data?.category || 'compradores';
+const language = safeString(data?.language, 'es');
+const categorySlug = safeString(data?.category?.slug || data?.categorySlug || data?.slug, 'general');
 
 // ===================================================================
-// FUNCIONES HELPER DE VALIDACIÓN
+// PROCESAMIENTO DEFENSIVO DE DATOS
 // ===================================================================
 
-// Función helper para validar arrays
-const safeArray = (arr) => Array.isArray(arr) ? arr : [];
+let categoryData = safeObject(data);
 
-// Función helper para validar objetos
-const safeObject = (obj) => obj && typeof obj === 'object' ? obj : {};
-
-// Función helper para validar strings
-const safeString = (str) => typeof str === 'string' ? str : '';
-
-// Función helper para validar números
-const safeNumber = (num) => typeof num === 'number' && !isNaN(num) ? num : 0;
-
-// Función helper para validar booleans
-const safeBool = (bool) => Boolean(bool);
-
-// ===================================================================
-// DATOS ESTÁTICOS DE FALLBACK POR CATEGORÍA
-// ===================================================================
-
-let categoryData = data;
-
-// Si no hay datos, usar fallback estático
-if (!categoryData || !categoryData.testimonials) {
-  console.log('📂 TestimonialsCategoryLayout: Usando datos estáticos de fallback para', category);
-  
-  const categoryDataMap = {
-    'compradores': {
-      title: language === 'es' ? 'Compradores Exitosos' :
-             language === 'en' ? 'Successful Buyers' :
-             'Acheteurs Réussis',
-      description: language === 'es' ? 'Historias reales de familias y personas que encontraron su hogar ideal con la ayuda de nuestros expertos asesores.' :
-                   language === 'en' ? 'Real stories of families and people who found their ideal home with the help of our expert advisors.' :
-                   'Histoires réelles de familles et de personnes qui ont trouvé leur maison idéale avec l\'aide de nos conseillers experts.',
-      testimonials: [
-        {
-          id: '1',
-          slug: 'juan-luis-guerra-casa-de-campo',
-          author: {
-            name: 'Juan Luis Guerra',
-            avatar: 'https://i.pravatar.cc/150?img=8',
-            location: 'Casa de Campo',
-            verified: true,
-            isCelebrity: true
-          },
-          rating: 5,
-          title: language === 'es' ? 'Mi experiencia comprando en Casa de Campo' :
-                 language === 'en' ? 'My experience buying in Casa de Campo' :
-                 'Mon expérience d\'achat à Casa de Campo',
-          excerpt: language === 'es' ? 'CLIC me ayudó a encontrar la propiedad perfecta en Casa de Campo. El equipo fue profesional desde el primer día hasta la entrega de llaves.' :
-                   language === 'en' ? 'CLIC helped me find the perfect property in Casa de Campo. The team was professional from day one until key delivery.' :
-                   'CLIC m\'a aidé à trouver la propriété parfaite à Casa de Campo. L\'équipe était professionnelle du premier jour jusqu\'à la remise des clés.',
-          featuredImage: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop',
-          propertyType: language === 'es' ? 'Villa de Lujo' :
-                        language === 'en' ? 'Luxury Villa' :
-                        'Villa de Luxe',
-          location: 'Casa de Campo',
-          date: '2024-02-28',
-          featured: true,
-          purchaseValue: '$2,500,000',
-          processTime: language === 'es' ? '45 días' :
-                       language === 'en' ? '45 days' :
-                       '45 jours',
-          views: '15.2K',
-          readTime: language === 'es' ? '4 min' :
-                    language === 'en' ? '4 min' :
-                    '4 min'
-        },
-        {
-          id: '2',
-          slug: 'familia-martinez-punta-cana',
-          author: {
-            name: 'Familia Martínez',
-            avatar: 'https://i.pravatar.cc/150?img=12',
-            location: 'Miami, USA',
-            verified: true
-          },
-          rating: 5,
-          title: language === 'es' ? 'Nuestra villa de ensueño en Punta Cana' :
-                 language === 'en' ? 'Our dream villa in Punta Cana' :
-                 'Notre villa de rêve à Punta Cana',
-          excerpt: language === 'es' ? 'Después de años buscando, CLIC nos ayudó a encontrar nuestra villa de ensueño. El proceso fue muy transparente y nos acompañaron en cada paso.' :
-                   language === 'en' ? 'After years of searching, CLIC helped us find our dream villa. The process was very transparent and they accompanied us every step of the way.' :
-                   'Après des années de recherche, CLIC nous a aidés à trouver notre villa de rêve. Le processus était très transparent et ils nous ont accompagnés à chaque étape.',
-          featuredImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=450&fit=crop',
-          propertyType: language === 'es' ? 'Villa Familiar' :
-                        language === 'en' ? 'Family Villa' :
-                        'Villa Familiale',
-          location: 'Punta Cana',
-          date: '2024-03-15',
-          featured: true,
-          purchaseValue: '$485,000',
-          processTime: language === 'es' ? '30 días' :
-                       language === 'en' ? '30 days' :
-                       '30 jours',
-          views: '8.7K',
-          readTime: language === 'es' ? '3 min' :
-                    language === 'en' ? '3 min' :
-                    '3 min'
-        },
-        {
-          id: '3',
-          slug: 'carlos-rodriguez-primer-apartamento',
-          author: {
-            name: 'Carlos Rodríguez',
-            avatar: 'https://i.pravatar.cc/150?img=11',
-            location: 'Santo Domingo',
-            verified: true
-          },
-          rating: 5,
-          title: language === 'es' ? 'Mi primer apartamento: una experiencia increíble' :
-                 language === 'en' ? 'My first apartment: an incredible experience' :
-                 'Mon premier appartement : une expérience incroyable',
-          excerpt: language === 'es' ? 'Como primer comprador, estaba nervioso. El equipo de CLIC me explicó todo el proceso y me ayudó a encontrar el apartamento perfecto.' :
-                   language === 'en' ? 'As a first-time buyer, I was nervous. The CLIC team explained the entire process to me and helped me find the perfect apartment.' :
-                   'En tant qu\'acheteur débutant, j\'étais nerveux. L\'équipe CLIC m\'a expliqué tout le processus et m\'a aidé à trouver l\'appartement parfait.',
-          featuredImage: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=450&fit=crop',
-          propertyType: language === 'es' ? 'Apartamento' :
-                        language === 'en' ? 'Apartment' :
-                        'Appartement',
-          location: 'Naco',
-          date: '2024-03-10',
-          purchaseValue: '$185,000',
-          processTime: language === 'es' ? '25 días' :
-                       language === 'en' ? '25 days' :
-                       '25 jours',
-          views: '6.3K',
-          readTime: language === 'es' ? '3 min' :
-                    language === 'en' ? '3 min' :
-                    '3 min'
-        }
-      ],
-      relatedProperties: [
-        {
-          slug: 'villa-familiar-punta-cana',
-          titulo: language === 'es' ? 'Villa perfecta para familias en Punta Cana' :
-                  language === 'en' ? 'Perfect villa for families in Punta Cana' :
-                  'Villa parfaite pour les familles à Punta Cana',
-          precio: '$485,000',
-          imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-          sector: 'Punta Cana',
-          habitaciones: 3,
-          banos: 3,
-          metros: 250,
-          tipo: language === 'es' ? 'Villa' :
-                language === 'en' ? 'Villa' :
-                'Villa',
-          destacado: true,
-          descuento: language === 'es' ? 'Lista para mudarse' :
-                     language === 'en' ? 'Ready to move in' :
-                     'Prête à emménager'
-        },
-        {
-          slug: 'apartamento-primer-comprador',
-          titulo: language === 'es' ? 'Apartamento ideal para primer comprador' :
-                  language === 'en' ? 'Ideal apartment for first-time buyer' :
-                  'Appartement idéal pour premier acheteur',
-          precio: '$165,000',
-          imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-          sector: 'Naco',
-          habitaciones: 2,
-          banos: 2,
-          metros: 120,
-          tipo: language === 'es' ? 'Apartamento' :
-                language === 'en' ? 'Apartment' :
-                'Appartement',
-          nuevo: true
-        }
-      ]
-    },
-    'vendedores': {
-      title: language === 'es' ? 'Vendedores Satisfechos' :
-             language === 'en' ? 'Satisfied Sellers' :
-             'Vendeurs Satisfaits',
-      description: language === 'es' ? 'Propietarios que vendieron sus propiedades de manera rápida, eficiente y al mejor precio del mercado.' :
-                   language === 'en' ? 'Owners who sold their properties quickly, efficiently and at the best market price.' :
-                   'Propriétaires qui ont vendu leurs propriétés rapidement, efficacement et au meilleur prix du marché.',
-      testimonials: [
-        {
-          id: '1',
-          slug: 'maria-fernandez-villa-cap-cana',
-          author: {
-            name: 'María Fernández',
-            avatar: 'https://i.pravatar.cc/150?img=5',
-            location: 'Cap Cana',
-            verified: true
-          },
-          rating: 5,
-          title: language === 'es' ? 'Vendí mi villa en tiempo récord' :
-                 language === 'en' ? 'I sold my villa in record time' :
-                 'J\'ai vendu ma villa en temps record',
-          excerpt: language === 'es' ? 'Vendí mi villa en Cap Cana en tiempo récord. CLIC consiguió un comprador serio en solo 15 días y el precio fue excelente.' :
-                   language === 'en' ? 'I sold my villa in Cap Cana in record time. CLIC found a serious buyer in just 15 days and the price was excellent.' :
-                   'J\'ai vendu ma villa à Cap Cana en temps record. CLIC a trouvé un acheteur sérieux en seulement 15 jours et le prix était excellent.',
-          featuredImage: 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&h=450&fit=crop',
-          propertyType: language === 'es' ? 'Villa de Lujo' :
-                        language === 'en' ? 'Luxury Villa' :
-                        'Villa de Luxe',
-          location: 'Cap Cana',
-          date: '2024-03-01',
-          featured: true,
-          saleValue: '$1,850,000',
-          processTime: language === 'es' ? '15 días' :
-                       language === 'en' ? '15 days' :
-                       '15 jours',
-          views: '12.4K',
-          readTime: language === 'es' ? '4 min' :
-                    language === 'en' ? '4 min' :
-                    '4 min'
-        }
-      ],
-      relatedProperties: []
-    },
-    'inversionistas': {
-      title: language === 'es' ? 'Inversionistas' :
-             language === 'en' ? 'Investors' :
-             'Investisseurs',
-      description: language === 'es' ? 'Inversores que han multiplicado su capital con propiedades dominicanas.' :
-                   language === 'en' ? 'Investors who have multiplied their capital with Dominican properties.' :
-                   'Investisseurs qui ont multiplié leur capital avec des propriétés dominicaines.',
-      testimonials: [],
-      relatedProperties: []
-    }
-  };
-
-  categoryData = {
-    language: language,
-    category: category,
-    ...(categoryDataMap[category] || categoryDataMap['compradores'])
-  };
-}
-
-// ===================================================================
-// PROCESAR DATOS FINALES CON VALIDACIONES DEFENSIVAS
-// ===================================================================
-
-// Procesar datos de categoría con validaciones
-const rawCategoryData = safeObject(categoryData);
-const currentCategory = {
-  title: safeString(rawCategoryData.title) || 'Testimonios',
-  description: safeString(rawCategoryData.description) || 'Historias de éxito con CLIC Inmobiliaria.'
-};
-
-// Procesar testimonios con validaciones
-const rawTestimonials = safeArray(rawCategoryData.testimonials);
-const testimonials = rawTestimonials.map(testimonial => {
-  const raw = safeObject(testimonial);
-  return {
-    id: safeString(raw.id) || '1',
-    slug: safeString(raw.slug) || 'testimonio',
-    author: {
-      name: safeString(raw.author?.name) || 'Cliente',
-      avatar: safeString(raw.author?.avatar) || 'https://i.pravatar.cc/150?img=1',
-      location: safeString(raw.author?.location) || 'República Dominicana',
-      verified: safeBool(raw.author?.verified),
-      isCelebrity: safeBool(raw.author?.isCelebrity)
-    },
-    rating: safeNumber(raw.rating) || 5,
-    title: safeString(raw.title) || 'Historia de éxito',
-    excerpt: safeString(raw.excerpt) || 'Cliente satisfecho con el servicio de CLIC.',
-    featuredImage: safeString(raw.featuredImage) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop',
-    propertyType: safeString(raw.propertyType) || 'Propiedad',
-    location: safeString(raw.location) || 'Santo Domingo',
-    date: safeString(raw.date) || '2024-01-01',
-    featured: safeBool(raw.featured),
-    purchaseValue: safeString(raw.purchaseValue),
-    saleValue: safeString(raw.saleValue),
-    processTime: safeString(raw.processTime) || '30 días',
-    views: safeString(raw.views) || '1K',
-    readTime: safeString(raw.readTime) || '3 min'
-  };
-});
-
-const featuredTestimonials = testimonials.filter(t => t.featured);
-const regularTestimonials = testimonials.filter(t => !t.featured);
-
-// Procesar propiedades relacionadas con validaciones
-const rawRelatedProperties = safeArray(rawCategoryData.relatedProperties);
-const relatedProperties = rawRelatedProperties.map(prop => {
-  const raw = safeObject(prop);
-  return {
-    slug: safeString(raw.slug) || 'propiedad',
-    titulo: safeString(raw.titulo) || 'Propiedad disponible',
-    precio: safeString(raw.precio) || '$0',
-    imagen: safeString(raw.imagen) || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-    sector: safeString(raw.sector) || 'Santo Domingo',
-    habitaciones: safeNumber(raw.habitaciones) || 3,
-    banos: safeNumber(raw.banos) || 2,
-    metros: safeNumber(raw.metros) || 100,
-    tipo: safeString(raw.tipo) || 'Casa',
-    destacado: safeBool(raw.destacado),
-    nuevo: safeBool(raw.nuevo),
-    descuento: safeString(raw.descuento)
-  };
-});
-
-// Función para formatear fecha de forma segura
-function formatDate(dateString) {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return '1 de Enero 2024';
-    }
-    
-    const months = {
-      es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      fr: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-    };
-    
-    const monthNames = months[language] || months.es;
-    return `${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-  } catch (error) {
-    return '1 de Enero 2024';
-  }
-}
-
-// Estadísticas de la categoría con validaciones
-const categoryStats = {
-  compradores: {
-    avgSatisfaction: '4.9/5',
-    avgProcessTime: language === 'es' ? '32 días' :
-                    language === 'en' ? '32 days' :
-                    '32 jours',
-    successRate: '98%',
-    totalClients: '280+'
+// Configuraciones de categorías de testimonios
+const categoryConfigs = {
+  'compradores': {
+    title: language === 'es' ? 'Compradores Exitosos' : language === 'en' ? 'Successful Buyers' : 'Acheteurs Réussis',
+    description: language === 'es' ? 'Historias reales de familias y personas que encontraron su hogar ideal.' :
+                 language === 'en' ? 'Real stories of families and people who found their ideal home.' :
+                 'Histoires réelles de familles qui ont trouvé leur maison idéale.',
+    icon: 'fa-home'
   },
-  vendedores: {
-    avgSatisfaction: '4.8/5',
-    avgProcessTime: language === 'es' ? '25 días' :
-                    language === 'en' ? '25 days' :
-                    '25 jours',
-    successRate: '96%',
-    totalClients: '150+'
+  'vendedores': {
+    title: language === 'es' ? 'Vendedores Satisfechos' : language === 'en' ? 'Satisfied Sellers' : 'Vendeurs Satisfaits',
+    description: language === 'es' ? 'Propietarios que vendieron sus propiedades de manera rápida y eficiente.' :
+                 language === 'en' ? 'Owners who sold their properties quickly and efficiently.' :
+                 'Propriétaires qui ont vendu leurs propriétés rapidement et efficacement.',
+    icon: 'fa-handshake'
   },
-  inversionistas: {
-    avgSatisfaction: '4.7/5',
-    avgProcessTime: language === 'es' ? '45 días' :
-                    language === 'en' ? '45 days' :
-                    '45 jours',
-    successRate: '94%',
-    totalClients: '85+'
+  'inversionistas': {
+    title: language === 'es' ? 'Inversionistas' : language === 'en' ? 'Investors' : 'Investisseurs',
+    description: language === 'es' ? 'Inversores que han multiplicado su capital con propiedades dominicanas.' :
+                 language === 'en' ? 'Investors who have multiplied their capital with Dominican properties.' :
+                 'Investisseurs qui ont multiplié leur capital avec des propriétés dominicaines.',
+    icon: 'fa-chart-line'
+  },
+  'inquilinos': {
+    title: language === 'es' ? 'Inquilinos' : language === 'en' ? 'Tenants' : 'Locataires',
+    description: language === 'es' ? 'Personas que encontraron el alquiler perfecto con nuestra ayuda.' :
+                 language === 'en' ? 'People who found the perfect rental with our help.' :
+                 'Personnes qui ont trouvé la location parfaite avec notre aide.',
+    icon: 'fa-key'
   }
 };
 
-const stats = categoryStats[category] || categoryStats['compradores'];
+// Obtener configuración de categoría
+const currentConfig = categoryConfigs[categorySlug] || categoryConfigs['compradores'];
+
+// Crear datos seguros de categoría
+const safeCategoryData = {
+  language: language,
+  category: categorySlug,
+  categorySlug: categorySlug,
+  title: safeString(data?.category?.name || data?.title || currentConfig.title),
+  description: safeString(data?.category?.description || data?.description || currentConfig.description),
+  icon: safeString(currentConfig.icon),
+  slug: safeString(data?.category?.slug || categorySlug),
+  url: safeString(data?.category?.url || `#${categorySlug}`)
+};
+
+// Procesar testimonios
+const rawTestimonials = safeArray(categoryData.testimonials);
+const safeTestimonials = rawTestimonials.map((testimonial, index) => ({
+  id: safeString(testimonial.id, `testimonial-${index}`),
+  slug: safeString(testimonial.slug, `testimonio-${index}`),
+  title: safeString(testimonial.title, 'Testimonio'),
+  excerpt: safeString(testimonial.excerpt, 'Historia de éxito'),
+  clientName: safeString(testimonial.clientName, 'Cliente'),
+  clientAvatar: safeString(testimonial.clientAvatar, '/images/default-avatar.jpg'),
+  clientLocation: safeString(testimonial.clientLocation, 'República Dominicana'),
+  clientVerified: Boolean(testimonial.clientVerified),
+  rating: safeNumber(testimonial.rating, 5),
+  featuredImage: safeString(testimonial.featuredImage),
+  publishedAt: safeString(testimonial.publishedAt, new Date().toISOString()),
+  url: safeString(testimonial.url, '#'),
+  agent: safeObject(testimonial.agent, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    position: language === 'es' ? 'Asesor Inmobiliario' : language === 'en' ? 'Real Estate Advisor' : 'Conseiller Immobilier'
+  })
+}));
+
+// SEO Seguro
+const safeSeo = {
+  title: safeString(data?.seo?.title, `${safeCategoryData.title} - Testimonios CLIC`),
+  description: safeString(data?.seo?.description, safeCategoryData.description),
+  breadcrumbs: safeArray(data?.seo?.breadcrumbs, [
+    {
+      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+      url: language === 'es' ? '/' : `/${language}/`
+    },
+    {
+      name: language === 'en' ? 'Testimonials' : language === 'fr' ? 'Témoignages' : 'Testimonios',
+      url: language === 'es' ? '/testimonios' : `/${language}/testimonials`
+    },
+    {
+      name: safeCategoryData.title,
+      url: language === 'es' ? `/testimonios/${categorySlug}` : `/${language}/testimonials/${categorySlug}`
+    }
+  ])
+};
+
+// Layout Props
+const layoutProps = {
+  title: safeSeo.title,
+  description: safeSeo.description,
+  ogImage: safeGet(data, 'seo.ogImage') || '/og-testimonials.jpg',
+  canonical: safeGet(data, 'seo.canonical_url') || (language === 'es' ? `/testimonios/${categorySlug}` : `/${language}/testimonials/${categorySlug}`),
+  keywords: safeGet(data, 'seo.keywords') || `${safeCategoryData.title}, testimonios inmobiliarios`,
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  breadcrumbs: safeSeo.breadcrumbs
+};
+
+// ===================================================================
+// PAGINACIÓN CLIENT-SIDE
+// ===================================================================
+
+const ITEMS_PER_PAGE = 12;
+const totalTestimonials = safeTestimonials.length;
+const totalPages = Math.ceil(totalTestimonials / ITEMS_PER_PAGE);
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -367,133 +160,64 @@ const stats = categoryStats[category] || categoryStats['compradores'];
 
 const TEXTS = {
   es: {
-    breadcrumbTestimonials: 'Testimonios',
-    featuredTestimonials: 'Testimonios Destacados',
-    allTestimonials: 'Todos los Testimonios',
-    propertiesTitle: `Propiedades similares a las de nuestros ${currentCategory.title.toLowerCase()}`,
-    propertiesSubtitle: 'Encuentra tu próxima oportunidad en las mismas zonas donde otros han tenido éxito',
-    processTitle: 'Cómo logramos estos resultados',
-    processSubtitle: 'Nuestro proceso probado que ha llevado al éxito a cientos de clientes',
-    ctaTitle: '¿Listo para vivir tu propia historia de éxito?',
-    ctaSubtitle: `Únete a nuestros ${currentCategory.title.toLowerCase()} satisfechos`,
-    ctaButton1: 'Empezar mi proceso',
-    ctaButton2: 'Ver propiedades disponibles',
-    statsLabels: {
-      satisfaction: 'Satisfacción promedio',
-      processTime: 'Tiempo promedio',
-      successRate: 'Tasa de éxito',
-      clients: 'Clientes atendidos'
-    },
-    processSteps: {
-      step1: {
-        title: 'Consulta Inicial',
-        description: 'Entendemos tus necesidades y objetivos específicos'
-      },
-      step2: {
-        title: 'Búsqueda Personalizada',
-        description: 'Seleccionamos las mejores opciones para ti'
-      },
-      step3: {
-        title: 'Acompañamiento',
-        description: 'Te guiamos en visitas y negociaciones'
-      },
-      step4: {
-        title: 'Cierre Exitoso',
-        description: 'Completamos todo el proceso legal y entrega'
-      }
-    },
-    featured: 'Destacado',
+    readTestimonial: 'Leer más',
+    rating: 'Calificación',
     verified: 'Verificado',
-    celebrity: '⭐ Celebridad',
-    readTime: 'de lectura',
-    readings: 'lecturas',
-    by: 'Por'
+    testimonials: 'testimonios',
+    noTestimonials: 'Aún no hay testimonios en esta categoría',
+    noTestimonialsDesc: 'Vuelve pronto para encontrar nuevas historias de éxito.',
+    backToTestimonials: 'Ver todos los testimonios',
+    showing: 'Mostrando',
+    of: 'de',
+    sortBy: 'Ordenar por',
+    mostRecent: 'Más recientes',
+    highestRated: 'Mejor calificados',
+    oldest: 'Más antiguos',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    page: 'Página',
+    by: 'Por',
+    readMore: 'Leer historia completa'
   },
   en: {
-    breadcrumbTestimonials: 'Testimonials',
-    featuredTestimonials: 'Featured Testimonials',
-    allTestimonials: 'All Testimonials',
-    propertiesTitle: `Properties similar to those of our ${currentCategory.title.toLowerCase()}`,
-    propertiesSubtitle: 'Find your next opportunity in the same areas where others have succeeded',
-    processTitle: 'How we achieve these results',
-    processSubtitle: 'Our proven process that has led hundreds of clients to success',
-    ctaTitle: 'Ready to live your own success story?',
-    ctaSubtitle: `Join our satisfied ${currentCategory.title.toLowerCase()}`,
-    ctaButton1: 'Start my process',
-    ctaButton2: 'View available properties',
-    statsLabels: {
-      satisfaction: 'Average satisfaction',
-      processTime: 'Average time',
-      successRate: 'Success rate',
-      clients: 'Clients served'
-    },
-    processSteps: {
-      step1: {
-        title: 'Initial Consultation',
-        description: 'We understand your specific needs and objectives'
-      },
-      step2: {
-        title: 'Personalized Search',
-        description: 'We select the best options for you'
-      },
-      step3: {
-        title: 'Accompaniment',
-        description: 'We guide you in visits and negotiations'
-      },
-      step4: {
-        title: 'Successful Closing',
-        description: 'We complete the entire legal process and delivery'
-      }
-    },
-    featured: 'Featured',
+    readTestimonial: 'Read more',
+    rating: 'Rating',
     verified: 'Verified',
-    celebrity: '⭐ Celebrity',
-    readTime: 'read',
-    readings: 'readings',
-    by: 'By'
+    testimonials: 'testimonials',
+    noTestimonials: 'No testimonials in this category yet',
+    noTestimonialsDesc: 'Check back soon for new success stories.',
+    backToTestimonials: 'See all testimonials',
+    showing: 'Showing',
+    of: 'of',
+    sortBy: 'Sort by',
+    mostRecent: 'Most recent',
+    highestRated: 'Highest rated',
+    oldest: 'Oldest',
+    previous: 'Previous',
+    next: 'Next',
+    page: 'Page',
+    by: 'By',
+    readMore: 'Read full story'
   },
   fr: {
-    breadcrumbTestimonials: 'Témoignages',
-    featuredTestimonials: 'Témoignages en Vedette',
-    allTestimonials: 'Tous les Témoignages',
-    propertiesTitle: `Propriétés similaires à celles de nos ${currentCategory.title.toLowerCase()}`,
-    propertiesSubtitle: 'Trouvez votre prochaine opportunité dans les mêmes zones où d\'autres ont réussi',
-    processTitle: 'Comment nous obtenons ces résultats',
-    processSubtitle: 'Notre processus éprouvé qui a mené des centaines de clients au succès',
-    ctaTitle: 'Prêt à vivre votre propre histoire de succès?',
-    ctaSubtitle: `Rejoignez nos ${currentCategory.title.toLowerCase()} satisfaits`,
-    ctaButton1: 'Commencer mon processus',
-    ctaButton2: 'Voir les propriétés disponibles',
-    statsLabels: {
-      satisfaction: 'Satisfaction moyenne',
-      processTime: 'Temps moyen',
-      successRate: 'Taux de succès',
-      clients: 'Clients servis'
-    },
-    processSteps: {
-      step1: {
-        title: 'Consultation Initiale',
-        description: 'Nous comprenons vos besoins et objectifs spécifiques'
-      },
-      step2: {
-        title: 'Recherche Personnalisée',
-        description: 'Nous sélectionnons les meilleures options pour vous'
-      },
-      step3: {
-        title: 'Accompagnement',
-        description: 'Nous vous guidons dans les visites et négociations'
-      },
-      step4: {
-        title: 'Clôture Réussie',
-        description: 'Nous complétons tout le processus légal et la livraison'
-      }
-    },
-    featured: 'En vedette',
+    readTestimonial: 'Lire plus',
+    rating: 'Note',
     verified: 'Vérifié',
-    celebrity: '⭐ Célébrité',
-    readTime: 'de lecture',
-    readings: 'lectures',
-    by: 'Par'
+    testimonials: 'témoignages',
+    noTestimonials: 'Pas encore de témoignages dans cette catégorie',
+    noTestimonialsDesc: 'Revenez bientôt pour de nouvelles histoires de réussite.',
+    backToTestimonials: 'Voir tous les témoignages',
+    showing: 'Affichage',
+    of: 'de',
+    sortBy: 'Trier par',
+    mostRecent: 'Plus récents',
+    highestRated: 'Mieux notés',
+    oldest: 'Plus anciens',
+    previous: 'Précédent',
+    next: 'Suivant',
+    page: 'Page',
+    by: 'Par',
+    readMore: 'Lire l\'histoire complète'
   }
 };
 
@@ -501,348 +225,385 @@ const text = TEXTS[language] || TEXTS.es;
 
 // URLs según idioma
 const routes = {
-  es: {
-    testimonials: '/testimonios',
-    contact: '/contacto',
-    properties: '/comprar'
-  },
-  en: {
-    testimonials: '/en/testimonials',
-    contact: '/en/contact',
-    properties: '/en/buy'
-  },
-  fr: {
-    testimonials: '/fr/temoignages',
-    contact: '/fr/contact',
-    properties: '/fr/acheter'
-  }
+  es: { testimonialsBase: '/testimonios' },
+  en: { testimonialsBase: '/en/testimonials' },
+  fr: { testimonialsBase: '/fr/temoignages' }
 };
 
 const currentRoutes = routes[language] || routes.es;
 
 console.log('✅ TestimonialsCategoryLayout preparado:', {
   language,
-  category,
-  testimonialsCount: testimonials.length,
-  featuredCount: featuredTestimonials.length,
-  regularCount: regularTestimonials.length
+  category: categorySlug,
+  title: safeCategoryData.title,
+  testimonialsCount: safeTestimonials.length,
+  totalPages,
+  hasBackendData: rawTestimonials.length > 0
 });
 ---
 
-<Layout 
-  title={`${currentCategory.title} - ${text.breadcrumbTestimonials} CLIC`}
-  description={currentCategory.description}
-  language={language}
->
-  <!-- Breadcrumbs -->
-  <section class="bg-gray-50 py-4">
-    <div class="container mx-auto px-4">
-      <nav class="text-sm text-gray-600">
-        <a href={currentRoutes.testimonials} class="hover:text-[#f04e00]">{text.breadcrumbTestimonials}</a>
-        <span class="mx-2">/</span>
-        <span class="text-gray-900">{currentCategory.title}</span>
-      </nav>
-    </div>
-  </section>
-  
-  <!-- Hero Section -->
-  <section class="bg-gradient-to-b from-gray-50 to-white py-12">
-    <div class="container mx-auto px-4">
-      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-        {currentCategory.title}
-      </h1>
-      <p class="text-xl text-gray-600 max-w-3xl">
-        {currentCategory.description}
-      </p>
-    </div>
-  </section>
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-  <!-- Category Stats -->
-  <section class="py-8 bg-white border-b">
-    <div class="container mx-auto px-4">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl">
-        <div class="text-center">
-          <div class="text-2xl font-bold text-[#f04e00]">{stats.avgSatisfaction}</div>
-          <div class="text-sm text-gray-600">{text.statsLabels.satisfaction}</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-[#f04e00]">{stats.avgProcessTime}</div>
-          <div class="text-sm text-gray-600">{text.statsLabels.processTime}</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-[#f04e00]">{stats.successRate}</div>
-          <div class="text-sm text-gray-600">{text.statsLabels.successRate}</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-[#f04e00]">{stats.totalClients}</div>
-          <div class="text-sm text-gray-600">{text.statsLabels.clients}</div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <div class="min-h-screen bg-white">
 
-  <!-- Featured Testimonials -->
-  {featuredTestimonials.length > 0 && (
-    <section class="py-12">
-      <div class="container mx-auto px-4">
-        <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.featuredTestimonials}</h2>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {featuredTestimonials.map((testimonial) => (
-            <a 
-              href={`${currentRoutes.testimonials}/${category}/${testimonial.slug}`}
-              class="group block"
-            >
-              <div class="relative aspect-video overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                <img 
-                  src={testimonial.featuredImage} 
-                  alt={testimonial.title}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                
-                <!-- Author info overlay -->
-                <div class="absolute top-4 left-4 flex items-center gap-3">
-                  <img 
-                    src={testimonial.author.avatar} 
-                    alt={testimonial.author.name}
-                    class="w-10 h-10 rounded-full border-2 border-white"
-                  />
-                  <div>
-                    <div class="text-white font-medium text-sm">{testimonial.author.name}</div>
-                    <div class="text-white/80 text-xs">{testimonial.author.location}</div>
-                  </div>
-                </div>
-                
-                <!-- Rating -->
-                <div class="absolute top-4 right-4 bg-black/60 rounded-lg px-2 py-1 flex items-center gap-1">
-                  <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                  <span class="text-white text-sm">{testimonial.rating}</span>
-                </div>
-                
-                <!-- Featured badge -->
-                <span class="absolute bottom-16 left-4 bg-[#f04e00] text-white px-3 py-1 rounded text-sm font-medium">
-                  {text.featured}
-                </span>
-                
-                <!-- Badges -->
-                <div class="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                  {testimonial.author.verified && (
-                    <span class="bg-green-500/90 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      {text.verified}
-                    </span>
-                  )}
-                  {testimonial.author.isCelebrity && (
-                    <span class="bg-yellow-500/90 text-white px-2 py-1 rounded text-xs font-medium">
-                      {text.celebrity}
-                    </span>
-                  )}
-                </div>
-                
-                <!-- Read time -->
-                <span class="absolute bottom-4 right-4 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                  {testimonial.readTime} {text.readTime}
-                </span>
-              </div>
-              
-              <div class="mt-4">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
-                    {testimonial.propertyType}
-                  </span>
-                  <span class="text-xs text-gray-500">
-                    {testimonial.views} {text.readings}
-                  </span>
-                  <span class="text-xs text-gray-500">•</span>
-                  <span class="text-xs text-gray-500">
-                    {formatDate(testimonial.date)}
-                  </span>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors">
-                  {testimonial.title}
-                </h3>
-                <p class="text-gray-600 mt-2">{testimonial.excerpt}</p>
-                <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                  <span>{testimonial.purchaseValue || testimonial.saleValue || 'N/A'}</span>
-                  <span>•</span>
-                  <span>Proceso: {testimonial.processTime}</span>
-                </div>
-              </div>
-            </a>
-          ))}
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Breadcrumbs -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeSeo.breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title -->
+          <div class="text-center">
+            <div class="flex items-center justify-center gap-4 mb-4">
+              <i class={`fas ${safeCategoryData.icon} text-4xl text-white`}></i>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {safeCategoryData.title}
+              </h1>
+            </div>
+
+            <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              {safeCategoryData.description}
+            </p>
+
+            {/* Stats */}
+            <div class="mt-8">
+              <div class="text-3xl font-bold text-white mb-2">{totalTestimonials}</div>
+              <div class="text-sm text-gray-300">{text.testimonials}</div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
-  )}
 
-  <!-- Regular Testimonials Grid -->
-  {regularTestimonials.length > 0 && (
-    <section class="py-12 bg-gray-50">
+    <!-- Main Content -->
+    <main class="py-12 md:py-16 bg-gray-50">
       <div class="container mx-auto px-4">
-        <h2 class="text-2xl font-bold text-gray-900 mb-8">{text.allTestimonials}</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {regularTestimonials.map((testimonial) => (
-            <a 
-              href={`${currentRoutes.testimonials}/${category}/${testimonial.slug}`}
-              class="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            >
-              <div class="relative aspect-video overflow-hidden rounded-t-lg">
-                <img 
-                  src={testimonial.featuredImage} 
-                  alt={testimonial.title}
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
-                
-                <!-- Author avatar -->
-                <div class="absolute top-3 left-3 flex items-center gap-2">
-                  <img 
-                    src={testimonial.author.avatar} 
-                    alt={testimonial.author.name}
-                    class="w-8 h-8 rounded-full border-2 border-white"
-                  />
-                  {testimonial.author.verified && (
-                    <span class="bg-green-500 text-white p-1 rounded-full">
-                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                    </span>
-                  )}
+        <div class="max-w-7xl mx-auto">
+
+          {safeTestimonials.length > 0 ? (
+            <div>
+              <!-- Controls: Sort & Count -->
+              <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+                <div class="text-sm text-gray-600">
+                  <span id="showing-text">{text.showing} <span id="showing-count">1-{Math.min(ITEMS_PER_PAGE, totalTestimonials)}</span> {text.of} <span id="total-count">{totalTestimonials}</span> {text.testimonials}</span>
                 </div>
-                
-                <!-- Rating -->
-                <div class="absolute top-3 right-3 bg-black/60 rounded px-2 py-1 flex items-center gap-1">
-                  <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                  <span class="text-white text-xs">{testimonial.rating}</span>
+
+                <div class="flex items-center gap-2">
+                  <label for="sort-select" class="text-sm text-gray-600">{text.sortBy}:</label>
+                  <select
+                    id="sort-select"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
+                  >
+                    <option value="recent">{text.mostRecent}</option>
+                    <option value="rating">{text.highestRated}</option>
+                    <option value="oldest">{text.oldest}</option>
+                  </select>
                 </div>
-                
-                <!-- Read indicator -->
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                    <svg class="w-6 h-6 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
+              </div>
+
+              <!-- Testimonials Grid -->
+              <div id="testimonials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {safeTestimonials.map((testimonial) => (
+                  <article
+                    class="testimonial-card bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                    data-published={testimonial.publishedAt}
+                    data-rating={testimonial.rating}
+                    key={testimonial.id}
+                  >
+                    <a href={testimonial.url} class="block">
+
+                      {/* Featured Image if available */}
+                      {testimonial.featuredImage && (
+                        <div class="aspect-video relative overflow-hidden">
+                          <img
+                            src={testimonial.featuredImage}
+                            alt={testimonial.title}
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        </div>
+                      )}
+
+                      <div class="p-6">
+                        {/* Client Info */}
+                        <div class="flex items-start gap-4 mb-4">
+                          <div class="relative flex-shrink-0">
+                            <img
+                              src={testimonial.clientAvatar}
+                              alt={testimonial.clientName}
+                              class="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                            />
+                            {testimonial.clientVerified && (
+                              <div class="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+
+                          <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-[#f04e00] transition-colors">
+                              {testimonial.clientName}
+                            </h3>
+                            <p class="text-sm text-gray-500">{testimonial.clientLocation}</p>
+
+                            {/* Rating */}
+                            <div class="flex items-center gap-1 mt-1">
+                              {Array.from({length: testimonial.rating}, (_, i) => (
+                                <svg key={i} class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                              ))}
+                              <span class="text-sm text-gray-600 ml-1">{testimonial.rating}/5</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Title */}
+                        <h4 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-base leading-tight">
+                          {testimonial.title}
+                        </h4>
+
+                        {/* Excerpt */}
+                        <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                          {testimonial.excerpt}
+                        </p>
+
+                        {/* Agent Info */}
+                        <div class="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-100">
+                          <div class="flex items-center gap-2">
+                            <img
+                              src={testimonial.agent.avatar}
+                              alt={testimonial.agent.name}
+                              class="w-6 h-6 rounded-full"
+                            />
+                            <span class="truncate">
+                              {text.by} {testimonial.agent.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Read More Link */}
+                        <div class="mt-4 inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
+                          <span>{text.readMore}</span>
+                          <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+
+              <!-- Pagination -->
+              {totalPages > 1 && (
+                <div id="pagination" class="flex items-center justify-center gap-2">
+                  <button
+                    id="prev-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled
+                  >
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    {text.previous}
+                  </button>
+
+                  <div id="page-numbers" class="flex items-center gap-2">
+                    <!-- Page numbers will be rendered by JS -->
                   </div>
-                </div>
-                
-                <!-- Read time -->
-                <span class="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                  {testimonial.readTime}
-                </span>
-              </div>
-              
-              <div class="p-4">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded">
-                    {testimonial.propertyType}
-                  </span>
-                  <span class="text-xs text-gray-500">{testimonial.views} {text.readings}</span>
-                </div>
-                
-                <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
-                  {testimonial.title}
-                </h3>
-                <p class="text-sm text-gray-600 mt-2 line-clamp-2">{testimonial.excerpt}</p>
-                
-                <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
-                  <span>{text.by} {testimonial.author.name}</span>
-                  <span>{formatDate(testimonial.date)}</span>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  )}
 
-  <!-- Related Properties -->
-  {relatedProperties.length > 0 && (
-    <PropertyCarousel 
-      title={text.propertiesTitle}
-      subtitle={text.propertiesSubtitle}
-      properties={relatedProperties}
-      viewAllLink={`${currentRoutes.properties}?categoria=${category}`}
-      language={language}
-    />
-  )}
+                  <button
+                    id="next-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {text.next}
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <!-- Empty State -->
+            <div class="text-center py-16 max-w-2xl mx-auto">
+              <div class="text-8xl mb-6">⭐</div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                {text.noTestimonials}
+              </h3>
+              <p class="text-gray-600 mb-8 text-lg">
+                {text.noTestimonialsDesc}
+              </p>
+              <a
+                href={currentRoutes.testimonialsBase}
+                class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
+              >
+                <i class="fas fa-arrow-left"></i>
+                {text.backToTestimonials}
+              </a>
+            </div>
+          )}
 
-  <!-- Process Section -->
-  <section class="py-16 bg-white">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">
-          {text.processTitle}
-        </h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-          {text.processSubtitle}
-        </p>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl text-white font-bold">1</span>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">{text.processSteps.step1.title}</h3>
-          <p class="text-sm text-gray-600">{text.processSteps.step1.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl text-white font-bold">2</span>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">{text.processSteps.step2.title}</h3>
-          <p class="text-sm text-gray-600">{text.processSteps.step2.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl text-white font-bold">3</span>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">{text.processSteps.step3.title}</h3>
-          <p class="text-sm text-gray-600">{text.processSteps.step3.description}</p>
-        </div>
-        
-        <div class="text-center">
-          <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl text-white font-bold">4</span>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">{text.processSteps.step4.title}</h3>
-          <p class="text-sm text-gray-600">{text.processSteps.step4.description}</p>
         </div>
       </div>
-    </div>
-  </section>
+    </main>
 
-  <!-- CTA Section -->
-  <section class="py-16 bg-[#f04e00]">
-    <div class="container mx-auto px-4 text-center">
-      <h2 class="text-3xl font-bold text-white mb-4">
-        {text.ctaTitle}
-      </h2>
-      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-        {text.ctaSubtitle}
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href={currentRoutes.contact} class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium">
-          {text.ctaButton1}
-        </a>
-        <a href={currentRoutes.properties} class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium">
-          {text.ctaButton2}
-        </a>
-      </div>
-    </div>
-  </section>
+  </div>
 </Layout>
+
+<!-- Client-side pagination and sorting -->
+<script define:vars={{ ITEMS_PER_PAGE, totalTestimonials, totalPages, text }}>
+  let currentPage = 1;
+  let currentSort = 'recent';
+  let allTestimonials = [];
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    allTestimonials = Array.from(document.querySelectorAll('.testimonial-card'));
+    renderPage();
+
+    document.getElementById('sort-select')?.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      currentPage = 1;
+      sortAndRender();
+    });
+
+    document.getElementById('prev-btn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+        scrollToTop();
+      }
+    });
+
+    document.getElementById('next-btn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+        scrollToTop();
+      }
+    });
+  });
+
+  function sortTestimonials() {
+    allTestimonials.sort((a, b) => {
+      if (currentSort === 'recent') {
+        return new Date(b.dataset.published) - new Date(a.dataset.published);
+      } else if (currentSort === 'rating') {
+        return parseInt(b.dataset.rating) - parseInt(a.dataset.rating);
+      } else if (currentSort === 'oldest') {
+        return new Date(a.dataset.published) - new Date(b.dataset.published);
+      }
+      return 0;
+    });
+  }
+
+  function sortAndRender() {
+    sortTestimonials();
+    renderPage();
+  }
+
+  function renderPage() {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    allTestimonials.forEach((testimonial, index) => {
+      if (index >= start && index < end) {
+        testimonial.style.display = 'block';
+      } else {
+        testimonial.style.display = 'none';
+      }
+    });
+
+    const showingCount = document.getElementById('showing-count');
+    if (showingCount) {
+      const actualStart = start + 1;
+      const actualEnd = Math.min(end, totalTestimonials);
+      showingCount.textContent = `${actualStart}-${actualEnd}`;
+    }
+
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+    renderPageNumbers();
+  }
+
+  function renderPageNumbers() {
+    const pageNumbersContainer = document.getElementById('page-numbers');
+    if (!pageNumbersContainer) return;
+
+    pageNumbersContainer.innerHTML = '';
+
+    const maxVisible = 7;
+    let pages = [];
+
+    if (totalPages <= maxVisible) {
+      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, '...', totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+      }
+    }
+
+    pages.forEach(page => {
+      if (page === '...') {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.className = 'px-2 text-gray-500';
+        pageNumbersContainer.appendChild(ellipsis);
+      } else {
+        const button = document.createElement('button');
+        button.textContent = page;
+        button.className = `w-10 h-10 rounded-lg transition-colors ${
+          page === currentPage
+            ? 'bg-[#f04e00] text-white font-semibold'
+            : 'border border-gray-300 hover:bg-gray-100 text-gray-700'
+        }`;
+
+        if (page !== currentPage) {
+          button.addEventListener('click', () => {
+            currentPage = page;
+            renderPage();
+            scrollToTop();
+          });
+        }
+
+        pageNumbersContainer.appendChild(button);
+      }
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
 
 <style>
   .line-clamp-2 {
@@ -850,5 +611,32 @@ console.log('✅ TestimonialsCategoryLayout preparado:', {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+
+  .group:hover .group-hover\:gap-3 {
+    gap: 0.75rem;
+  }
+
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(0.25rem);
   }
 </style>
