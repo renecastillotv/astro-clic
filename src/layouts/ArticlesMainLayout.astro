@@ -372,6 +372,24 @@ console.log('✅ ArticlesMainLayout preparado:', {
       </div>
       
       <div class="container mx-auto px-4 relative z-10">
+        <!-- Breadcrumbs -->
+        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeSeo.breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
         <div class="text-center">
           <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
             {safeSeo.h1 || safeSeo.title || text.title}
@@ -431,31 +449,6 @@ console.log('✅ ArticlesMainLayout preparado:', {
       </div>
     </section>
 
-    <!-- Breadcrumbs Bar -->
-    <nav class="bg-white shadow-sm">
-      <div class="container mx-auto px-4 py-3">
-        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
-          <div aria-label="Breadcrumb">
-            <ol class="flex items-center space-x-2 text-sm text-gray-600">
-              {safeSeo.breadcrumbs.map((breadcrumb, index) => (
-                <li class="flex items-center">
-                  {index > 0 && (
-                    <i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
-                  )}
-                  {index === safeSeo.breadcrumbs.length - 1 ? (
-                    <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
-                  ) : (
-                    <a href={breadcrumb.url} class="hover:text-[#f04e00] transition-colors">
-                      {breadcrumb.name}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-      </div>
-    </nav>
 
     <!-- Main Content -->
     <main class="py-12 bg-white">

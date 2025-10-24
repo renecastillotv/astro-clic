@@ -18,7 +18,32 @@ const {
   language = 'es',
     trackingString = ''  // Agregar
 } = Astro.props;
-const homeUrl = trackingString ? `/${trackingString}` : '/';
+
+// CORRECCIÓN: Función para generar URLs considerando el idioma
+function getUrlByLanguage(path, lang) {
+  if (lang === 'es') return `/${path}`;
+  return `/${lang}/${path}`;
+}
+
+// CORRECCIÓN: Función para la URL de home según idioma
+function getHomeUrl(lang) {
+  if (lang === 'es') return '/';
+  return `/${lang}`;
+}
+
+// CORRECCIÓN: Función para URL de favoritos según idioma
+function getFavoritesUrl(lang) {
+  if (lang === 'es') return '/favoritos';
+  if (lang === 'en') return '/en/favorites';
+  if (lang === 'fr') return '/fr/favoris';
+  return '/favoritos'; // fallback
+}
+
+// CORRECCIÓN: Ahora homeUrl considera el idioma
+const homeUrl = trackingString 
+  ? `${getHomeUrl(language)}?utm_source=${trackingString}` 
+  : getHomeUrl(language);
+
 // Extraer la configuración del header desde globalConfig
 const headerSections = globalConfig?.features?.header?.sections || {};
 
@@ -559,7 +584,7 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
     <header class="sticky top-0 z-50 bg-white shadow-sm">
       <div class="container mx-auto px-4">
         <div class="flex items-center justify-between h-16">
-          <!-- Logo -->
+          <!-- Logo - CORREGIDO: Ahora usa homeUrl que considera el idioma -->
           <a href={homeUrl} class="flex items-center">
             <img src="/logo.png" alt="CLIC Inmobiliaria" class="h-10 w-auto" />
           </a>
@@ -616,12 +641,12 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
               </div>
             </div>
 
-            <!-- Favorites Button with Counter -->
+            <!-- Favorites Button with Counter - CORREGIDO: Ahora usa getFavoritesUrl para considerar el idioma -->
             <div class="relative">
               <a 
-                href="/favoritos" 
+                href={getFavoritesUrl(language)}
                 class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors relative flex items-center justify-center"
-                title="Mis favoritos"
+                title={language === 'es' ? 'Mis favoritos' : language === 'en' ? 'My favorites' : 'Mes favoris'}
               >
                 <i class="fas fa-heart w-6 h-6 text-xl"></i>
                 <span 

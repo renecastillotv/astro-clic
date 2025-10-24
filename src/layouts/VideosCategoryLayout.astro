@@ -258,7 +258,7 @@ const TEXTS = {
     videos: 'videos',
     noVideos: 'No videos yet',
     noVideosDesc: 'Check back soon for new content in this category.',
-    backToVideos: 'View all videos',
+    backToVideos: 'See all videos',
     featuredVideo: 'Featured video'
   },
   fr: {
@@ -267,7 +267,7 @@ const TEXTS = {
     watchFull: 'Regarder la vidéo complète',
     showMore: 'Voir la description complète',
     showLess: 'Afficher moins',
-    moreVideos: 'Plus de vidéos dans',
+    moreVideos: 'Plus de vidéos de',
     duration: 'durée',
     views: 'vues',
     author: 'Par',
@@ -276,7 +276,7 @@ const TEXTS = {
     noVideos: 'Pas encore de vidéos',
     noVideosDesc: 'Revenez bientôt pour du nouveau contenu dans cette catégorie.',
     backToVideos: 'Voir toutes les vidéos',
-    featuredVideo: 'Vidéo en vedette'
+    featuredVideo: 'Vidéo à la une'
   }
 };
 
@@ -317,15 +317,6 @@ function formatDate(dateString) {
     return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
   }
 }
-
-console.log('✅ VideosCategoryLayout preparado:', {
-  language,
-  category: categorySlug,
-  title: safeCategoryData.title,
-  videosCount: safeVideos.length,
-  mostPopular: mostPopularVideo?.title,
-  gridCount: gridVideos.length
-});
 ---
 
 <Layout {...layoutProps}>
@@ -334,170 +325,142 @@ console.log('✅ VideosCategoryLayout preparado:', {
 
   <div class="min-h-screen bg-gray-50">
     
-    <!-- Hero Section with Category Info -->
-    <section class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-16 pb-8">
-      <div class="container mx-auto px-4">
-        <div class="text-center text-white max-w-4xl mx-auto">
-          
-          <!-- Breadcrumbs -->
-          <nav class="text-sm mb-8">
-            {safeSeo.breadcrumbs && safeSeo.breadcrumbs.map((breadcrumb, index) => (
-              <span key={index}>
-                {index > 0 && <span class="mx-2 text-white/60">•</span>}
-                {index === safeSeo.breadcrumbs.length - 1 ? (
-                  <span class="text-white font-medium">{breadcrumb.name}</span>
-                ) : (
-                  <a href={breadcrumb.url} class="text-white/80 hover:text-white transition-colors">
-                    {breadcrumb.name}
-                  </a>
-                )}
-              </span>
-            ))}
-          </nav>
-
-          <div class="flex items-center justify-center gap-4 mb-6">
-            <i class={`fas ${safeCategoryData.icon} text-5xl`}></i>
-            <h1 class="text-4xl md:text-5xl font-bold">
-              {safeCategoryData.title}
-            </h1>
+    <!-- Hero Section - Diseño oscuro premium compacto como en MainLayout original -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <!-- Efectos de fondo decorativos -->
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+        <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+        <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      </div>
+      
+      <div class="container mx-auto px-4 relative z-10">
+        <!-- Breadcrumbs -->
+        <nav class="flex items-center text-sm space-x-2 text-gray-300 mb-6 overflow-x-auto whitespace-nowrap pb-2">
+          {safeSeo.breadcrumbs.map((crumb, i) => (
+            <span class="flex items-center space-x-2">
+              {i > 0 && <i class="fas fa-chevron-right text-xs"></i>}
+              <a 
+                href={crumb.url} 
+                class={`hover:text-white transition-colors ${i === safeSeo.breadcrumbs.length - 1 ? 'font-semibold text-white' : ''}`}
+              >
+                {crumb.name}
+              </a>
+            </span>
+          ))}
+        </nav>
+        
+        <!-- Hero Content -->
+        <div class="flex items-start gap-6">
+          <!-- Icono de categoría -->
+          <div class="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center text-white text-3xl backdrop-blur-sm flex-shrink-0 hidden md:flex">
+            <i class={`fas ${safeCategoryData.icon}`}></i>
           </div>
           
-          <p class="text-xl max-w-3xl mx-auto text-white/90">
-            {safeCategoryData.description}
-          </p>
-          
-          <!-- Category Stats -->
-          <div class="mt-10">
-            <div class="text-3xl font-bold text-white mb-2">{safeVideos.length}</div>
-            <div class="text-sm text-white/80">{text.videos}</div>
+          <div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+              {text.title || safeCategoryData.title}
+            </h1>
+            <p class="text-base md:text-lg text-gray-300 max-w-3xl leading-relaxed">
+              {safeCategoryData.description}
+            </p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Main Content -->
-    <main class="py-12 bg-white">
+    <main class="py-12 bg-gray-50">
       <div class="container mx-auto px-4">
-
-        {/* Si hay videos */}
+        
         {safeVideos.length > 0 ? (
-          <div>
-            {/* Featured Video con Magazine Style (solo si hay más de 1) */}
-            {mostPopularVideo && safeVideos.length > 1 && (
-              <article class="mb-16 max-w-6xl mx-auto">
-                <!-- Video header - Full Width -->
-                <header class="mb-8">
-                  <!-- Author info -->
-                  <div class="flex items-center gap-4 mb-6">
-                    <img 
-                      src={mostPopularVideo.author.avatar} 
-                      alt={mostPopularVideo.author.name}
-                      class="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <div class="text-sm text-gray-600">
-                        <span class="font-medium text-gray-900">{text.author} {mostPopularVideo.author.name}</span>
-                        <span class="mx-2">•</span>
-                        <span>{formatDate(mostPopularVideo.publishedAt)}</span>
-                        <span class="mx-2">•</span>
-                        <span>
-                          <i class="far fa-eye mr-1"></i>
-                          {mostPopularVideo.views.toLocaleString()} {text.views}
-                        </span>
-                        <span class="mx-2">•</span>
-                        <span>
-                          <i class="far fa-clock mr-1"></i>
-                          {mostPopularVideo.duration}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Title and description - Full Width -->
-                  <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
-                    {mostPopularVideo.title}
-                  </h2>
+          <div class="space-y-16">
+            {/* Video principal - mostrar solo si hay videos */}
+            {mostPopularVideo && (
+              <article class="bg-white rounded-xl shadow-lg overflow-hidden mb-16">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-0">
                   
-                  <p class="text-xl text-gray-700 mb-6 leading-relaxed font-medium">
-                    {truncateDescription(mostPopularVideo.description, 200)}
-                  </p>
-                </header>
-
-                <!-- Magazine-style content with floating video -->
-                <div class="editorial-content">
-                  <div id="video-preview">
-                    <!-- Content with floating video thumbnail -->
-                    <div class="relative">
-                      <!-- Floating video thumbnail with elegant overlay -->
-                      <figure class="float-left mr-8 mb-6 w-96 group">
-                        <div class="aspect-video relative overflow-hidden rounded-xl shadow-lg">
-                          <img 
-                            src={mostPopularVideo.thumbnail} 
-                            alt={mostPopularVideo.title}
-                            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <!-- Play button overlay -->
-                          <div class="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition-colors duration-300">
-                            <div class="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center group-hover:bg-white transition-colors duration-300">
-                              <i class="fas fa-play text-3xl text-[#f04e00] ml-1"></i>
-                            </div>
-                          </div>
-                          <!-- Duration badge -->
-                          <div class="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm font-medium">
-                            {mostPopularVideo.duration}
-                          </div>
-                          <!-- Featured badge -->
-                          <div class="absolute top-3 left-3 bg-[#f04e00] text-white px-2 py-1 rounded text-sm font-medium">
-                            {text.featuredVideo}
-                          </div>
-                          <!-- Watch button -->
-                          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div class="absolute bottom-4 left-4 right-4">
-                              <a 
-                                href={mostPopularVideo.url}
-                                class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
-                              >
-                                {text.watchFull}
-                              </a>
-                            </div>
-                          </div>
+                  {/* Video Thumbnail Column (larger) */}
+                  <div class="lg:col-span-3 aspect-video lg:aspect-auto relative">
+                    <a href={mostPopularVideo.url} class="block w-full h-full">
+                      <img 
+                        src={mostPopularVideo.thumbnail} 
+                        alt={mostPopularVideo.title}
+                        class="w-full h-full object-cover"
+                      />
+                      <div class="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                          <i class="fas fa-play text-xl text-[#f04e00] ml-1"></i>
                         </div>
-                      </figure>
-
-                      <!-- Justified text that wraps around the video -->
-                      <div class="text-gray-700 leading-7 text-base magazine-text">
-                        {mostPopularVideo.description && (
-                          <p class="mb-5 text-justify hyphens-auto" set:html={mostPopularVideo.description} />
-                        )}
                       </div>
-                      
-                      <!-- Clear float for button -->
-                      <div class="clear-both mt-6">
-                        <a 
-                          href={mostPopularVideo.url}
-                          class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
-                        >
-                          <span>{text.watchFull}</span>
-                          <i class="fas fa-play transition-all duration-200 group-hover:translate-x-1"></i>
-                        </a>
+                      {/* Duration badge */}
+                      <div class="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded text-sm font-medium">
+                        {mostPopularVideo.duration}
                       </div>
+                      {/* Featured badge */}
+                      {mostPopularVideo.featured && (
+                        <div class="absolute top-4 left-4 bg-[#f04e00] text-white px-3 py-1.5 rounded text-sm font-medium">
+                          {text.featuredVideo}
+                        </div>
+                      )}
+                    </a>
+                  </div>
+                  
+                  {/* Content Column */}
+                  <div class="lg:col-span-2 p-6 lg:p-8 flex flex-col">
+                    <a href={mostPopularVideo.url}>
+                      <h2 class="text-2xl font-bold text-gray-900 mb-3 hover:text-[#f04e00] transition-colors line-clamp-2">
+                        {mostPopularVideo.title}
+                      </h2>
+                    </a>
+                    
+                    {/* Video meta info */}
+                    <div class="flex items-center justify-between text-sm text-gray-500 mb-6">
+                      <div class="flex items-center gap-2">
+                        <img 
+                          src={mostPopularVideo.author.avatar} 
+                          alt={mostPopularVideo.author.name}
+                          class="w-8 h-8 rounded-full"
+                        />
+                        <div>
+                          <span class="font-medium block">{mostPopularVideo.author.name}</span>
+                          <span class="text-xs">{mostPopularVideo.author.position}</span>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1">
+                        <i class="far fa-eye"></i>
+                        {mostPopularVideo.views.toLocaleString()} {language === 'en' ? 'views' : language === 'fr' ? 'vues' : 'vistas'}
+                      </span>
+                    </div>
+                    
+                    {/* Video description */}
+                    <div class="mb-6 text-gray-600 text-sm leading-relaxed magazine-text">
+                      {truncateDescription(mostPopularVideo.description, 240)}
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div class="mt-auto">
+                      <a 
+                        href={mostPopularVideo.url}
+                        class="inline-flex items-center justify-center gap-2 bg-[#f04e00] text-white px-5 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
+                      >
+                        <i class="fas fa-play"></i>
+                        {text.watchFull}
+                      </a>
                     </div>
                   </div>
                 </div>
               </article>
             )}
 
-            {/* Grid de videos adicionales o único video */}
-            {(gridVideos.length > 0 || (safeVideos.length === 1 && mostPopularVideo)) && (
+            {/* Grid de videos adicionales - solo mostrar si hay más de 1 video */}
+            {gridVideos.length > 0 && (
               <section class="max-w-6xl mx-auto">
-                {safeVideos.length > 1 && (
-                  <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-                    {text.moreVideos} {safeCategoryData.title}
-                  </h2>
-                )}
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+                  {text.moreVideos} {safeCategoryData.title}
+                </h2>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {(gridVideos.length > 0 ? gridVideos : [mostPopularVideo]).map((video, index) => (
+                  {gridVideos.map((video, index) => (
                     <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={video.id}>
                       <a href={video.url} class="block">
                         <!-- Video Thumbnail -->
