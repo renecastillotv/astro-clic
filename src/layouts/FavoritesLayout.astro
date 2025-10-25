@@ -425,12 +425,28 @@ console.log('✅ FavoritesLayout preparado:', {
     // ===== INICIALIZACIÓN DE LA PÁGINA =====
     async function initializePage() {
       showLoadingState();
-      
+
       try {
-        // Verificar que el SimpleFavoritesManager esté disponible
+        // Esperar a que SimpleFavoritesManager esté disponible
         if (!window.simpleFavoritesManager) {
-          throw new Error('SimpleFavoritesManager no está inicializado');
+          console.log('⏳ Esperando SimpleFavoritesManager...');
+          await new Promise((resolve) => {
+            if (window.simpleFavoritesManager) {
+              resolve();
+            } else {
+              window.addEventListener('favoritesManagerReady', resolve, { once: true });
+              // Timeout de seguridad de 5 segundos
+              setTimeout(resolve, 5000);
+            }
+          });
         }
+
+        // Verificar nuevamente después de esperar
+        if (!window.simpleFavoritesManager) {
+          throw new Error('SimpleFavoritesManager no está inicializado después de esperar');
+        }
+
+        console.log('✅ SimpleFavoritesManager disponible en FavoritesLayout');
         
         // Intentar cargar los favoritos si no están ya cargados
         if (!window.simpleFavoritesManager.isLoaded) {

@@ -756,10 +756,45 @@ console.log('Layout procesado con nueva estructura:', {
   window.nextImage = nextImage;
 </script>
 
-<!-- Scripts de Google Maps (mantener iguales) -->
-<script async defer 
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initPropertyMap&libraries=geometry"
-  onerror="handleMapError()">
+<!-- Scripts de Google Maps (OPTIMIZED - Lazy Load with Intersection Observer) -->
+<script>
+  // Lazy load Google Maps solo cuando el usuario scrollea al mapa
+  (function() {
+    let mapsLoaded = false;
+
+    function loadGoogleMaps() {
+      if (mapsLoaded) return;
+      mapsLoaded = true;
+
+      console.log('🗺️ Loading Google Maps...');
+      const script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initPropertyMap&libraries=geometry';
+      script.async = true;
+      script.onerror = () => {
+        console.error('❌ Error loading Google Maps');
+        if (window.handleMapError) window.handleMapError();
+      };
+      document.head.appendChild(script);
+    }
+
+    // Cargar el mapa cuando sea visible
+    const mapContainer = document.getElementById('google-map');
+    if (mapContainer) {
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            loadGoogleMaps();
+            observer.disconnect();
+          }
+        }, { rootMargin: '200px' }); // Pre-cargar 200px antes de que sea visible
+
+        observer.observe(mapContainer);
+      } else {
+        // Fallback para navegadores antiguos
+        loadGoogleMaps();
+      }
+    }
+  })();
 </script>
 
 <script>

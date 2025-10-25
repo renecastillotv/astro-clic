@@ -306,19 +306,42 @@ const t = {
   <link rel="preconnect" href="https://pacewqgypevfgjmdsorz.supabase.co" slot="head">
   
   <!-- Hero Section - CRITICAL PATH -->
-  <section class="relative min-h-[75vh] py-16 flex items-center justify-center">
-    <!-- Background - USAR IMAGEN ORIGINAL -->
+  <section class="relative min-h-[75vh] py-16 flex items-center justify-center hero-section">
+    <!-- Background - OPTIMIZED with srcset -->
     <div class="absolute inset-0 z-0">
       <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
-      <img 
-        src={heroImage}
-        alt={`${language === 'es' ? 'Propiedades de lujo en' : language === 'en' ? 'Luxury properties in' : 'Propriétés de luxe en'} ${countryName}`}
-        class="w-full h-full object-cover"
-        loading="eager"
-        decoding="async"
-        fetchpriority="high"
-        style={heroConfig.overlayOpacity ? `filter: brightness(${1 - heroConfig.overlayOpacity + 0.3})` : ''}
-      />
+      <picture>
+        <!-- Mobile: 640px width, optimized quality -->
+        <source
+          media="(max-width: 640px)"
+          srcset={`${heroImage}?w=640&q=70&fit=crop&auto=format 640w, ${heroImage}?w=750&q=70&fit=crop&auto=format 750w`}
+          sizes="100vw"
+        />
+        <!-- Tablet: 1024px width -->
+        <source
+          media="(max-width: 1024px)"
+          srcset={`${heroImage}?w=1024&q=75&fit=crop&auto=format 1024w, ${heroImage}?w=1280&q=75&fit=crop&auto=format 1280w`}
+          sizes="100vw"
+        />
+        <!-- Desktop: Full width -->
+        <source
+          media="(min-width: 1025px)"
+          srcset={`${heroImage}?w=1536&q=80&fit=crop&auto=format 1536w, ${heroImage}?w=1920&q=80&fit=crop&auto=format 1920w, ${heroImage}?w=2560&q=80&fit=crop&auto=format 2560w`}
+          sizes="100vw"
+        />
+        <!-- Fallback -->
+        <img
+          src={`${heroImage}?w=1920&q=80&fit=crop&auto=format`}
+          alt={`${language === 'es' ? 'Propiedades de lujo en' : language === 'en' ? 'Luxury properties in' : 'Propriétés de luxe en'} ${countryName}`}
+          class="w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          width="1920"
+          height="1080"
+          style={heroConfig.overlayOpacity ? `filter: brightness(${1 - heroConfig.overlayOpacity + 0.3})` : ''}
+        />
+      </picture>
     </div>
 
     <!-- Badge Flotante -->
@@ -417,48 +440,6 @@ const t = {
       </div>
     </div>
   </section>
-
-  <!-- Quick Stats - Conditional Render -->
-  {shouldShowQuickStats && (
-    <section class="py-8 bg-gray-900 text-white">
-      <div class="container mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">
-              {quickStats.totalProperties || 0}+
-            </div>
-            <div class="text-sm opacity-75">
-              {language === 'es' ? 'Propiedades' : language === 'en' ? 'Properties' : 'Propriétés'}
-            </div>
-          </div>
-          <div>
-            <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">
-              {quickStats.totalAdvisors || 0}+
-            </div>
-            <div class="text-sm opacity-75">
-              {language === 'es' ? 'Asesores' : language === 'en' ? 'Advisors' : 'Conseillers'}
-            </div>
-          </div>
-          <div>
-            <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">
-              {quickStats.averageRating || '4.9'}★
-            </div>
-            <div class="text-sm opacity-75">
-              {language === 'es' ? 'Satisfacción' : language === 'en' ? 'Satisfaction' : 'Satisfaction'}
-            </div>
-          </div>
-          <div>
-            <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">
-              {Math.round((pageData.marketInsights?.totalListings || quickStats.totalProperties || 0) * 1.2)}+
-            </div>
-            <div class="text-sm opacity-75">
-              {language === 'es' ? 'Listados' : language === 'en' ? 'Listings' : 'Annonces'}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )}
 
   <!-- Popular Locations - Lazy Load -->
   {shouldShowPopularLocations && (
