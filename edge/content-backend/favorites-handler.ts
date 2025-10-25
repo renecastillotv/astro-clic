@@ -155,68 +155,155 @@ async function handleFavoritesMain(params) {
   };
 }
 async function handleSharedFavorites(params) {
-  const { supabase, language, contentSegments, trackingString } = params;
-  if (contentSegments.length < 2) {
+  const { supabase, language, contentSegments, trackingString, queryParams, globalConfig } = params;
+
+  // Soportar tanto /favoritos/compartir/[slug] como /favoritos/compartir?id=[slug]
+  let shareSlug;
+  if (contentSegments.length >= 2) {
+    shareSlug = contentSegments[1]; // /favoritos/compartir/[slug]
+  } else if (queryParams && queryParams.get('id')) {
+    shareSlug = queryParams.get('id'); // /favoritos/compartir?id=[slug]
+  } else {
+    console.error('❌ No share slug found. contentSegments:', contentSegments, 'queryParams:', queryParams);
     throw new Error('Shared list ID required');
   }
-  const shareSlug = contentSegments[1]; // /favoritos/compartir/[slug]
+
   console.log('🔗 Handling shared favorites:', shareSlug);
-  // Obtener lista compartida
-  const { data: sharedList } = await supabase.from('favorite_lists').select(`
-      id, title, description, slug, created_at, updated_at,
-      property_count, creator_name, creator_avatar, tags,
-      list_type, share_message, expires_at
-    `).eq('share_slug', shareSlug).eq('is_public', true).single();
+
+  // Obtener lista compartida usando la tabla device_favorites
+  const { data: sharedList, error: fetchError } = await supabase
+    .from('device_favorites')
+    .select('*')
+    .eq('device_id', shareSlug)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error fetching shared list:', fetchError);
+    throw new Error(`Error fetching shared list: ${fetchError.message}`);
+  }
+
   if (!sharedList) {
     throw new Error(`Shared list "${shareSlug}" not found or expired`);
   }
-  // Verificar si la lista no ha expirado
-  if (sharedList.expires_at && new Date(sharedList.expires_at) < new Date()) {
-    throw new Error(`Shared list "${shareSlug}" has expired`);
-  }
-  // Obtener propiedades de la lista
-  const { data: listProperties } = await supabase.from('favorite_list_properties').select(`
-      added_at, notes,
-      properties!inner(
-        id, name, description, main_image_url, sale_price, rental_price,
-        currency, city, sector, bedrooms, bathrooms, area, slug_url,
-        property_type, amenities, featured, status
-      )
-    `).eq('list_id', sharedList.id).eq('properties.status', 'active').order('added_at', {
-    ascending: false
+
+  console.log('📋 Found shared list:', {
+    id: sharedList.id,
+    device_id: sharedList.device_id,
+    properties_count: (sharedList.properties || []).length,
+    email: sharedList.email
   });
+
+  // Obtener detalles de las propiedades desde la tabla properties usando el esquema real
+  const propertyIds = sharedList.properties || [];
+  let listProperties = [];
+
+  if (propertyIds.length > 0) {
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select(`
+        id,
+        code,
+        name,
+        private_name,
+        description,
+        bedrooms,
+        bathrooms,
+        parking_spots,
+        built_area,
+        land_area,
+        sale_price,
+        sale_currency,
+        rental_price,
+        rental_currency,
+        main_image_url,
+        gallery_images_url,
+        slug_url,
+        property_status,
+        availability,
+        sectors!properties_sector_id_fkey(name),
+        cities!properties_city_id_fkey(name),
+        property_categories!properties_category_id_fkey(name)
+      `)
+      .in('id', propertyIds)
+      .eq('availability', 1);
+
+    if (propertiesError) {
+      console.error('Error fetching properties:', propertiesError);
+    } else {
+      listProperties = properties || [];
+    }
+  }
+  // Helper para formatear precio
+  function formatPropertyPrice(property) {
+    if (property.sale_price && property.sale_currency) {
+      const symbol = property.sale_currency === 'USD' ? 'USD$' : property.sale_currency === 'DOP' ? 'DOP$' : `${property.sale_currency}$`;
+      return `${symbol}${new Intl.NumberFormat('es-DO').format(property.sale_price)}`;
+    }
+    if (property.rental_price && property.rental_currency) {
+      const symbol = property.rental_currency === 'USD' ? 'USD$' : property.rental_currency === 'DOP' ? 'DOP$' : `${property.rental_currency}$`;
+      return `${symbol}${new Intl.NumberFormat('es-DO').format(property.rental_price)}/mes`;
+    }
+    return 'Precio a consultar';
+  }
+
+  // Helper para obtener imagen principal
+  function getMainImage(mainImageUrl, galleryImagesUrl) {
+    if (mainImageUrl) return mainImageUrl;
+    if (galleryImagesUrl) {
+      try {
+        const images = JSON.parse(galleryImagesUrl);
+        if (Array.isArray(images) && images.length > 0) {
+          const firstImage = images[0];
+          if (typeof firstImage === 'string') return firstImage;
+          if (typeof firstImage === 'object' && firstImage.url) return firstImage.url;
+        }
+      } catch (e) {
+        return galleryImagesUrl;
+      }
+    }
+    return 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';
+  }
+
   // Procesar propiedades
-  const processedProperties = (listProperties || []).map((item)=>{
-    const property = item.properties;
+  const processedProperties = (listProperties || []).map((property)=>{
     let url = property.slug_url;
     if (language === 'en') url = `en/${url}`;
     if (language === 'fr') url = `fr/${url}`;
+
+    const location = [
+      property.sectors?.name,
+      property.cities?.name
+    ].filter(Boolean).join(', ') || 'República Dominicana';
+
     return {
       id: property.id,
-      name: property.name,
+      code: property.code,
+      name: property.name || property.private_name || 'Propiedad sin nombre',
       description: property.description,
-      mainImage: property.main_image_url,
+      mainImage: getMainImage(property.main_image_url, property.gallery_images_url),
+      price: formatPropertyPrice(property),
       salePrice: property.sale_price,
       rentalPrice: property.rental_price,
-      currency: property.currency || 'USD',
-      location: `${property.sector || property.city || ''}`.trim(),
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      area: property.area,
-      propertyType: property.property_type,
-      amenities: property.amenities || [],
-      featured: property.featured,
-      addedAt: item.added_at,
-      notes: item.notes,
+      currency: property.sale_currency || property.rental_currency || 'USD',
+      location: location,
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      parkingSpots: property.parking_spots || 0,
+      area: property.built_area || property.land_area || 0,
+      propertyType: property.property_categories?.name || 'Propiedad',
+      status: property.property_status || 'Disponible',
       url: `/${url}${trackingString}`
     };
   });
+  const listTitle = language === 'en' ? 'Shared Favorites' : language === 'fr' ? 'Favoris Partagés' : 'Favoritos Compartidos';
+  const ownerName = sharedList.email ? sharedList.email.split('@')[0] : 'Usuario CLIC';
+
   const seo = {
-    title: `${sharedList.title} | ${language === 'en' ? 'Shared Property List' : language === 'fr' ? 'Liste Propriétés Partagée' : 'Lista de Propiedades Compartida'} | CLIC Inmobiliaria`,
-    description: sharedList.description || (language === 'en' ? `Discover this curated list of ${processedProperties.length} properties shared by ${sharedList.creator_name}` : language === 'fr' ? `Découvrez cette liste sélectionnée de ${processedProperties.length} propriétés partagée par ${sharedList.creator_name}` : `Descubre esta lista curada de ${processedProperties.length} propiedades compartida por ${sharedList.creator_name}`),
-    h1: sharedList.title,
-    h2: language === 'en' ? `${processedProperties.length} properties shared by ${sharedList.creator_name}` : language === 'fr' ? `${processedProperties.length} propriétés partagées par ${sharedList.creator_name}` : `${processedProperties.length} propiedades compartidas por ${sharedList.creator_name}`,
-    canonical_url: language === 'es' ? `/favoritos/compartir/${shareSlug}` : `/${language}/favorites/share/${shareSlug}`,
+    title: `${listTitle} | ${language === 'en' ? 'Shared Property List' : language === 'fr' ? 'Liste Propriétés Partagée' : 'Lista de Propiedades Compartida'} | CLIC Inmobiliaria`,
+    description: language === 'en' ? `Discover this curated list of ${processedProperties.length} properties` : language === 'fr' ? `Découvrez cette liste sélectionnée de ${processedProperties.length} propriétés` : `Descubre esta lista curada de ${processedProperties.length} propiedades`,
+    h1: listTitle,
+    h2: language === 'en' ? `${processedProperties.length} properties shared with you` : language === 'fr' ? `${processedProperties.length} propriétés partagées avec vous` : `${processedProperties.length} propiedades compartidas contigo`,
+    canonical_url: language === 'es' ? `/favoritos/compartir?id=${shareSlug}` : `/${language}/favorites/share?id=${shareSlug}`,
     breadcrumbs: [
       {
         name: getUIText('HOME', language),
@@ -228,7 +315,7 @@ async function handleSharedFavorites(params) {
       },
       {
         name: language === 'en' ? 'Shared List' : language === 'fr' ? 'Liste Partagée' : 'Lista Compartida',
-        url: language === 'es' ? `/favoritos/compartir/${shareSlug}` : `/${language}/favorites/share/${shareSlug}`
+        url: language === 'es' ? `/favoritos/compartir?id=${shareSlug}` : `/${language}/favorites/share?id=${shareSlug}`
       }
     ]
   };
@@ -236,21 +323,20 @@ async function handleSharedFavorites(params) {
     type: 'favorites-shared',
     pageType: 'favorites-shared',
     seo,
+    globalConfig: globalConfig || null,
     sharedList: {
       id: sharedList.id,
-      title: sharedList.title,
-      description: sharedList.description,
+      deviceId: sharedList.device_id,
+      title: listTitle,
+      description: language === 'en' ? 'A collection of favorite properties' : language === 'fr' ? 'Une collection de propriétés favorites' : 'Una colección de propiedades favoritas',
       propertyCount: processedProperties.length,
       createdAt: sharedList.created_at,
-      updatedAt: sharedList.updated_at,
-      tags: sharedList.tags || [],
-      listType: sharedList.list_type || 'mixed',
-      shareMessage: sharedList.share_message,
-      expiresAt: sharedList.expires_at
+      updatedAt: sharedList.updated_at
     },
     sharedBy: {
-      name: sharedList.creator_name || 'Usuario CLIC',
-      avatar: sharedList.creator_avatar || '/images/default-avatar.jpg'
+      name: ownerName,
+      avatar: '/images/default-avatar.jpg',
+      email: sharedList.email
     },
     properties: processedProperties,
     actions: [
@@ -287,14 +373,23 @@ function buildPublicListUrl(listSlug, language, trackingString) {
 // ============================================================================
 export async function handleFavorites(params) {
   try {
-    const { contentSegments } = params;
+    const { contentSegments, queryParams } = params;
+
+    // Página principal de favoritos
     if (contentSegments.length === 0) {
-      // Página principal de favoritos
       return await handleFavoritesMain(params);
-    } else if (contentSegments.length >= 2 && contentSegments[0] === 'compartir') {
-      // Lista de favoritos compartida
+    }
+
+    // Lista de favoritos compartida
+    // Soporta: /favoritos/compartir/[slug] o /favoritos/compartir?id=[slug]
+    else if (
+      (contentSegments.length >= 1 && contentSegments[0] === 'compartir') ||
+      (contentSegments.length >= 2 && contentSegments[0] === 'compartir')
+    ) {
       return await handleSharedFavorites(params);
-    } else {
+    }
+
+    else {
       throw new Error('Invalid favorites path structure');
     }
   } catch (error) {

@@ -315,22 +315,41 @@ console.log('✅ VideosCategoryLayout preparado:', {
 
           {safeVideos.length > 0 ? (
             <div>
-              <!-- Controls: Sort & Count -->
-              <div class="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+              <!-- Controls: Search, Sort & Count -->
+              <div class="flex flex-col lg:flex-row items-center justify-between mb-8 gap-4">
                 <div class="text-sm text-gray-600">
                   <span id="showing-text">{text.showing} <span id="showing-count">1-{Math.min(ITEMS_PER_PAGE, totalVideos)}</span> {text.of} <span id="total-count">{totalVideos}</span> {text.videos}</span>
                 </div>
 
-                <div class="flex items-center gap-2">
-                  <label for="sort-select" class="text-sm text-gray-600">{text.sortBy}:</label>
-                  <select
-                    id="sort-select"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
-                  >
-                    <option value="recent">{text.mostRecent}</option>
-                    <option value="views">{text.mostViewed}</option>
-                    <option value="oldest">{text.oldest}</option>
-                  </select>
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                  <!-- Search box -->
+                  {safeVideos.length > 3 && (
+                    <div class="search-box">
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <input
+                        type="text"
+                        id="video-search"
+                        placeholder={language==='es'?'Buscar video...':language==='en'?'Search video...':'Rechercher vidéo...'}
+                        class="search-input"
+                      />
+                    </div>
+                  )}
+
+                  <!-- Sort dropdown -->
+                  <div class="flex items-center gap-2">
+                    <label for="sort-select" class="text-sm text-gray-600 whitespace-nowrap">{text.sortBy}:</label>
+                    <select
+                      id="sort-select"
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
+                    >
+                      <option value="recent">{text.mostRecent}</option>
+                      <option value="views">{text.mostViewed}</option>
+                      <option value="oldest">{text.oldest}</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -341,6 +360,7 @@ console.log('✅ VideosCategoryLayout preparado:', {
                     class="video-card bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
                     data-published={video.publishedAt}
                     data-views={video.views}
+                    data-video-title={video.title.toLowerCase()}
                     key={video.id}
                   >
                     <a href={video.url} class="block">
@@ -447,16 +467,26 @@ console.log('✅ VideosCategoryLayout preparado:', {
   </div>
 </Layout>
 
-<!-- Client-side pagination and sorting -->
+<!-- Client-side pagination, sorting and search -->
 <script define:vars={{ ITEMS_PER_PAGE, totalVideos, totalPages, text }}>
   let currentPage = 1;
   let currentSort = 'recent';
   let allVideos = [];
+  let filteredVideos = [];
+  let searchTerm = '';
 
   // Initialize
   document.addEventListener('DOMContentLoaded', () => {
     allVideos = Array.from(document.querySelectorAll('.video-card'));
+    filteredVideos = [...allVideos];
     renderPage();
+
+    // Search functionality
+    document.getElementById('video-search')?.addEventListener('input', (e) => {
+      searchTerm = e.target.value.toLowerCase().trim();
+      currentPage = 1;
+      filterAndRender();
+    });
 
     document.getElementById('sort-select')?.addEventListener('change', (e) => {
       currentSort = e.target.value;
@@ -481,8 +511,25 @@ console.log('✅ VideosCategoryLayout preparado:', {
     });
   });
 
+  function filterVideos() {
+    if (!searchTerm) {
+      filteredVideos = [...allVideos];
+    } else {
+      filteredVideos = allVideos.filter(video => {
+        const title = video.getAttribute('data-video-title') || '';
+        return title.includes(searchTerm);
+      });
+    }
+  }
+
+  function filterAndRender() {
+    filterVideos();
+    sortVideos();
+    renderPage();
+  }
+
   function sortVideos() {
-    allVideos.sort((a, b) => {
+    filteredVideos.sort((a, b) => {
       if (currentSort === 'recent') {
         return new Date(b.dataset.published) - new Date(a.dataset.published);
       } else if (currentSort === 'views') {
@@ -500,55 +547,66 @@ console.log('✅ VideosCategoryLayout preparado:', {
   }
 
   function renderPage() {
+    const filteredCount = filteredVideos.length;
+    const filteredPages = Math.ceil(filteredCount / ITEMS_PER_PAGE);
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
 
-    allVideos.forEach((video, index) => {
+    // Hide all videos first
+    allVideos.forEach(video => {
+      video.style.display = 'none';
+    });
+
+    // Show only filtered and paginated videos
+    filteredVideos.forEach((video, index) => {
       if (index >= start && index < end) {
         video.style.display = 'block';
-      } else {
-        video.style.display = 'none';
       }
     });
 
+    // Update counter
     const showingCount = document.getElementById('showing-count');
+    const totalCount = document.getElementById('total-count');
     if (showingCount) {
-      const actualStart = start + 1;
-      const actualEnd = Math.min(end, totalVideos);
+      const actualStart = filteredCount > 0 ? start + 1 : 0;
+      const actualEnd = Math.min(end, filteredCount);
       showingCount.textContent = `${actualStart}-${actualEnd}`;
+    }
+    if (totalCount) {
+      totalCount.textContent = filteredCount;
     }
 
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
 
     if (prevBtn) prevBtn.disabled = currentPage === 1;
-    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+    if (nextBtn) nextBtn.disabled = currentPage === filteredPages || filteredPages === 0;
 
-    renderPageNumbers();
+    renderPageNumbers(filteredPages);
   }
 
-  function renderPageNumbers() {
+  function renderPageNumbers(pages = totalPages) {
     const pageNumbersContainer = document.getElementById('page-numbers');
     if (!pageNumbersContainer) return;
 
     pageNumbersContainer.innerHTML = '';
 
     const maxVisible = 7;
-    let pages = [];
+    let pageArray = [];
 
-    if (totalPages <= maxVisible) {
-      pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (pages <= maxVisible) {
+      pageArray = Array.from({ length: pages }, (_, i) => i + 1);
     } else {
       if (currentPage <= 4) {
-        pages = [1, 2, 3, 4, 5, '...', totalPages];
-      } else if (currentPage >= totalPages - 3) {
-        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        pageArray = [1, 2, 3, 4, 5, '...', pages];
+      } else if (currentPage >= pages - 3) {
+        pageArray = [1, '...', pages - 4, pages - 3, pages - 2, pages - 1, pages];
       } else {
-        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+        pageArray = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', pages];
       }
     }
 
-    pages.forEach(page => {
+    pageArray.forEach(page => {
       if (page === '...') {
         const ellipsis = document.createElement('span');
         ellipsis.textContent = '...';
@@ -599,5 +657,50 @@ console.log('✅ VideosCategoryLayout preparado:', {
 
   .group:hover .group-hover\:text-[#f04e00] {
     color: #f04e00;
+  }
+
+  /* Search box - Elegante y minimalista */
+  .search-box{
+    position:relative;
+    display:flex;
+    align-items:center;
+    width:100%;
+    max-width:280px;
+  }
+  .search-icon{
+    position:absolute;
+    left:1rem;
+    width:18px;
+    height:18px;
+    color:#6b7280;
+    stroke-width:2;
+    pointer-events:none;
+    transition:color .2s;
+  }
+  .search-input{
+    width:100%;
+    padding:.7rem 1rem .7rem 2.75rem;
+    border:1px solid #e5e7eb;
+    border-radius:.8rem;
+    font-size:.95rem;
+    color:#111827;
+    background:#fff;
+    transition:all .2s;
+    outline:none;
+  }
+  .search-input::placeholder{
+    color:#9ca3af;
+  }
+  .search-input:focus{
+    border-color:#f04e00;
+    box-shadow:0 0 0 3px rgba(240,78,0,.1);
+  }
+  .search-box:focus-within .search-icon{
+    color:#f04e00;
+  }
+
+  /* Hidden state for filtered cards */
+  .video-card.hidden{
+    display:none;
   }
 </style>

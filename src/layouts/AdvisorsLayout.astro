@@ -112,19 +112,19 @@ const layoutProps = {
       </div>
     </section>
 
-    <!-- DESTACADOS (foto grande centrada, tarjeta compacta, badges arriba) -->
+    <!-- DESTACADOS (foto grande centrada, tarjeta premium) -->
     {featured.length > 0 && (
-      <section class="py-12 bg-white">
+      <section class="py-16 bg-white">
         <div class="container mx-auto px-4">
-          <div class="text-center mb-8">
-            <h2 class="text-3xl font-bold mb-2">{text.featuredTitle}</h2>
-            <p class="text-gray-600">{language==='es'?'El mejor equipo del Caribe, seleccionado por desempeño': language==='en'?'The Caribbean’s top team, performance-selected':'La meilleure équipe des Caraïbes, sélectionnée par performance'}</p>
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold mb-3">{text.featuredTitle}</h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">{language==='es'?'El mejor equipo del Caribe, seleccionado por desempeño': language==='en'?'The Caribbean\'s top team, performance-selected':'La meilleure équipe des Caraïbes, sélectionnée par performance'}</p>
           </div>
 
-          <div class="grid gap-7 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((a) => (
               <a href={a.url} class="fcard group">
-                <!-- Top badges (compacto) -->
+                <!-- Top badges -->
                 <div class="fcard__top">
                   {safeNumber(a?.stats?.clientSatisfaction,0)>0 && (
                     <span class="fbadge fbadge--brand">★ {a.stats.clientSatisfaction}</span>
@@ -161,7 +161,7 @@ const layoutProps = {
                   <div class="flangs"><span class="flangs__l">{text.languages}:</span> {a.languagesSpoken.slice(0,3).join(', ')}</div>
                 )}
 
-                <!-- CTA a la derecha -->
+                <!-- CTA -->
                 <div class="fcard__cta">
                   <span class="cta cta--brand">{text.view}
                     <svg class="cta__i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -174,50 +174,84 @@ const layoutProps = {
       </section>
     )}
 
-    <!-- LISTADO GENERAL (alfabético, bonito, incluye idiomas y ventas si > 0) -->
-    <section class="py-12 bg-gray-50">
+    <!-- LISTADO GENERAL (diseño moderno con fotos grandes y mejor jerarquía) -->
+    <section class="py-16 bg-gray-50">
       <div class="container mx-auto px-4">
-        <h2 class="text-2xl md:text-3xl font-bold mb-6">{text.teamTitle}</h2>
+        <div class="flex items-center justify-between mb-10 gap-4 flex-wrap">
+          <h2 class="text-3xl md:text-4xl font-bold">{text.teamTitle}</h2>
+
+          {generalAdvisors.length > 5 && (
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                type="text"
+                id="advisor-search"
+                placeholder={language==='es'?'Buscar asesor...':language==='en'?'Search advisor...':'Rechercher conseiller...'}
+                class="search-input"
+              />
+            </div>
+          )}
+        </div>
 
         {generalAdvisors.length>0 ? (
-          <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div id="advisors-grid" class="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {generalAdvisors.map((a)=>(
-              <a href={a.url} class="gcard group">
-                <div class="gcard__head">
-                  {asNullableUrl(a.avatar)
-                    ? <img src={a.avatar} alt={a.name} class="gavatar" loading="lazy" />
-                    : <div class="gavatar gavatar--initials">{getInitials(a.name)}</div>}
-                  <div class="gtitle">
+              <a href={a.url} class="gcard group" data-advisor-name={a.name.toLowerCase()}>
+                <!-- Header con foto grande + info básica -->
+                <div class="gcard__header">
+                  <div class="gcard__avatar-wrap">
+                    {asNullableUrl(a.avatar)
+                      ? <img src={a.avatar} alt={a.name} class="gavatar" loading="lazy" />
+                      : <div class="gavatar gavatar--initials">{getInitials(a.name)}</div>}
+                    {safeNumber(a?.stats?.clientSatisfaction,0)>0 && (
+                      <div class="gavatar__badge">★ {a.stats.clientSatisfaction}</div>
+                    )}
+                  </div>
+                  <div class="gcard__info">
                     <h3 class="gname">{a.name}</h3>
                     <p class="gpos">{a.position}</p>
+
+                    <!-- Stats pills inline -->
+                    <div class="gstats">
+                      {safeNumber(a?.stats?.yearsExperience,0)>0 && (
+                        <span class="gstat">{a.stats.yearsExperience} {text.years}</span>
+                      )}
+                      {safeNumber(a?.stats?.totalSales,0)>0 && (
+                        <span class="gstat">{a.stats.totalSales} {text.sales}</span>
+                      )}
+                    </div>
                   </div>
-                  <span class="cta cta--ghost ml-auto">{text.view}
-                    <svg class="cta__i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                  </span>
                 </div>
 
-                <div class="gmeta">
-                  {safeNumber(a?.stats?.yearsExperience,0)>0 && (
-                    <span class="gmeta__pill">{a.stats.yearsExperience} {text.years}</span>
-                  )}
-                  {safeNumber(a?.stats?.clientSatisfaction,0)>0 && (
-                    <span class="gmeta__pill gmeta__pill--brand">★ {a.stats.clientSatisfaction}</span>
-                  )}
-                  {safeNumber(a?.stats?.totalSales,0)>0 && (
-                    <span class="gmeta__pill">{a.stats.totalSales} {text.sales}</span>
-                  )}
-                </div>
-
+                <!-- Idiomas (destacado) -->
                 {safeArray(a.languagesSpoken).length>0 && (
-                  <div class="glangs"><span class="glangs__l">{text.languages}:</span> {a.languagesSpoken.slice(0,3).join(', ')}</div>
+                  <div class="glangs">
+                    <svg class="glangs__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                    </svg>
+                    <span>{a.languagesSpoken.slice(0,3).join(', ')}</span>
+                  </div>
                 )}
 
+                <!-- Especialidades (chips más grandes) -->
                 {safeArray(a.specialties).length>0 && (
                   <div class="gchips">
-                    {a.specialties.slice(0,2).map((s)=>(<span class="gchip">{s}</span>))}
-                    {a.specialties.length>2 && (<span class="gchip gchip--more">+{a.specialties.length-2}</span>)}
+                    {a.specialties.slice(0,3).map((s)=>(<span class="gchip">{s}</span>))}
+                    {a.specialties.length>3 && (<span class="gchip gchip--more">+{a.specialties.length-3}</span>)}
                   </div>
                 )}
+
+                <!-- CTA flotante en hover -->
+                <div class="gcard__cta">
+                  <span class="gcta">{text.view}
+                    <svg class="gcta__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </span>
+                </div>
               </a>
             ))}
           </div>
@@ -242,49 +276,261 @@ const layoutProps = {
 <style>
   /* Hero stats */
   .tstat{text-align:center}
-  .tstatV{font-weight:800;font-size:1.6rem;color:#f04e00}
-  .tstatL{font-size:.85rem;color:rgba(255,255,255,.8)}
+  .tstatV{font-weight:800;font-size:1.8rem;color:#f04e00}
+  .tstatL{font-size:.9rem;color:rgba(255,255,255,.8);margin-top:.2rem}
 
-  /* Featured card */
-  .fcard{border:1px solid #e5e7eb;border-radius:1.25rem;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.04);
-    padding:0.9rem 0.9rem 0.8rem;display:flex;flex-direction:column;gap:.55rem;transition:transform .2s,border-color .2s,box-shadow .2s}
-  .fcard:hover{transform:translateY(-4px);border-color:#f04e00;box-shadow:0 10px 26px rgba(240,78,0,.12)}
-  .fcard__top{display:flex;gap:.35rem;justify-content:center}
-  .fbadge{font-size:.72rem;padding:.3rem .5rem;border-radius:.6rem;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151}
-  .fbadge--brand{background:rgba(240,78,0,.08);border-color:rgba(240,78,0,.25);color:#f04e00;font-weight:700}
-  .fcard__avatar{display:flex;justify-content:center}
-  .favatar{width:112px;height:112px;border-radius:9999px;object-fit:cover;box-shadow:0 0 0 4px rgba(240,78,0,.14)}
-  .favatar--initials{display:flex;align-items:center;justify-content:center;background:#f04e00;color:#fff;font-weight:800;font-size:2rem}
-  .fcard__title{text-align:center;margin-top:.15rem}
-  .fname{font-weight:900;font-size:1.05rem}
-  .fpos{font-size:.85rem;color:#6b7280;margin-top:.1rem}
-  .fchips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
-  .fchip{font-size:.72rem;padding:.25rem .55rem;border-radius:.6rem;background:rgba(240,78,0,.08);border:1px solid rgba(240,78,0,.25);color:#f04e00}
-  .fchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
-  .flangs{text-align:center;font-size:.78rem;color:#6b7280}
+  /* Featured card - Diseño premium */
+  .fcard{
+    border:1px solid #e5e7eb;
+    border-radius:1.5rem;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,.06);
+    padding:1.25rem;
+    display:flex;
+    flex-direction:column;
+    gap:.75rem;
+    transition:all .3s cubic-bezier(.4,0,.2,1);
+    position:relative;
+    overflow:hidden;
+  }
+  .fcard::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:3px;
+    background:linear-gradient(90deg, #f04e00, #ff6a00);
+    transform:scaleX(0);
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  .fcard:hover{transform:translateY(-6px);border-color:#f04e00;box-shadow:0 16px 40px rgba(240,78,0,.15)}
+  .fcard:hover::before{transform:scaleX(1)}
+  .fcard__top{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap}
+  .fbadge{font-size:.75rem;padding:.35rem .65rem;border-radius:.7rem;background:#f3f4f6;border:1px solid #e5e7eb;color:#374151;font-weight:600}
+  .fbadge--brand{background:rgba(240,78,0,.1);border-color:rgba(240,78,0,.3);color:#f04e00;font-weight:700}
+  .fcard__avatar{display:flex;justify-content:center;margin:.5rem 0}
+  .favatar{width:128px;height:128px;border-radius:9999px;object-fit:cover;box-shadow:0 0 0 5px rgba(240,78,0,.12);transition:transform .3s}
+  .fcard:hover .favatar{transform:scale(1.05);box-shadow:0 0 0 5px rgba(240,78,0,.25)}
+  .favatar--initials{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #f04e00, #ff6a00);color:#fff;font-weight:800;font-size:2.5rem}
+  .fcard__title{text-align:center;margin-top:.3rem}
+  .fname{font-weight:900;font-size:1.15rem;line-height:1.2;color:#111827}
+  .fpos{font-size:.88rem;color:#6b7280;margin-top:.25rem;font-weight:500}
+  .fchips{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:center}
+  .fchip{font-size:.75rem;padding:.3rem .65rem;border-radius:.7rem;background:rgba(240,78,0,.08);border:1px solid rgba(240,78,0,.25);color:#f04e00;font-weight:600}
+  .fchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}
+  .flangs{text-align:center;font-size:.82rem;color:#6b7280;padding-top:.25rem}
   .flangs__l{font-weight:600;color:#374151}
-  .fcard__cta{display:flex;justify-content:flex-end;margin-top:.25rem}
-  .cta{display:inline-flex;align-items:center;gap:.35rem;font-weight:700;font-size:.84rem}
+  .fcard__cta{display:flex;justify-content:center;margin-top:.5rem}
+  .cta{display:inline-flex;align-items:center;gap:.4rem;font-weight:700;font-size:.88rem;transition:gap .2s}
   .cta--brand{color:#f04e00}
-  .cta--ghost{color:#f04e00;border:1px dashed rgba(240,78,0,.35);padding:.25rem .45rem;border-radius:.5rem}
-  .cta__i{width:15px;height:15px}
+  .fcard:hover .cta--brand{gap:.6rem}
+  .cta__i{width:16px;height:16px;transition:transform .2s}
+  .fcard:hover .cta__i{transform:translateX(3px)}
 
-  /* General list */
-  .gcard{background:#fff;border:1px solid #e5e7eb;border-radius:1rem;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.55rem;
-    transition:transform .2s,border-color .2s,box-shadow .2s}
-  .gcard:hover{transform:translateY(-3px);border-color:#f04e00;box-shadow:0 10px 24px rgba(240,78,0,.08)}
-  .gcard__head{display:flex;align-items:center;gap:.7rem}
-  .gavatar{width:56px;height:56px;border-radius:.9rem;object-fit:cover;border:1px solid rgba(240,78,0,.22)}
-  .gavatar--initials{display:flex;align-items:center;justify-content:center;background:#f04e00;color:#fff;font-weight:800}
-  .gtitle{min-width:0}
-  .gname{font-weight:900;line-height:1.1}
-  .gpos{font-size:.82rem;color:#6b7280}
-  .gmeta{display:flex;flex-wrap:wrap;gap:.35rem}
-  .gmeta__pill{font-size:.72rem;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:.5rem;padding:.2rem .45rem}
-  .gmeta__pill--brand{background:rgba(240,78,0,.08);color:#f04e00;border-color:rgba(240,78,0,.3);font-weight:700}
-  .glangs{font-size:.78rem;color:#6b7280}
-  .glangs__l{font-weight:600;color:#374151}
-  .gchips{display:flex;flex-wrap:wrap;gap:.35rem}
-  .gchip{font-size:.72rem;padding:.2rem .5rem;border-radius:.6rem;background:rgba(240,78,0,.08);border:1px solid rgba(240,78,0,.25);color:#f04e00}
-  .gchip.gchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
+  /* General list - Diseño moderno con fotos grandes */
+  .gcard{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:1.25rem;
+    padding:1.5rem;
+    display:flex;
+    flex-direction:column;
+    gap:1rem;
+    transition:all .3s cubic-bezier(.4,0,.2,1);
+    position:relative;
+    overflow:hidden;
+  }
+  .gcard::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    padding:1px;
+    background:linear-gradient(135deg, transparent, rgba(240,78,0,.3), transparent);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    opacity:0;
+    transition:opacity .3s;
+  }
+  .gcard:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(240,78,0,.12)}
+  .gcard:hover::before{opacity:1}
+
+  .gcard__header{display:flex;gap:1rem;align-items:flex-start}
+  .gcard__avatar-wrap{position:relative;flex-shrink:0}
+  .gavatar{
+    width:96px;
+    height:96px;
+    border-radius:1.25rem;
+    object-fit:cover;
+    border:2px solid rgba(240,78,0,.2);
+    transition:all .3s;
+  }
+  .gcard:hover .gavatar{
+    border-color:#f04e00;
+    transform:scale(1.05);
+  }
+  .gavatar--initials{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg, #f04e00, #ff6a00);
+    color:#fff;
+    font-weight:800;
+    font-size:2rem;
+  }
+  .gavatar__badge{
+    position:absolute;
+    bottom:-6px;
+    right:-6px;
+    background:linear-gradient(135deg, #f04e00, #ff6a00);
+    color:#fff;
+    font-size:.7rem;
+    font-weight:700;
+    padding:.25rem .5rem;
+    border-radius:.6rem;
+    box-shadow:0 2px 8px rgba(240,78,0,.3);
+    border:2px solid #fff;
+  }
+
+  .gcard__info{flex:1;min-width:0}
+  .gname{font-weight:900;font-size:1.15rem;line-height:1.2;color:#111827;margin-bottom:.15rem}
+  .gpos{font-size:.88rem;color:#6b7280;margin-bottom:.5rem;font-weight:500}
+  .gstats{display:flex;gap:.4rem;flex-wrap:wrap}
+  .gstat{
+    font-size:.72rem;
+    background:#f3f4f6;
+    color:#374151;
+    border:1px solid #e5e7eb;
+    border-radius:.5rem;
+    padding:.25rem .5rem;
+    font-weight:600;
+  }
+
+  .glangs{
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    font-size:.88rem;
+    color:#374151;
+    background:rgba(240,78,0,.04);
+    border:1px solid rgba(240,78,0,.15);
+    border-radius:.8rem;
+    padding:.6rem .9rem;
+    font-weight:500;
+  }
+  .glangs__icon{width:18px;height:18px;color:#f04e00;flex-shrink:0}
+
+  .gchips{display:flex;flex-wrap:wrap;gap:.45rem}
+  .gchip{
+    font-size:.78rem;
+    padding:.4rem .75rem;
+    border-radius:.7rem;
+    background:rgba(240,78,0,.08);
+    border:1px solid rgba(240,78,0,.25);
+    color:#f04e00;
+    font-weight:600;
+    transition:all .2s;
+  }
+  .gcard:hover .gchip{background:rgba(240,78,0,.12);border-color:rgba(240,78,0,.35)}
+  .gchip--more{background:#f3f4f6;border-color:#e5e7eb;color:#6b7280}
+
+  .gcard__cta{
+    display:flex;
+    justify-content:flex-end;
+    padding-top:.5rem;
+    border-top:1px solid #f3f4f6;
+    margin-top:auto;
+  }
+  .gcta{
+    display:inline-flex;
+    align-items:center;
+    gap:.4rem;
+    color:#f04e00;
+    font-weight:700;
+    font-size:.88rem;
+    padding:.4rem .8rem;
+    border:1px solid rgba(240,78,0,.2);
+    border-radius:.7rem;
+    background:rgba(240,78,0,.03);
+    transition:all .2s;
+  }
+  .gcard:hover .gcta{
+    gap:.6rem;
+    background:rgba(240,78,0,.08);
+    border-color:rgba(240,78,0,.35);
+  }
+  .gcta__icon{width:16px;height:16px;transition:transform .2s}
+  .gcard:hover .gcta__icon{transform:translateX(3px)}
+
+  /* Search box - Elegante y minimalista */
+  .search-box{
+    position:relative;
+    display:flex;
+    align-items:center;
+    max-width:320px;
+    width:100%;
+  }
+  .search-icon{
+    position:absolute;
+    left:1rem;
+    width:18px;
+    height:18px;
+    color:#6b7280;
+    stroke-width:2;
+    pointer-events:none;
+    transition:color .2s;
+  }
+  .search-input{
+    width:100%;
+    padding:.7rem 1rem .7rem 2.75rem;
+    border:1px solid #e5e7eb;
+    border-radius:.8rem;
+    font-size:.95rem;
+    color:#111827;
+    background:#fff;
+    transition:all .2s;
+    outline:none;
+  }
+  .search-input::placeholder{
+    color:#9ca3af;
+  }
+  .search-input:focus{
+    border-color:#f04e00;
+    box-shadow:0 0 0 3px rgba(240,78,0,.1);
+  }
+  .search-input:focus + .search-icon,
+  .search-box:focus-within .search-icon{
+    color:#f04e00;
+  }
+
+  /* Hidden state for filtered cards */
+  .gcard.hidden{
+    display:none;
+  }
 </style>
+
+<script>
+  // Búsqueda de asesores en tiempo real
+  const searchInput = document.getElementById('advisor-search');
+  const advisorsGrid = document.getElementById('advisors-grid');
+
+  if (searchInput && advisorsGrid) {
+    const cards = Array.from(advisorsGrid.querySelectorAll('.gcard'));
+
+    searchInput.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+
+      cards.forEach(card => {
+        const advisorName = card.getAttribute('data-advisor-name') || '';
+
+        if (advisorName.includes(searchTerm)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  }
+</script>

@@ -45,18 +45,26 @@ const rawContactInfo = safeObject(contactData.contactInfo);
 const globalContact = safeGet(contactData, 'globalConfig.contact', {});
 const globalOffice = safeGet(contactData, 'globalConfig.office', {});
 
+// Obtener coordenadas de la oficina principal
+const offices = safeArray(safeGet(contactData, 'contactInfo.offices'));
+const mainOffice = offices.length > 0 ? offices[0] : null;
+
 const safeContactInfo = {
   phone: rawContactInfo.phone || safeGet(rawContactInfo, 'main.phone') || globalContact.phone || '+1 809 555 0100',
   whatsapp: rawContactInfo.whatsapp || safeGet(rawContactInfo, 'main.whatsapp') || globalContact.whatsapp || '18095550100',
   email: rawContactInfo.email || safeGet(rawContactInfo, 'main.email') || globalContact.email || 'info@clic.do',
-  address: rawContactInfo.address || safeGet(rawContactInfo, 'main.address') || globalContact.address || 
+  address: mainOffice?.address || rawContactInfo.address || safeGet(rawContactInfo, 'main.address') || globalContact.address ||
            (language === 'es' ? 'Av. Winston Churchill, Plaza de la Salud, Torre 2, Piso 8' :
             language === 'en' ? 'Winston Churchill Ave, Plaza de la Salud, Tower 2, Floor 8' :
             'Av. Winston Churchill, Plaza de la Salud, Tour 2, Étage 8'),
-  city: rawContactInfo.city || 
+  city: rawContactInfo.city ||
         (language === 'es' ? 'Santo Domingo, República Dominicana' :
          language === 'en' ? 'Santo Domingo, Dominican Republic' :
          'Santo Domingo, République dominicaine'),
+  coordinates: mainOffice?.coordinates || {
+    lat: 18.4861,  // Coordenadas de Santo Domingo por defecto
+    lng: -69.9312
+  },
   hours: rawContactInfo.hours || globalOffice.hours || {
     weekdays: language === 'es' ? 'Lunes - Viernes: 8:00 AM - 6:00 PM' :
               language === 'en' ? 'Monday - Friday: 8:00 AM - 6:00 PM' :
@@ -70,51 +78,39 @@ const safeContactInfo = {
   }
 };
 
-// Servicios con fallback
-const services = safeArray(contactData.services, [
-  { 
-    value: 'vender', 
+// Servicios - SIEMPRE usar definición local (no del backend)
+const services = [
+  {
+    value: 'asesor',
+    label: language === 'es' ? 'Quiero ser parte de CLIC como asesor' :
+           language === 'en' ? 'I want to be part of CLIC as an advisor' :
+           'Je veux faire partie de CLIC en tant que conseiller'
+  },
+  {
+    value: 'vender',
     label: language === 'es' ? 'Quiero vender mi propiedad' :
            language === 'en' ? 'I want to sell my property' :
            'Je veux vendre ma propriété'
   },
-  { 
-    value: 'desarrollo', 
-    label: language === 'es' ? 'Tengo un proyecto para desarrollar' :
-           language === 'en' ? 'I have a project to develop' :
-           'J\'ai un projet à développer'
+  {
+    value: 'desarrollo',
+    label: language === 'es' ? 'Quiero que vendan mi proyecto' :
+           language === 'en' ? 'I want you to sell my project' :
+           'Je veux que vous vendiez mon projet'
   },
-  { 
-    value: 'comprar', 
-    label: language === 'es' ? 'Quiero comprar una propiedad' :
-           language === 'en' ? 'I want to buy a property' :
-           'Je veux acheter une propriété'
+  {
+    value: 'comprar',
+    label: language === 'es' ? 'Quiero comprar' :
+           language === 'en' ? 'I want to buy' :
+           'Je veux acheter'
   },
-  { 
-    value: 'rentas', 
-    label: language === 'es' ? 'Interesado en rentas vacacionales' :
-           language === 'en' ? 'Interested in vacation rentals' :
-           'Intéressé par les locations de vacances'
-  },
-  { 
-    value: 'evaluacion', 
-    label: language === 'es' ? 'Evaluación gratuita' :
-           language === 'en' ? 'Free evaluation' :
-           'Évaluation gratuite'
-  },
-  { 
-    value: 'asesor', 
-    label: language === 'es' ? 'Quiero ser asesor inmobiliario' :
-           language === 'en' ? 'I want to be a real estate advisor' :
-           'Je veux être conseiller immobilier'
-  },
-  { 
-    value: 'otro', 
-    label: language === 'es' ? 'Otro motivo' :
-           language === 'en' ? 'Other reason' :
-           'Autre raison'
+  {
+    value: 'otro',
+    label: language === 'es' ? 'Quiero otro servicio' :
+           language === 'en' ? 'I want another service' :
+           'Je veux un autre service'
   }
-]);
+];
 
 // Team con fallback
 const team = safeArray(safeGet(contactData, 'team.advisors') || contactData.team, [
@@ -364,21 +360,85 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
 });
 ---
 
-<Layout 
+<Layout
   title={seo.title || text.heroTitle}
   description={seo.description || text.heroSubtitle}
   language={language}
+  hreflangData={safeObject(data?.seo?.hreflang, {})}
+  globalConfig={safeObject(data?.globalConfig, {})}
+  trackingString={safeString(data?.trackingString, '')}
+  hotItems={safeObject(data?.hotItems, {})}
+  country={safeObject(data?.country, {})}
+  breadcrumbs={safeArray(data?.seo?.breadcrumbs, [])}
+  structuredData={safeObject(data?.seo?.structured_data, {})}
+  openGraph={safeObject(data?.seo?.open_graph, {})}
+  twitterCard={safeObject(data?.seo?.twitter_card, {})}
 >
-  <!-- Hero Section -->
-  <section class="bg-gray-50 py-12">
-    <div class="container mx-auto px-4">
-      <div class="max-w-4xl mx-auto text-center">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">
-          {text.heroTitle}
-        </h1>
-        <p class="text-xl text-gray-600">
-          {text.heroSubtitle}
-        </p>
+  <!-- Hero Section - Compact & Professional -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+    <!-- Background pattern -->
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+
+    <!-- Decorative elements -->
+    <div class="absolute top-10 right-10 w-48 h-48 bg-[#f04e00] rounded-full filter blur-3xl opacity-20"></div>
+    <div class="absolute bottom-10 left-10 w-64 h-64 bg-blue-500 rounded-full filter blur-3xl opacity-10"></div>
+
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-6xl mx-auto">
+
+        <!-- Breadcrumbs a la izquierda -->
+        {safeArray(data?.seo?.breadcrumbs).length > 0 && (
+          <nav class="mb-6">
+            <ol class="flex items-center gap-2 text-sm text-gray-400">
+              {data.seo.breadcrumbs.map((crumb, index) => (
+                <li class="flex items-center gap-2">
+                  {index > 0 && <span>/</span>}
+                  <a href={crumb.url} class="hover:text-white transition-colors">
+                    {crumb.name}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+
+        <!-- Layout: Título a la izquierda, stats a la derecha -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+          <!-- Título y subtítulo -->
+          <div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+              {safeString(data?.seo?.h1, text.heroTitle)}
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+              {safeString(data?.seo?.h2, text.heroSubtitle)}
+            </p>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">10+</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Años' : language === 'en' ? 'Years' : 'Années'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">{safeArray(team).length > 0 ? safeArray(team).length : '15'}+</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Expertos' : language === 'en' ? 'Experts' : 'Experts'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">&lt;24h</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Respuesta' : language === 'en' ? 'Response' : 'Réponse'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">3</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Idiomas' : language === 'en' ? 'Languages' : 'Langues'}</div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </section>
@@ -528,10 +588,10 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
             </div>
           </div>
           
-          <!-- Office Info -->
-          <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">{text.officeTitle}</h3>
-            
+          <!-- Office Info con Mapa Integrado -->
+          <div class="bg-white rounded-lg shadow-md p-6 space-y-6">
+            <h3 class="text-xl font-bold text-gray-900">{text.officeTitle}</h3>
+
             <div class="space-y-3 text-gray-600">
               <div class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-[#f04e00] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,7 +603,7 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
                   <div class="text-sm">{safeContactInfo.city}</div>
                 </div>
               </div>
-              
+
               <div class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-[#f04e00] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -554,6 +614,11 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
                   <div>{safeContactInfo.hours.sunday}</div>
                 </div>
               </div>
+            </div>
+
+            <!-- Mapa integrado con Google Maps -->
+            <div class="rounded-lg overflow-hidden border border-gray-300">
+              <div id="contact-map" class="w-full h-56"></div>
             </div>
           </div>
           
@@ -600,26 +665,6 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Map Section -->
-  <section class="py-12 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <div class="max-w-4xl mx-auto">
-        <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">{text.mapTitle}</h2>
-        
-        <div class="bg-gray-200 rounded-lg h-64 flex items-center justify-center">
-          <div class="text-center text-gray-600">
-            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            <p class="text-sm">{safeContactInfo.address.split(',')[0]}</p>
-            <p class="text-sm">{safeContactInfo.city}</p>
-          </div>
         </div>
       </div>
     </div>
@@ -706,39 +751,206 @@ console.log('✅ ContactLayout preparado con validación defensiva:', {
     }
   });
 
-  // Simple form handling
+  // Form handling with API submission
   const contactForm = document.getElementById('contactForm');
   if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
+    contactForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       const formData = new FormData(this);
-      const servicio = formData.get('servicio');
-      
-      // Different messages based on service type and language
+      const submitButton = this.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton?.textContent;
+
       const userLang = document.documentElement.lang || 'es';
-      let message = userLang === 'es' ? '¡Gracias por tu mensaje! Te contactaremos pronto.' :
-                    userLang === 'en' ? 'Thank you for your message! We will contact you soon.' :
-                    'Merci pour votre message! Nous vous contacterons bientôt.';
-      
-      if (servicio === 'asesor') {
-        message = userLang === 'es' ? '¡Gracias por tu interés en trabajar con nosotros! Revisaremos tu aplicación y te contactaremos pronto.' :
-                  userLang === 'en' ? 'Thank you for your interest in working with us! We will review your application and contact you soon.' :
-                  'Merci pour votre intérêt à travailler avec nous! Nous examinerons votre candidature et vous contacterons bientôt.';
-      } else if (servicio === 'vender') {
-        message = userLang === 'es' ? '¡Gracias por contactarnos! Te llamaremos pronto para hablar sobre tu propiedad.' :
-                  userLang === 'en' ? 'Thank you for contacting us! We will call you soon to talk about your property.' :
-                  'Merci de nous avoir contactés! Nous vous appellerons bientôt pour parler de votre propriété.';
-      } else if (servicio === 'desarrollo') {
-        message = userLang === 'es' ? '¡Gracias por tu interés! Nos pondremos en contacto contigo para discutir tu proyecto.' :
-                  userLang === 'en' ? 'Thank you for your interest! We will contact you to discuss your project.' :
-                  'Merci pour votre intérêt! Nous vous contacterons pour discuter de votre projet.';
+      const loadingText = userLang === 'es' ? 'Enviando...' :
+                          userLang === 'en' ? 'Sending...' :
+                          'Envoi en cours...';
+
+      // Disable submit button and show loading state
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = loadingText;
       }
-      
-      alert(message);
-      
-      // Reset form
-      this.reset();
+
+      // Prepare submission data
+      const submissionData = {
+        nombre: formData.get('nombre'),
+        telefono: formData.get('telefono'),
+        email: formData.get('email'),
+        tipo_servicio: formData.get('servicio'),
+        mensaje: formData.get('mensaje'),
+        preferencia_contacto: formData.get('contacto_preferido') || 'asap'
+      };
+
+      console.log('📋 Form data prepared:', submissionData);
+
+      try {
+        // Get tracking parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackingParams = new URLSearchParams();
+
+        // Preserve UTM and tracking parameters
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref', 'fbclid', 'gclid'].forEach(param => {
+          const value = urlParams.get(param);
+          if (value) {
+            trackingParams.set(param, value);
+          }
+        });
+
+        // Build API URL - Use environment variable or fallback
+        const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'https://pacewqgypevfgjmdsorz.supabase.co';
+        const apiUrl = `${supabaseUrl}/functions/v1/contact-submission${trackingParams.toString() ? '?' + trackingParams.toString() : ''}`;
+
+        console.log('📞 Submitting contact form...');
+        console.log('📍 API URL:', apiUrl);
+        console.log('📦 Payload:', submissionData);
+
+        // Submit to API
+        const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey
+          },
+          body: JSON.stringify(submissionData)
+        });
+
+        console.log('📡 Response status:', response.status, response.statusText);
+
+        const result = await response.json();
+        console.log('📄 Response data:', result);
+
+        if (!response.ok || !result.success) {
+          console.error('❌ Submission failed:', result);
+          throw new Error(result.error || 'Failed to submit form');
+        }
+
+        console.log('✅ Contact submission successful:', result.data);
+
+        // Show success message based on service type
+        const servicio = submissionData.tipo_servicio;
+        let message = userLang === 'es' ? '¡Gracias por tu mensaje! Te contactaremos pronto.' :
+                      userLang === 'en' ? 'Thank you for your message! We will contact you soon.' :
+                      'Merci pour votre message! Nous vous contacterons bientôt.';
+
+        if (servicio === 'asesor') {
+          message = userLang === 'es' ? '¡Gracias por tu interés en trabajar con nosotros! Revisaremos tu aplicación y te contactaremos pronto.' :
+                    userLang === 'en' ? 'Thank you for your interest in working with us! We will review your application and contact you soon.' :
+                    'Merci pour votre intérêt à travailler avec nous! Nous examinerons votre candidature et vous contacterons bientôt.';
+        } else if (servicio === 'vender') {
+          message = userLang === 'es' ? '¡Gracias por contactarnos! Te llamaremos pronto para hablar sobre tu propiedad.' :
+                    userLang === 'en' ? 'Thank you for contacting us! We will call you soon to talk about your property.' :
+                    'Merci de nous avoir contactés! Nous vous appellerons bientôt pour parler de votre propriété.';
+        } else if (servicio === 'desarrollo') {
+          message = userLang === 'es' ? '¡Gracias por tu interés! Nos pondremos en contacto contigo para discutir tu proyecto.' :
+                    userLang === 'en' ? 'Thank you for your interest! We will contact you to discuss your project.' :
+                    'Merci pour votre intérêt! Nous vous contacterons pour discuter de votre projet.';
+        }
+
+        alert(message);
+
+        // Reset form
+        this.reset();
+
+      } catch (error) {
+        console.error('❌ Error submitting contact form:', error);
+
+        const errorMessage = userLang === 'es' ? 'Hubo un error al enviar tu mensaje. Por favor intenta nuevamente.' :
+                            userLang === 'en' ? 'There was an error sending your message. Please try again.' :
+                            'Une erreur s\'est produite lors de l\'envoi de votre message. Veuillez réessayer.';
+
+        alert(errorMessage);
+
+      } finally {
+        // Re-enable submit button
+        if (submitButton && originalButtonText) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalButtonText;
+        }
+      }
     });
   }
+</script>
+
+<!-- Google Maps Integration -->
+<script define:vars={{ officeCoordinates: safeContactInfo.coordinates, officeName: 'CLIC Inmobiliaria', officeAddress: safeContactInfo.address }}>
+  // Función para inicializar el mapa de contacto
+  window.initContactMap = function() {
+    const mapElement = document.getElementById('contact-map');
+
+    if (!mapElement) {
+      console.log('Elemento del mapa no encontrado');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('Google Maps API no disponible');
+      return;
+    }
+
+    try {
+      const officeLocation = {
+        lat: officeCoordinates?.lat || 18.4861,
+        lng: officeCoordinates?.lng || -69.9312
+      };
+
+      const map = new google.maps.Map(mapElement, {
+        zoom: 16,
+        center: officeLocation,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ],
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
+
+      const marker = new google.maps.Marker({
+        position: officeLocation,
+        map: map,
+        title: officeName,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: '#f04e00',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }
+      });
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div class="p-3">
+            <h4 class="font-bold text-base mb-1">${officeName}</h4>
+            <p class="text-sm text-gray-600">${officeAddress}</p>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${officeLocation.lat},${officeLocation.lng}"
+               target="_blank"
+               class="text-xs text-[#f04e00] hover:underline mt-2 inline-block">
+              Ver direcciones →
+            </a>
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+    } catch (error) {
+      console.error('Error inicializando mapa de contacto:', error);
+    }
+  };
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initContactMap"
+  onerror="console.error('Error cargando Google Maps')">
 </script>

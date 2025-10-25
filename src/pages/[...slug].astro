@@ -113,9 +113,9 @@ async function callBackendOnce(backendBase: string, path: string) {
   const isContent = backendBase.includes('content-backend');
   const timeoutMs = isContent ? CONTENT_TIMEOUT_MS : MAIN_TIMEOUT_MS;
   
-  // 🔧 FIX: Preservar query parameters originales + agregar domain
+  // 🔧 FIX: Preservar query parameters originales + agregar domain (con puerto)
   const originalParams = new URLSearchParams(Astro.url.search);
-  originalParams.set('domain', Astro.url.hostname);
+  originalParams.set('domain', Astro.url.host);  // host incluye puerto (localhost:4321)
   const url = `${backendBase}${path}?${originalParams.toString()}`;
 
   // circuit breaker: si falló recientemente, no bloquee SSR

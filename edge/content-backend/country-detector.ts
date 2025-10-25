@@ -101,7 +101,7 @@ const TESTING_CONFIG = {
     console.log('🧪 TESTING MODE ENABLED - Forcing country:', TESTING_CONFIG.forceCountryCode);
     try {
       const { data: forcedCountry } = await supabase.from('countries').select(`
-          id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone,
+          id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone, real_data,
           tags!countries_country_tag_id_fkey(
             id, slug, slug_en, slug_fr, category, display_name, display_name_en, display_name_fr
           )
@@ -129,7 +129,7 @@ const TESTING_CONFIG = {
     // PASO 1: Buscar por custom_domain exacto
     console.log('🎯 Step 1: Searching for custom_domain match:', host);
     const { data: customDomainCountry, error: customError } = await supabase.from('countries').select(`
-        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone,
+        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone, real_data,
         tags!countries_country_tag_id_fkey(
           id, slug, slug_en, slug_fr, category, display_name, display_name_en, display_name_fr
         )
@@ -152,7 +152,7 @@ const TESTING_CONFIG = {
       const subdomain = host.split('.')[0];
       console.log('🎯 Step 2: Searching for subdomain match:', subdomain);
       const { data: subdomainCountry, error: subdomainError } = await supabase.from('countries').select(`
-          id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone,
+          id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone, real_data,
           tags!countries_country_tag_id_fkey(
             id, slug, slug_en, slug_fr, category, display_name, display_name_en, display_name_fr
           )
@@ -175,7 +175,7 @@ const TESTING_CONFIG = {
     // PASO 3: Buscar en custom_domains como array (para dominios múltiples)
     console.log('🎯 Step 3: Searching in custom_domains arrays...');
     const { data: allCountries } = await supabase.from('countries').select(`
-        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone,
+        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone, real_data,
         tags!countries_country_tag_id_fkey(
           id, slug, slug_en, slug_fr, category, display_name, display_name_en, display_name_fr
         )
@@ -228,7 +228,7 @@ const TESTING_CONFIG = {
     // PASO 4: Fallback a República Dominicana por defecto
     console.log('⚠️ No match found, using default country (DOM)');
     const { data: defaultCountry } = await supabase.from('countries').select(`
-        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone,
+        id, name, code, country_tag_id, subdomain, custom_domain, currency, timezone, real_data,
         tags!countries_country_tag_id_fkey(
           id, slug, slug_en, slug_fr, category, display_name, display_name_en, display_name_fr
         )
@@ -286,7 +286,22 @@ const TESTING_CONFIG = {
   let detectionSource = 'unknown';
   // Extraer domainParam una sola vez al inicio
   const url = new URL(req.url);
-  const domainParam = url.searchParams.get('domain');
+  let domainParam = url.searchParams.get('domain');
+
+  // FIX: Manejar puerto en localhost que puede venir truncado o en la URL completa
+  console.log('🔍 Raw domainParam from query:', domainParam);
+  console.log('🔍 Full request URL:', req.url);
+
+  // Si domainParam es "localhost" sin puerto, intentar extraer el puerto de la URL completa
+  if (domainParam === 'localhost' && req.url.includes('localhost')) {
+    // Buscar puerto en la URL completa después de localhost
+    const portMatch = req.url.match(/localhost[:%](\d+)/);
+    if (portMatch && portMatch[1]) {
+      domainParam = `localhost:${portMatch[1]}`;
+      console.log('✅ Puerto recuperado de URL completa:', domainParam);
+    }
+  }
+
   // PRIORIDAD 1: TESTING MODE - Máxima prioridad para desarrollo
   if (TESTING_CONFIG.enabled) {
     realHost = TESTING_CONFIG.developmentHost || 'localhost:4321';
@@ -301,6 +316,7 @@ const TESTING_CONFIG = {
     realHost = domainParam;
     realDomain = domainParam.includes('localhost') ? `http://${domainParam}` : `https://${domainParam}`;
     detectionSource = 'query-param';
+    console.log('🏠 Constructed realDomain:', realDomain);
   } else if (req.headers.get('x-original-domain')) {
     const headerDomain = req.headers.get('x-original-domain');
     console.log('📡 Using domain from X-Original-Domain header:', headerDomain);

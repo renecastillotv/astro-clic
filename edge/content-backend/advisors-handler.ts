@@ -378,28 +378,44 @@ async function handleSingleAdvisor(params) {
   const avgRating = testimonials.length > 0 ? testimonials.reduce((sum, t)=>sum + (t.rating || 5), 0) / testimonials.length : 5.0;
   // Procesar especialidades
   let specialties = [];
+
+  // Primero agregar specialty_description si existe
+  if (advisor.specialty_description && advisor.specialty_description.trim() !== '') {
+    specialties.push(advisor.specialty_description);
+  }
+
+  // Luego agregar especialidades genéricas basadas en cities/sectors
   try {
     if (advisor.specialty_cities) {
       const cities = JSON.parse(advisor.specialty_cities);
-      if (cities.length > 0) specialties.push(getUIText('CITY_SPECIALIST', language));
+      if (cities.length > 0 && specialties.length < 3) {
+        specialties.push(getUIText('CITY_SPECIALIST', language));
+      }
     }
     if (advisor.specialty_sectors) {
       const sectors = JSON.parse(advisor.specialty_sectors);
-      if (sectors.length > 0) specialties.push(getUIText('SECTOR_EXPERT', language));
+      if (sectors.length > 0 && specialties.length < 3) {
+        specialties.push(getUIText('SECTOR_EXPERT', language));
+      }
     }
   } catch (e) {
   // Ignore parsing errors
   }
   // Procesar idiomas
-  let languagesSpoken = [
-    'Español'
-  ];
+  let languagesSpoken = ['Español'];
   try {
     if (advisor.languages) {
-      languagesSpoken = JSON.parse(advisor.languages);
+      // Si ya es un array, usarlo directamente
+      if (Array.isArray(advisor.languages)) {
+        languagesSpoken = advisor.languages;
+      } else if (typeof advisor.languages === 'string') {
+        // Si es string JSON, parsearlo
+        languagesSpoken = JSON.parse(advisor.languages);
+      }
     }
   } catch (e) {
-  // Keep default
+    console.warn('Failed to parse languages for advisor:', advisor.id, e);
+    // Keep default
   }
   // Procesar enlaces sociales
   const socialLinks = {};
@@ -707,24 +723,42 @@ function getCountrySpecificSpecialties(countryCode, language, advisorCount, trac
 }
 function processAdvisor(advisor, language, trackingString, detailed = false) {
   const fullName = `${advisor.first_name || ''} ${advisor.last_name || ''}`.trim();
-  // Procesar especialidades desde JSON arrays
+
+  // Procesar especialidades - PRIORIZAR specialty_description
   let specialties = [];
+
+  // Primero: specialty_description personalizado
+  if (advisor.specialty_description && advisor.specialty_description.trim() !== '') {
+    specialties.push(advisor.specialty_description);
+  }
+
+  // Luego: agregar especialidades genéricas si no hay suficientes
   try {
-    const cities = Array.isArray(advisor.specialty_cities) ? advisor.specialty_cities : JSON.parse(advisor.specialty_cities || '[]');
-    const sectors = Array.isArray(advisor.specialty_sectors) ? advisor.specialty_sectors : JSON.parse(advisor.specialty_sectors || '[]');
-    // Simplificar especialidades
-    if (cities.length > 0) specialties.push(language === 'en' ? 'City Specialist' : language === 'fr' ? 'Spécialiste Ville' : 'Especialista en Ciudades');
-    if (sectors.length > 0) specialties.push(language === 'en' ? 'Sector Expert' : language === 'fr' ? 'Expert Secteur' : 'Experto en Sectores');
-    if (advisor.specialty_description) specialties.push(advisor.specialty_description);
+    if (specialties.length < 3) {
+      const cities = Array.isArray(advisor.specialty_cities) ? advisor.specialty_cities : JSON.parse(advisor.specialty_cities || '[]');
+      const sectors = Array.isArray(advisor.specialty_sectors) ? advisor.specialty_sectors : JSON.parse(advisor.specialty_sectors || '[]');
+
+      if (cities.length > 0 && specialties.length < 3) {
+        specialties.push(language === 'en' ? 'City Specialist' : language === 'fr' ? 'Spécialiste Ville' : 'Especialista en Ciudades');
+      }
+      if (sectors.length > 0 && specialties.length < 3) {
+        specialties.push(language === 'en' ? 'Sector Expert' : language === 'fr' ? 'Expert Secteur' : 'Experto en Sectores');
+      }
+    }
   } catch (e) {
     console.warn('Failed to parse specialties:', e);
   }
+
   // Procesar idiomas
-  let languagesSpoken = [
-    'Español'
-  ];
+  let languagesSpoken = ['Español'];
   try {
-    languagesSpoken = Array.isArray(advisor.languages) ? advisor.languages : JSON.parse(advisor.languages || '["Español"]');
+    if (advisor.languages) {
+      if (Array.isArray(advisor.languages)) {
+        languagesSpoken = advisor.languages;
+      } else if (typeof advisor.languages === 'string') {
+        languagesSpoken = JSON.parse(advisor.languages);
+      }
+    }
   } catch (e) {
     console.warn('Failed to parse languages:', e);
   }

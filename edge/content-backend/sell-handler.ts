@@ -189,19 +189,42 @@ export async function handleSell(params) {
       };
     }
   });
-  const topAgents = Object.entries(agentDealsCount).sort(([, a], [, b])=>b - a).slice(0, 6).map(([agentId, count])=>{
+  // Generar números ficticios pero mantener agentes reales
+  const topAgents = Object.entries(agentDealsCount).sort(([, a], [, b])=>b - a).slice(0, 6).map(([agentId, count], index)=>{
     const a = agentInfo[agentId];
     if (!a) return null;
+
+    // Si hideRealData, generar números ficticios (más altos, manteniendo el orden)
+    let fakeSales, fakeVolume;
+    if (hideRealData) {
+      // El primero (líder) tiene más ventas, luego va bajando
+      // Rango: 80-120 ventas para el líder, luego 60-80, 40-60, 30-40, etc.
+      const baseRanges = [
+        { min: 80, max: 120 },   // Líder
+        { min: 60, max: 80 },    // Segundo
+        { min: 40, max: 60 },    // Tercero
+        { min: 30, max: 40 },    // Cuarto
+        { min: 20, max: 30 },    // Quinto
+        { min: 15, max: 25 }     // Sexto
+      ];
+      const range = baseRanges[index] || { min: 10, max: 20 };
+      fakeSales = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+
+      // Volumen proporcional: entre $10M-$25M USD para el líder
+      const volumeMultiplier = fakeSales * (150000 + Math.random() * 100000); // $150K-$250K por venta
+      fakeVolume = volumeMultiplier;
+    }
+
     return {
       id: a.id,
-      name: hideRealData ? language === 'en' ? 'CLIC Advisor' : language === 'fr' ? 'Conseiller CLIC' : 'Asesor CLIC' : `${a.first_name || ''} ${a.last_name || ''}`.trim(),
+      name: `${a.first_name || ''} ${a.last_name || ''}`.trim(),
       slug: a.slug,
       avatar: a.profile_photo_url || '/images/team/default-advisor.jpg',
       position: a.position || (language === 'en' ? 'Real Estate Advisor' : language === 'fr' ? 'Conseiller Immobilier' : 'Asesor Inmobiliario'),
-      phone: hideRealData ? '829-XXX-XXXX' : a.phone,
-      email: hideRealData ? 'asesor@clicinmobiliaria.com' : a.email,
-      totalSales: count,
-      totalVolume: agentDealsVolumeUSD[agentId] || 0,
+      phone: a.phone,
+      email: a.email,
+      totalSales: hideRealData ? fakeSales : count,
+      totalVolume: hideRealData ? fakeVolume : (agentDealsVolumeUSD[agentId] || 0),
       yearsExperience: a.years_experience || 1,
       specialties: [
         'ventas'
@@ -210,15 +233,8 @@ export async function handleSell(params) {
       url: buildAdvisorUrl(a.slug, language, trackingString)
     };
   }).filter(Boolean);
-  // Modificar topAgents para ocultar métricas de ventas si hideRealData=true
-  const topAgentsModified = topAgents.map((agent)=>{
-    return {
-      ...agent,
-      // Ocultar las métricas de ventas cuando hideRealData=true
-      totalSales: hideRealData ? undefined : agent.totalSales,
-      totalVolume: hideRealData ? undefined : agent.totalVolume
-    };
-  });
+
+  const topAgentsModified = topAgents;
   // ============================================================================
   // 5) MÉTRICAS FINALES (año)
   // ============================================================================
@@ -386,7 +402,7 @@ export async function handleSell(params) {
       {
         title: serviceTitles.pricingTitle,
         description: serviceTitles.pricingDesc,
-        icon: 'trending-up',
+        icon: 'dollar-sign',
         included: true,
         features: language === 'en' ? [
           'Comparative market analysis',
@@ -475,7 +491,7 @@ export async function handleSell(params) {
       {
         title: serviceTitles.pricingTitle,
         description: serviceTitles.pricingDesc,
-        icon: 'trending-up',
+        icon: 'dollar-sign',
         included: true,
         features: language === 'en' ? [
           'Comparative market analysis',
@@ -611,8 +627,8 @@ export async function handleSell(params) {
     } : {
       categories: categoryStats,
       bedrooms: bedroomStats,
-      topCities,
-      topSectors,
+      topCities: Object.entries(cityStats).sort(([_k1, a], [_k2, b])=>b - a).slice(0, 5),
+      topSectors: Object.entries(sectorStats).sort(([_k1, a], [_k2, b])=>b - a).slice(0, 5),
       projectsBreakdown: {
         projects: projectsCount,
         individual: individualCount

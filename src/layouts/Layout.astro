@@ -711,23 +711,21 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
               </div>
             </div>
 
-            <!-- Favorites Button with Counter - CORREGIDO: Ahora usa getFavoritesUrl para considerar el idioma y trackingString -->
-            <div class="relative">
-              <a
-                href={getFavoritesUrl(language, trackingString)}
-                class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors relative flex items-center justify-center"
-                title={language === 'es' ? 'Mis favoritos' : language === 'en' ? 'My favorites' : 'Mes favoris'}
+            <!-- Favorites Button with Counter - Badge superpuesto -->
+            <a
+              href={getFavoritesUrl(language, trackingString)}
+              class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors relative inline-flex items-center justify-center"
+              title={language === 'es' ? 'Mis favoritos' : language === 'en' ? 'My favorites' : 'Mes favoris'}
+            >
+              <i class="fas fa-heart text-xl"></i>
+              <span
+                id="favorites-counter"
+                class="absolute bg-[#f04e00] text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-bold px-1 hidden shadow-lg border-2 border-white"
+                style="font-size: 9px; line-height: 1; bottom: 2px; right: -2px;"
               >
-                <i class="fas fa-heart w-6 h-6 text-xl"></i>
-                <span 
-                  id="favorites-counter" 
-                  class="absolute bottom-0 right-0 bg-[#f04e00] text-white rounded-full min-w-[16px] h-4 flex items-center justify-center font-medium px-1 hidden shadow-sm"
-                  style="font-size: 10px; line-height: 1; transform: translate(2px, -2px);"
-                >
-                  0
-                </span>
-              </a>
-            </div>
+                0
+              </span>
+            </a>
 
             <!-- Contact Button -->
             <a 

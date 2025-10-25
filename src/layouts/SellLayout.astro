@@ -124,7 +124,7 @@ const currentRoutes = {
 const TEXTS = {
   es: {
     heroTitle: safeString(seo.h1, 'Vende Tu Propiedad Con Los Expertos'),
-    heroSubtitle: `${marketHighlights.totalSales || 25} ventas exitosas este año • ${marketHighlights.daysOnMarket || 45} días promedio de venta`,
+    heroSubtitle: `Expertos en maximizar el valor de tu propiedad • ${marketHighlights.daysOnMarket || 45} días promedio de venta`,
     statsLabels: {
       totalVolume: 'Volumen Total Vendido',
       avgPrice: 'Precio Promedio',
@@ -164,7 +164,7 @@ const TEXTS = {
   },
   en: {
     heroTitle: safeString(seo.h1, 'Sell Your Property With The Experts'),
-    heroSubtitle: `${marketHighlights.totalSales || 25} successful sales this year • ${marketHighlights.daysOnMarket || 45} average days on market`,
+    heroSubtitle: `Experts in maximizing your property value • ${marketHighlights.daysOnMarket || 45} average days on market`,
     statsLabels: {
       totalVolume: 'Total Volume Sold',
       avgPrice: 'Average Price',
@@ -204,7 +204,7 @@ const TEXTS = {
   },
   fr: {
     heroTitle: safeString(seo.h1, 'Vendez Votre Propriété Avec Les Experts'),
-    heroSubtitle: `${marketHighlights.totalSales || 25} ventes réussies cette année • ${marketHighlights.daysOnMarket || 45} jours moyens sur le marché`,
+    heroSubtitle: `Experts pour maximiser la valeur de votre propriété • ${marketHighlights.daysOnMarket || 45} jours moyens sur le marché`,
     statsLabels: {
       totalVolume: 'Volume Total Vendu',
       avgPrice: 'Prix Moyen',
@@ -311,13 +311,6 @@ const layoutProps = {
               <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.daysOnMarket}</div>
             </div>
           )}
-          <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
-          {marketHighlights.totalSales && (
-            <div class="flex items-center gap-3">
-              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{marketHighlights.totalSales}</div>
-              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.totalSales}</div>
-            </div>
-          )}
         </div>
 
         <!-- CTAs principales -->
@@ -392,27 +385,55 @@ const layoutProps = {
 
   <!-- Servicios Premium -->
   {services.length > 0 && (
-    <section class="py-16 bg-gray-50">
+    <section class="py-20 bg-gradient-to-b from-white to-gray-50">
       <div class="container mx-auto px-4">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.servicesTitle}</h2>
-          <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.servicesSubtitle}</p>
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00]/10 text-[#f04e00] px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Todo Incluido
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            {text.servicesTitle}
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            {text.servicesSubtitle}
+          </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {services.map((service) => (
-            <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-lg transition-shadow">
-              <div class="w-12 h-12 bg-[#f04e00]/10 rounded-full flex items-center justify-center text-[#f04e00] mb-4">
-                <i class={`fas fa-${service.icon || 'check'} text-xl`}></i>
+            <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-[#f04e00]/30 hover:-translate-y-1">
+              {/* Icono con gradiente */}
+              <div class="w-16 h-16 bg-gradient-to-br from-[#f04e00] to-[#ff6b35] rounded-xl flex items-center justify-center text-white mb-4 shadow-lg">
+                <i class={`fas fa-${service.icon || 'check'} text-2xl`}></i>
               </div>
-              <h3 class="font-semibold text-gray-900 mb-2">{service.title}</h3>
+
+              <h3 class="font-bold text-gray-900 mb-3 text-lg">{service.title}</h3>
               {service.description && (
-                <p class="text-sm text-gray-600 mb-3">{service.description}</p>
+                <p class="text-sm text-gray-600 mb-4 leading-relaxed">{service.description}</p>
               )}
+
+              {/* Features con diseño mejorado */}
+              {service.features && service.features.length > 0 && (
+                <ul class="space-y-2.5 mb-4">
+                  {service.features.map((feature) => (
+                    <li class="text-xs text-gray-700 flex items-start gap-2">
+                      <i class="fas fa-check-circle text-[#f04e00] text-sm mt-0.5 flex-shrink-0"></i>
+                      <span class="leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Badge de incluido con colores de marca */}
               {service.included && (
-                <span class="inline-block bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                  {text.included}
-                </span>
+                <div class="pt-3 border-t border-gray-100">
+                  <span class="inline-flex items-center gap-1.5 bg-[#f04e00]/10 text-[#f04e00] px-3 py-1.5 rounded-full text-xs font-semibold">
+                    <i class="fas fa-badge-check"></i>
+                    {text.included}
+                  </span>
+                </div>
               )}
             </div>
           ))}
@@ -467,16 +488,26 @@ const layoutProps = {
 
   <!-- Top Agentes en Ventas -->
   {topAgents.length > 0 && (
-    <section class="py-16 bg-gray-50">
-      <div class="container mx-auto px-4">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.topAgentsTitle}</h2>
-          <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.topAgentsSubtitle}</p>
+    <section class="py-20 bg-gradient-to-br from-gray-900 to-slate-800 relative overflow-hidden">
+      <!-- Efectos decorativos -->
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-[150px]"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-[150px]"></div>
+      </div>
+      <div class="container mx-auto px-4 relative z-10">
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00] text-white px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Nuestro Equipo
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">{text.topAgentsTitle}</h2>
+          <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">{text.topAgentsSubtitle}</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {topAgents.map((agent) => (
-            <div class="bg-white rounded-lg p-6 text-center">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:-translate-y-1">
               {/* Avatar o Iniciales */}
               <div class="mb-4">
                 {agent.avatar && agent.avatar !== '/images/team/default-advisor.jpg' ? (
@@ -491,17 +522,19 @@ const layoutProps = {
                   </div>
                 )}
               </div>
-              <h3 class="font-semibold text-gray-900 mb-1">{agent.name}</h3>
-              <p class="text-sm text-gray-600 mb-3">{agent.position}</p>
-              <div class="space-y-1 mb-4">
-                <p class="text-2xl font-bold text-[#f04e00]">{agent.totalSales}</p>
-                <p class="text-xs text-gray-600">{text.sales}</p>
-                <p class="text-sm font-semibold text-gray-900">{formatPrice(agent.totalVolume)}</p>
-                <p class="text-xs text-gray-600">{text.volume}</p>
+              <h3 class="font-bold text-white mb-1 text-lg">{agent.name}</h3>
+              <p class="text-sm text-gray-300 mb-4">{agent.position}</p>
+
+              <div class="space-y-1 mb-4 py-4 border-y border-white/10">
+                <p class="text-3xl font-bold text-[#f04e00]">{agent.totalSales}</p>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">{text.sales}</p>
+                <p class="text-sm font-semibold text-white mt-2">{formatPrice(agent.totalVolume)}</p>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">{text.volume}</p>
               </div>
-              <a 
+
+              <a
                 href={agent.url}
-                class="text-[#f04e00] hover:text-[#d63e00] text-sm font-medium inline-flex items-center gap-1"
+                class="text-[#f04e00] hover:text-[#ff6b35] text-sm font-semibold inline-flex items-center gap-2 transition-colors"
               >
                 {text.viewProfile}
                 <i class="fas fa-arrow-right text-xs"></i>
@@ -513,8 +546,8 @@ const layoutProps = {
     </section>
   )}
 
-  <!-- Historias de Éxito Recientes -->
-  {successStories.length > 0 && (
+  <!-- Historias de Éxito Recientes - TEMPORALMENTE OCULTO -->
+  {false && successStories.length > 0 && (
     <section class="py-16 bg-white">
       <div class="container mx-auto px-4">
         <div class="text-center mb-12">
@@ -545,15 +578,25 @@ const layoutProps = {
 
   <!-- Testimonios -->
   {testimonials.length > 0 && (
-    <section class="py-16 bg-gray-50">
+    <section class="py-20 bg-white">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-10 text-center">
-          {text.testimonialsTitle}
-        </h2>
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00]/10 text-[#f04e00] px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Testimonios
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            {text.testimonialsTitle}
+          </h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            La confianza de nuestros clientes es nuestro mayor logro
+          </p>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {testimonials.map((testimonial) => (
-            <div class="bg-white rounded-lg p-6 shadow-sm">
+            <div class="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div class="flex items-center gap-1 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <svg 

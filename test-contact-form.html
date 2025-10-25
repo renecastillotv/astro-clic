@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Contact Form Submission</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #f04e00;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #f04e00;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #d94400;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        #result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        #result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px;
+            border-left: 3px solid #f04e00;
+            padding-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Contact Form Submission</h1>
+        <p>Use this page to test the contact-submission edge function</p>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label>Nombre *</label>
+                <input type="text" name="nombre" value="Juan Pérez" required>
+            </div>
+
+            <div class="form-group">
+                <label>Teléfono *</label>
+                <input type="tel" name="telefono" value="+1 809 555 1234" required>
+            </div>
+
+            <div class="form-group">
+                <label>Email *</label>
+                <input type="email" name="email" value="juan.perez@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo de Servicio *</label>
+                <select name="tipo_servicio" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="asesor">Quiero ser parte de CLIC como asesor</option>
+                    <option value="vender">Quiero vender mi propiedad</option>
+                    <option value="desarrollo">Quiero que vendan mi proyecto</option>
+                    <option value="comprar" selected>Quiero comprar</option>
+                    <option value="otro">Quiero otro servicio</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Mensaje</label>
+                <textarea name="mensaje" rows="4">Estoy interesado en conocer más sobre sus servicios.</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Preferencia de Contacto</label>
+                <select name="preferencia_contacto">
+                    <option value="asap">Lo antes posible</option>
+                    <option value="manana">Mañana</option>
+                    <option value="esta_semana">Esta semana</option>
+                    <option value="proxima_semana">Próxima semana</option>
+                    <option value="no_urgente">No es urgente</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn">Enviar Prueba</button>
+        </form>
+
+        <div id="result"></div>
+
+        <div class="log">
+            <h3>📋 Console Log:</h3>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const logContainer = document.getElementById('logContainer');
+        const resultDiv = document.getElementById('result');
+
+        function log(message, data = null) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            if (data) {
+                entry.innerHTML += `<br><pre style="margin: 5px 0; padding: 5px; background: #fff; border-radius: 3px;">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(message, data || '');
+        }
+
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+
+            resultDiv.style.display = 'none';
+            resultDiv.className = '';
+
+            const formData = new FormData(this);
+            const submissionData = {
+                nombre: formData.get('nombre'),
+                telefono: formData.get('telefono'),
+                email: formData.get('email'),
+                tipo_servicio: formData.get('tipo_servicio'),
+                mensaje: formData.get('mensaje'),
+                preferencia_contacto: formData.get('preferencia_contacto')
+            };
+
+            log('📋 Form data prepared:', submissionData);
+
+            // Build API URL with test tracking params
+            const supabaseUrl = 'https://pacewqgypevfgjmdsorz.supabase.co';
+            const trackingParams = new URLSearchParams({
+                utm_source: 'test',
+                utm_medium: 'debug',
+                utm_campaign: 'contact_form_test'
+            });
+            const apiUrl = `${supabaseUrl}/functions/v1/contact-submission?${trackingParams.toString()}`;
+
+            log('📍 API URL:', { url: apiUrl });
+
+            try {
+                log('🚀 Sending POST request...');
+
+                const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${supabaseAnonKey}`,
+                        'apikey': supabaseAnonKey
+                    },
+                    body: JSON.stringify(submissionData)
+                });
+
+                log('📡 Response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+
+                const result = await response.json();
+                log('📄 Response body:', result);
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Failed to submit form');
+                }
+
+                log('✅ Submission successful!', result.data);
+
+                resultDiv.className = 'success';
+                resultDiv.textContent = `✅ SUCCESS! Submission ID: ${result.data.submission_id}`;
+                resultDiv.style.display = 'block';
+
+                // Reset form after 2 seconds
+                setTimeout(() => {
+                    this.reset();
+                }, 2000);
+
+            } catch (error) {
+                log('❌ Error occurred:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+
+                resultDiv.className = 'error';
+                resultDiv.textContent = `❌ ERROR: ${error.message}`;
+                resultDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Prueba';
+            }
+        });
+
+        log('🎯 Test page loaded. Ready to test!');
+    </script>
+</body>
+</html>
