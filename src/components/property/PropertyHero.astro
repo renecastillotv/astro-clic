@@ -154,26 +154,26 @@ const isSingleImage = layoutClass === 'single-image';
   <div class={`gallery-container ${layoutClass} h-full p-3`}>
     
     <!-- Botones de acción - Esquina superior derecha -->
-    <div class="absolute top-6 right-6 z-30 flex flex-col gap-3 pointer-events-auto">
+    <div class="absolute top-3 right-3 md:top-6 md:right-6 z-30 flex flex-col gap-2 md:gap-3 pointer-events-auto">
       <!-- Botón de compartir -->
-      <button 
-        class="action-button w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
+      <button
+        class="action-button w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
         onclick="shareProperty()"
         aria-label={t?.shareProperty || 'Compartir propiedad'}
         title={t?.share || 'Compartir'}
       >
-        <i class="fas fa-share-alt text-white text-lg"></i>
+        <i class="fas fa-share-alt text-white text-base md:text-lg"></i>
       </button>
-      
+
       <!-- Botón de favoritos -->
-      <button 
-        class="action-button w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
+      <button
+        class="action-button w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
         onclick={`togglePropertyFavorite('${property?.id || 'hero-property'}', '${(property?.title || t?.property || 'Propiedad').replace(/'/g, "\\'")}');`}
         data-favorite-id={property?.id || 'hero-property'}
         aria-label={t?.addToFavorites || 'Agregar a favoritos'}
         title={t?.favorites || 'Favoritos'}
       >
-        <i class="fas fa-heart text-white text-lg transition-colors duration-300"></i>
+        <i class="fas fa-heart text-white text-base md:text-lg transition-colors duration-300"></i>
       </button>
     </div>
     
@@ -183,8 +183,12 @@ const isSingleImage = layoutClass === 'single-image';
         <img 
           src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
           alt={property?.title || t?.property || 'Propiedad'}
+          width="1200"
+          height="800"
+          fetchpriority="high"
           class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
           loading="eager"
+          decoding="sync"
           onerror="this.src='/images/placeholder-property.jpg'"
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
@@ -195,21 +199,28 @@ const isSingleImage = layoutClass === 'single-image';
     {layoutClass === 'two-images' && (
       <>
         <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
-          <img 
+          <img
             src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
             alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
             class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
             loading="eager"
+            decoding="sync"
             onerror="this.src='/images/placeholder-property.jpg'"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
         </div>
         <div class="secondary-image relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick="openLightbox && openLightbox(1)">
-          <img 
+          <img
             src={images[1] || '/images/placeholder-property.jpg'}
             alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} 2`}
+            width="600"
+            height="600"
             class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
             loading="lazy"
+            decoding="async"
             onerror="this.src='/images/placeholder-property.jpg'"
           />
         </div>
@@ -220,11 +231,15 @@ const isSingleImage = layoutClass === 'single-image';
     {layoutClass === 'three-images' && (
       <>
         <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
-          <img 
+          <img
             src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
             alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
             class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
             loading="eager"
+            decoding="sync"
             onerror="this.src='/images/placeholder-property.jpg'"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
@@ -254,11 +269,15 @@ const isSingleImage = layoutClass === 'single-image';
     {layoutClass === 'four-images' && (
       <>
         <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
-          <img 
+          <img
             src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
             alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
             class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
             loading="eager"
+            decoding="sync"
             onerror="this.src='/images/placeholder-property.jpg'"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
@@ -289,11 +308,15 @@ const isSingleImage = layoutClass === 'single-image';
     {layoutClass === 'five-plus-images' && (
       <>
         <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
-          <img 
+          <img
             src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
             alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
             class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
             loading="eager"
+            decoding="sync"
             onerror="this.src='/images/placeholder-property.jpg'"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
@@ -327,54 +350,54 @@ const isSingleImage = layoutClass === 'single-image';
     <!-- Título Principal - Condicional según número de imágenes -->
     {isSingleImage ? (
       <!-- Título centrado para imagen única -->
-      <div class="absolute inset-x-0 bottom-32 pointer-events-auto">
-        <div class="text-center px-6">
-          <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-4">
+      <div class="absolute inset-x-0 bottom-24 md:bottom-32 pointer-events-auto">
+        <div class="text-center px-4 md:px-6">
+          <h1 class="text-2xl md:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-4">
             {property?.title || t?.property || 'Propiedad'}
           </h1>
         </div>
       </div>
     ) : (
       <!-- Título y detalles en esquina inferior izquierda para múltiples imágenes -->
-      <div class="absolute bottom-6 left-6 pointer-events-auto max-w-2xl">
-        <h1 class="text-2xl md:text-3xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-3">
+      <div class="absolute bottom-3 left-3 md:bottom-6 md:left-6 right-3 md:right-auto pointer-events-auto max-w-full md:max-w-2xl">
+        <h1 class="text-lg md:text-3xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-2 md:mb-3 truncate">
           {property?.title || t?.property || 'Propiedad'}
         </h1>
 
         <!-- Características para múltiples imágenes - solo iconos + números -->
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 md:gap-3 flex-wrap">
           {isValidValue(property?.bedrooms) && (
-            <div class="glassmorphism-badge flex items-center gap-2">
-              <i class="fas fa-bed text-[#f04e00]"></i>
-              <span class="text-white font-semibold">{property.bedrooms}</span>
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bed text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.bedrooms}</span>
             </div>
           )}
-          
+
           {isValidValue(property?.bathrooms) && (
-            <div class="glassmorphism-badge flex items-center gap-2">
-              <i class="fas fa-bath text-[#f04e00]"></i>
-              <span class="text-white font-semibold">{property.bathrooms}</span>
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bath text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.bathrooms}</span>
             </div>
           )}
-          
+
           {isValidValue(property?.built_area) && (
-            <div class="glassmorphism-badge flex items-center gap-2">
-              <i class="fas fa-th-large text-[#f04e00]"></i>
-              <span class="text-white font-semibold">{property.built_area}m²</span>
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-th-large text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.built_area}m²</span>
             </div>
           )}
-          
+
           {isValidValue(property?.parking_spots) && (
-            <div class="glassmorphism-badge flex items-center gap-2">
-              <i class="fas fa-car text-[#f04e00]"></i>
-              <span class="text-white font-semibold">{property.parking_spots}</span>
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-car text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.parking_spots}</span>
             </div>
           )}
 
           {isValidValue(property?.nivel) && (
-            <div class="glassmorphism-badge flex items-center gap-2">
-              <i class="fas fa-layer-group text-[#f04e00]"></i>
-              <span class="text-white font-semibold">{getFloorOrdinal(property.nivel)}</span>
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-layer-group text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{getFloorOrdinal(property.nivel)}</span>
             </div>
           )}
         </div>
@@ -383,40 +406,40 @@ const isSingleImage = layoutClass === 'single-image';
 
     <!-- Información de Características - Solo para imagen única - solo iconos + números -->
     {isSingleImage && (
-      <div class="absolute bottom-6 left-6 right-6 pointer-events-auto">
-        <div class="flex items-center justify-center gap-4 flex-wrap">
+      <div class="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 pointer-events-auto">
+        <div class="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
           {isValidValue(property?.bedrooms) && (
-            <div class="glassmorphism-badge-large flex items-center gap-2">
-              <i class="fas fa-bed text-[#f04e00] text-lg"></i>
-              <span class="text-lg font-semibold text-white">{property.bedrooms}</span>
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bed text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.bedrooms}</span>
             </div>
           )}
-          
+
           {isValidValue(property?.bathrooms) && (
-            <div class="glassmorphism-badge-large flex items-center gap-2">
-              <i class="fas fa-bath text-[#f04e00] text-lg"></i>
-              <span class="text-lg font-semibold text-white">{property.bathrooms}</span>
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bath text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.bathrooms}</span>
             </div>
           )}
-          
+
           {isValidValue(property?.built_area) && (
-            <div class="glassmorphism-badge-large flex items-center gap-2">
-              <i class="fas fa-th-large text-[#f04e00] text-lg"></i>
-              <span class="text-lg font-semibold text-white">{property.built_area}m²</span>
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-th-large text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.built_area}m²</span>
             </div>
           )}
-          
+
           {isValidValue(property?.nivel) && (
-            <div class="glassmorphism-badge-large flex items-center gap-2">
-              <i class="fas fa-layer-group text-[#f04e00] text-lg"></i>
-              <span class="text-lg font-semibold text-white">{getFloorOrdinal(property.nivel)}</span>
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-layer-group text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{getFloorOrdinal(property.nivel)}</span>
             </div>
           )}
-          
+
           {isValidValue(property?.parking_spots) && (
-            <div class="glassmorphism-badge-large flex items-center gap-2">
-              <i class="fas fa-car text-[#f04e00] text-lg"></i>
-              <span class="text-lg font-semibold text-white">{property.parking_spots}</span>
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-car text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.parking_spots}</span>
             </div>
           )}
         </div>
@@ -569,18 +592,6 @@ const isSingleImage = layoutClass === 'single-image';
 
     .gallery-container {
       padding: 0.75rem;
-    }
-
-    /* Ajustes para múltiples imágenes en móvil */
-    .absolute.bottom-6.left-6:not(.right-6) {
-      left: 1rem;
-      max-width: calc(100% - 2rem);
-    }
-
-    /* Título más pequeño en móvil */
-    .absolute.bottom-6.left-6 h1 {
-      font-size: 1.5rem;
-      line-height: 1.3;
     }
   }
 

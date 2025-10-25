@@ -14,9 +14,13 @@ const formatPrice = (priceString) => {
 <div class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl group border border-gray-200/80">
   <div class="relative">
     <a href={property.url} class="block">
-      <img 
-        src={property.featuredImage || '/images/properties/default.jpg'} 
+      <img
+        src={property.featuredImage || '/images/properties/default.jpg'}
         alt={property.title}
+        width="400"
+        height="300"
+        loading="lazy"
+        decoding="async"
         class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
       />
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>

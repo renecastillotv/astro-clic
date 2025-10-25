@@ -38,18 +38,20 @@ export interface Props {
   hasNextPage?: boolean;
   hasPreviousPage?: boolean;
   language?: 'es' | 'en' | 'fr';
+  maxColumns?: 3 | 4; // Nueva prop para controlar columnas máximas
 }
 
-const { 
-  listings, 
-  meta, 
-  totalCount, 
-  currentPage = 1, 
+const {
+  listings,
+  meta,
+  totalCount,
+  currentPage = 1,
   totalPages = 1,
   itemsPerPage = 32,
   hasNextPage = false,
   hasPreviousPage = false,
-  language = 'es'
+  language = 'es',
+  maxColumns = 4 // Por defecto 4 columnas
 } = Astro.props;
 
 // Traducciones para textos estáticos
@@ -322,7 +324,7 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
 
   <!-- Grid de propiedades -->
   {hasProperties && (
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${maxColumns === 4 ? 'xl:grid-cols-4' : ''} gap-4`}>
       {displayListings.map((property, index) => {
         const propertyImages = property.imagenes || [property.imagen];
         const hasMultipleImages = propertyImages.length > 1;
@@ -342,13 +344,15 @@ const paginationPages = getPaginationPages(realCurrentPage, realTotalPages);
                   data-carousel={index}
                 >
                   {propertyImages.map((img, imgIndex) => (
-                    <img 
-                      src={img || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'} 
+                    <img
+                      src={img || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'}
                       alt={`${property.titulo} - ${language === 'es' ? 'Imagen' : language === 'en' ? 'Image' : 'Image'} ${imgIndex + 1}`}
+                      width="800"
+                      height="450"
                       class={`carousel-image absolute inset-0 w-full h-full object-cover transition-all duration-300 ${imgIndex === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
                       data-index={imgIndex}
                       data-carousel={index}
-                      loading="lazy"
+                      loading={imgIndex === 0 ? "eager" : "lazy"}
                       onerror="this.src='https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';"
                     />
                   ))}
