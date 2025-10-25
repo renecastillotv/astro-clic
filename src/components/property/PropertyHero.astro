@@ -147,14 +147,14 @@ const layoutClass = getLayoutClass(images.length);
 const isSingleImage = layoutClass === 'single-image';
 ---
 
-<!-- Hero Gallery Section - Fondo blanco limpio -->
-<div class="relative w-full h-[65.5vh] min-h-[529px] bg-white overflow-hidden">
-  
+<!-- Hero Gallery Section - Sin espacio superior (OPTIMIZED) -->
+<div class="relative w-full h-[65.5vh] min-h-[529px] bg-white overflow-hidden -mt-1">
+
   <!-- Dynamic Gallery Grid -->
-  <div class={`gallery-container ${layoutClass} h-full p-3`}>
-    
-    <!-- Botones de acción - Esquina superior derecha -->
-    <div class="absolute top-3 right-3 md:top-6 md:right-6 z-30 flex flex-col gap-2 md:gap-3 pointer-events-auto">
+  <div class={`gallery-container ${layoutClass} h-full p-0`}>
+
+    <!-- Botones de acción - Posicionados dentro de la imagen -->
+    <div class="absolute top-4 right-4 md:top-6 md:right-6 z-30 flex flex-col gap-2 md:gap-3 pointer-events-auto">
       <!-- Botón de compartir -->
       <button
         class="action-button w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
@@ -179,7 +179,7 @@ const isSingleImage = layoutClass === 'single-image';
     
     <!-- Layout para 1 imagen -->
     {layoutClass === 'single-image' && (
-      <div class="single-layout h-full relative overflow-hidden rounded-2xl shadow-2xl group">
+      <div class="single-layout h-full relative overflow-hidden shadow-2xl group">
         <img 
           src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
           alt={property?.title || t?.property || 'Propiedad'}

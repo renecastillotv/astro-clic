@@ -515,20 +515,24 @@ console.log('Layout procesado con nueva estructura:', {
         <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
           <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
             <img id="lightbox-image" style="max-width: 95%; max-height: 95%; width: auto; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
-            
-            <button onclick="closeLightbox()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.95); border: none; color: #333; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='scale(1)'">
-              x
+
+            <!-- Close Button - Más sutil -->
+            <button onclick="closeLightbox()" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.7;" onmouseover="this.style.background='rgba(0,0,0,0.8)'; this.style.opacity='1'" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.opacity='0.7'">
+              ✕
             </button>
-            
-            <button onclick="prevImage()" style="position: absolute; left: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
-              &lt;
+
+            <!-- Prev Button - Más sutil y pequeño -->
+            <button onclick="prevImage()" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.6;" onmouseover="this.style.background='rgba(0,0,0,0.7)'; this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(0,0,0,0.4)'; this.style.opacity='0.6'; this.style.transform='translateY(-50%) scale(1)'">
+              ‹
             </button>
-            
-            <button onclick="nextImage()" style="position: absolute; right: 30px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.95); border: none; color: #333; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: all 0.2s ease; z-index: 10001;" onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(-50%) scale(1)'">
-              &gt;
+
+            <!-- Next Button - Más sutil y pequeño -->
+            <button onclick="nextImage()" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.6;" onmouseover="this.style.background='rgba(0,0,0,0.7)'; this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(0,0,0,0.4)'; this.style.opacity='0.6'; this.style.transform='translateY(-50%) scale(1)'">
+              ›
             </button>
-            
-            <div style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: white; font-size: 16px; font-weight: 600; background: rgba(0,0,0,0.8); padding: 12px 24px; border-radius: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); z-index: 10001;">
+
+            <!-- Counter - Más compacto -->
+            <div style="position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px; font-weight: 500; background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(10px); z-index: 10001; opacity: 0.9;">
               <span id="lightbox-counter"></span>
             </div>
           </div>
