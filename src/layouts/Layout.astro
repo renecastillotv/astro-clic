@@ -321,6 +321,69 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
 
     <!-- Service Worker Registration (OPTIMIZED - PWA Support) -->
     <script>
+      // PWA Install prompt handler
+      let deferredPrompt;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 PWA install prompt available');
+        // Prevenir el prompt automático
+        e.preventDefault();
+        // Guardar el evento para usarlo después
+        deferredPrompt = e;
+
+        // Mostrar botón de instalación después de 10 segundos
+        setTimeout(() => {
+          if (deferredPrompt) {
+            showInstallPrompt();
+          }
+        }, 10000);
+      });
+
+      function showInstallPrompt() {
+        // Crear banner de instalación
+        const banner = document.createElement('div');
+        banner.id = 'pwa-install-banner';
+        banner.innerHTML = `
+          <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; max-width: 90%; width: 400px;">
+            <div style="background: linear-gradient(135deg, #f04e00 0%, #d94400 100%); color: white; padding: 16px 20px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 16px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">Instalar CLIC App</div>
+                <div style="font-size: 13px; opacity: 0.95;">Acceso rápido desde tu pantalla de inicio</div>
+              </div>
+              <button onclick="installPWA()" style="background: white; color: #f04e00; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap;">
+                Instalar
+              </button>
+              <button onclick="dismissInstallPrompt()" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); padding: 10px 16px; border-radius: 8px; font-weight: 500; font-size: 14px; cursor: pointer;">
+                Ahora no
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(banner);
+      }
+
+      window.installPWA = async function() {
+        if (!deferredPrompt) return;
+
+        // Mostrar el prompt
+        deferredPrompt.prompt();
+
+        // Esperar respuesta del usuario
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`📱 PWA install outcome: ${outcome}`);
+
+        // Limpiar
+        deferredPrompt = null;
+        dismissInstallPrompt();
+      };
+
+      window.dismissInstallPrompt = function() {
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner) {
+          banner.remove();
+        }
+      };
+
       // Registrar Service Worker para caching y offline support
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

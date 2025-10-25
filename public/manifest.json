@@ -1,27 +1,39 @@
 {
-  "name": "CLIC Inmobiliaria - Bienes Raíces República Dominicana",
+  "name": "CLIC Inmobiliaria",
   "short_name": "CLIC",
-  "description": "Encuentra tu propiedad ideal en República Dominicana con CLIC Inmobiliaria. Propiedades de lujo, apartamentos, casas y proyectos exclusivos.",
+  "description": "Encuentra tu propiedad ideal en República Dominicana",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f04e00",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
       "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["business", "lifestyle", "real estate"],
+  "categories": ["business", "lifestyle"],
   "lang": "es",
   "dir": "ltr",
   "scope": "/",

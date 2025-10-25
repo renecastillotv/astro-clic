@@ -135,37 +135,37 @@ const processedProperties = properties.map((property, index) => ({
       )}
     </div>
 
-    {/* Carrusel Container */}
-    <div class="relative px-12">
+    {/* Carrusel Container (OPTIMIZED - No cut content) */}
+    <div class="relative px-12 md:px-14">
       {/* Botones de navegación */}
-      <button 
-        class="carousel-nav-prev absolute -left-2 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
+      <button
+        class="carousel-nav-prev absolute left-0 md:-left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
         aria-label={t.previous}
       >
-        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 md:w-6 md:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
         </svg>
       </button>
-      
-      <button 
-        class="carousel-nav-next absolute -right-2 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
+
+      <button
+        class="carousel-nav-next absolute right-0 md:-right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
         aria-label={t.next}
       >
-        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 md:w-6 md:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
         </svg>
       </button>
 
-      {/* Carrusel */}
-      <div class="overflow-hidden">
-        <div class="flex gap-4 transition-transform duration-300" id={carouselId}>
+      {/* Carrusel - Con padding interno para que no se corten */}
+      <div class="overflow-hidden py-2">
+        <div class="flex gap-4 md:gap-6 transition-transform duration-300" id={carouselId}>
           {processedProperties.map((property, index) => {
             const propertyImages = property.imagenes || [property.imagen];
             const hasMultipleImages = propertyImages.length > 1;
             const imageCarouselId = `${carouselId}-img-${index}`;
-            
+
             return (
-              <article class="flex-shrink-0 w-72">
+              <article class="flex-shrink-0 w-[280px] md:w-[320px]">
                 <a 
                   href={property.url || `#`}
                   class="group cursor-pointer block"
@@ -390,18 +390,32 @@ const processedProperties = properties.map((property, index) => ({
     
     let currentIndex = 0;
     const items = carousel.children;
-    const itemWidth = 288 + 16;
-    const containerWidth = carousel.parentElement.offsetWidth;
-    const visibleItems = Math.floor(containerWidth / itemWidth);
-    const maxIndex = Math.max(0, items.length - visibleItems);
-    
+
+    // OPTIMIZED: Calcular itemWidth dinámicamente en lugar de hardcodear
+    function getItemWidth() {
+      if (items.length === 0) return 0;
+      const firstItem = items[0];
+      const itemRect = firstItem.getBoundingClientRect();
+      const style = window.getComputedStyle(carousel);
+      const gap = parseInt(style.gap) || (window.innerWidth >= 768 ? 24 : 16);
+      return itemRect.width + gap;
+    }
+
     function updateMainCarousel() {
+      const itemWidth = getItemWidth();
+      const containerWidth = carousel.parentElement.offsetWidth;
+      const visibleItems = Math.max(1, Math.floor(containerWidth / itemWidth));
+      const maxIndex = Math.max(0, items.length - visibleItems);
+
+      // Ajustar currentIndex si está fuera de rango
+      currentIndex = Math.min(currentIndex, maxIndex);
+
       const translateX = currentIndex * itemWidth;
       carousel.style.transform = `translateX(-${translateX}px)`;
-      
+
       prevBtn.disabled = currentIndex === 0;
       nextBtn.disabled = currentIndex >= maxIndex;
-      
+
       prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
       nextBtn.style.opacity = currentIndex >= maxIndex ? '0.5' : '1';
     }
@@ -418,14 +432,29 @@ const processedProperties = properties.map((property, index) => ({
     nextBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      const itemWidth = getItemWidth();
+      const containerWidth = carousel.parentElement.offsetWidth;
+      const visibleItems = Math.max(1, Math.floor(containerWidth / itemWidth));
+      const maxIndex = Math.max(0, items.length - visibleItems);
+
       if (currentIndex < maxIndex) {
         currentIndex++;
         updateMainCarousel();
       }
     });
-    
+
+    // OPTIMIZED: Recalcular en resize para mantener responsividad
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        currentIndex = 0; // Reset al inicio en resize
+        updateMainCarousel();
+      }, 200);
+    });
+
     updateMainCarousel();
-    
+
     // ===== RESTO DEL CÓDIGO JAVASCRIPT IGUAL =====
     const imageStates = new Map();
     
